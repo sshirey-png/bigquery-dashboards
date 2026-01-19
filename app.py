@@ -402,6 +402,118 @@ def get_staff(supervisor_name):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/itr-detail/<email>', methods=['GET'])
+@login_required
+def get_itr_detail(email):
+    """
+    Get Intent to Return detail for a specific employee by email.
+    Returns detailed ITR survey response data from native table.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    try:
+        # Query the native table directly (avoids Google Sheets permission issues)
+        query = """
+            SELECT
+                Email_Address,
+                Timestamp,
+                Return,
+                Return_Role,
+                Return_Role_Preference,
+                Return_Role_Preference_Other,
+                -- Yes responses
+                Yes_Decision_Factors,
+                Yes_NPS,
+                Yes_Top_Factors_Recommend_FLS,
+                Yes_Adult_Culture_Open,
+                Yes_Improve_Retention_Open,
+                -- Maybe/Unsure responses
+                Maybe_Decision_Factors,
+                Maybe_NPS,
+                Maybe_Top_Factors_Recommend_FLS,
+                Maybe_Adult_Culture_Open,
+                Maybe_Improve_Retention_Open,
+                -- No responses
+                No_Decision_Factors,
+                No_NPS,
+                No_Top_Factors_Recommend_FLS,
+                No_Adult_Culture_Open,
+                No_Improve_Retention_Open
+            FROM `talent-demo-482004.intent_to_return.intent_to_return_native`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            LIMIT 1
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", email)
+            ]
+        )
+
+        logger.info(f"Fetching ITR detail for: {email}")
+        query_job = client.query(query, job_config=job_config)
+        results = list(query_job.result())
+
+        if not results:
+            return jsonify({'error': 'No ITR data found for this employee'}), 404
+
+        row = results[0]
+        intent = row.Return  # Yes, No, or Unsure
+
+        # Select the appropriate fields based on the response type
+        if intent == 'Yes':
+            nps_score = row.Yes_NPS
+            decision_factors = row.Yes_Decision_Factors
+            top_factors = row.Yes_Top_Factors_Recommend_FLS
+            culture_feedback = row.Yes_Adult_Culture_Open
+            retention_feedback = row.Yes_Improve_Retention_Open
+        elif intent == 'No':
+            nps_score = row.No_NPS
+            decision_factors = row.No_Decision_Factors
+            top_factors = row.No_Top_Factors_Recommend_FLS
+            culture_feedback = row.No_Adult_Culture_Open
+            retention_feedback = row.No_Improve_Retention_Open
+        else:  # Unsure/Maybe
+            nps_score = row.Maybe_NPS
+            decision_factors = row.Maybe_Decision_Factors
+            top_factors = row.Maybe_Top_Factors_Recommend_FLS
+            culture_feedback = row.Maybe_Adult_Culture_Open
+            retention_feedback = row.Maybe_Improve_Retention_Open
+
+        # Determine NPS category
+        nps_category = None
+        if nps_score is not None:
+            if nps_score >= 9:
+                nps_category = 'Promoter'
+            elif nps_score >= 7:
+                nps_category = 'Passive'
+            else:
+                nps_category = 'Detractor'
+
+        itr_data = {
+            'email': row.Email_Address,
+            'response_date': row.Timestamp.isoformat() if row.Timestamp else None,
+            'intent_to_return': intent,
+            'return_role': row.Return_Role,
+            'return_role_preference': row.Return_Role_Preference,
+            'return_role_preference_other': row.Return_Role_Preference_Other,
+            'nps_score': nps_score,
+            'nps_category': nps_category,
+            'decision_factors': decision_factors,
+            'top_factors_recommend_fls': top_factors,
+            'adult_culture_feedback': culture_feedback,
+            'improve_retention_feedback': retention_feedback
+        }
+
+        logger.info(f"Found ITR data for {email}: intent={intent}")
+        return jsonify(itr_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching ITR detail for {email}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/orgchart')
 def orgchart():
     """Serve the organization chart HTML file"""

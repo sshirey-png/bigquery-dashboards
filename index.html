@@ -415,7 +415,6 @@
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Last Obs</th>
                                 <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">PMAPS</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Intent to Return</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">NPS</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                             </tr>
                         </thead>
@@ -576,10 +575,10 @@
                             </div>
                         </div>
 
-                        <!-- Intent to Return & Satisfaction -->
+                        <!-- Intent to Return -->
                         <div class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Intent & Satisfaction</h3>
-                            <div class="grid grid-cols-3 gap-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Intent to Return</h3>
+                            <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-xs text-slate-500 mb-1">Intent to Return</p>
                                     <p class="text-sm font-medium text-slate-900" id="detailIntentToReturn"></p>
@@ -588,11 +587,10 @@
                                     <p class="text-xs text-slate-500 mb-1">Response Status</p>
                                     <p class="text-sm font-medium text-slate-900" id="detailIntentDate"></p>
                                 </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">NPS Score</p>
-                                    <p class="text-sm font-medium text-slate-900" id="detailNPSScore"></p>
-                                </div>
                             </div>
+                            <button onclick="closeModal(); showITRDetail(currentDetailEmail);" class="mt-3 text-sm text-fls-orange hover:text-fls-orange-dark font-medium">
+                                View Full ITR Details →
+                            </button>
                         </div>
 
                         <!-- All Alerts Section -->
@@ -613,6 +611,119 @@
         </div>
     </div>
 
+    <!-- ITR Detail Modal -->
+    <div id="itrModal" class="fixed inset-0 z-50 hidden animate-fade-in">
+        <div class="modal-backdrop absolute inset-0" id="itrModalBackdrop"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-slide-up">
+                <!-- Modal Header -->
+                <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Intent to Return Details</h2>
+                        <p class="text-sm text-slate-500" id="itrEmployeeName"></p>
+                    </div>
+                    <button id="closeItrModalBtn" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="overflow-y-auto max-h-[calc(90vh-140px)]">
+                    <!-- Loading State -->
+                    <div id="itrLoading" class="p-12 text-center">
+                        <div class="loading mx-auto mb-4"></div>
+                        <p class="text-slate-500 text-sm">Loading ITR data...</p>
+                    </div>
+
+                    <!-- No Response State -->
+                    <div id="itrNoResponse" class="hidden p-12 text-center">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-slate-600 font-medium mb-1">No Response Yet</p>
+                        <p class="text-slate-500 text-sm">This employee has not completed the Intent to Return survey.</p>
+                    </div>
+
+                    <!-- ITR Data Content -->
+                    <div id="itrContent" class="hidden p-6 space-y-4">
+                        <!-- Response Status Banner -->
+                        <div id="itrStatusBanner" class="p-4 rounded-xl">
+                            <div class="flex items-center gap-3">
+                                <div id="itrStatusIcon" class="w-10 h-10 rounded-full flex items-center justify-center"></div>
+                                <div>
+                                    <p class="text-sm font-medium" id="itrStatusText"></p>
+                                    <p class="text-xs opacity-75" id="itrResponseDate"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Return Role (if returning) -->
+                        <div id="itrReturnRoleSection" class="hidden bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Return Plans</h3>
+                            <div class="space-y-2">
+                                <div>
+                                    <p class="text-xs text-slate-500">Same Role?</p>
+                                    <p class="text-sm font-medium text-slate-900" id="itrReturnRole"></p>
+                                </div>
+                                <div id="itrRolePreferenceSection" class="hidden">
+                                    <p class="text-xs text-slate-500">Role Preference</p>
+                                    <p class="text-sm font-medium text-slate-900" id="itrRolePreference"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Decision Factors -->
+                        <div id="itrDecisionSection" class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Decision Factors</h3>
+                            <p class="text-sm text-slate-700" id="itrDecisionFactors"></p>
+                        </div>
+
+                        <!-- NPS Score -->
+                        <div id="itrNpsSection" class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">NPS Score</h3>
+                            <div class="flex items-center gap-3">
+                                <div id="itrNpsScoreBadge" class="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-900" id="itrNpsCategory"></p>
+                                    <p class="text-xs text-slate-500">Net Promoter Score</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Factors to Recommend FLS -->
+                        <div id="itrRecommendSection" class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Top Factors to Recommend FLS</h3>
+                            <p class="text-sm text-slate-700" id="itrTopFactors"></p>
+                        </div>
+
+                        <!-- Adult Culture Feedback -->
+                        <div id="itrCultureSection" class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Adult Culture Feedback</h3>
+                            <p class="text-sm text-slate-700 italic" id="itrCultureFeedback"></p>
+                        </div>
+
+                        <!-- Retention Improvement Feedback -->
+                        <div id="itrRetentionSection" class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Suggestions to Improve Retention</h3>
+                            <p class="text-sm text-slate-700 italic" id="itrRetentionFeedback"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
+                    <button id="closeItrModalBtnFooter" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global state
         let currentSupervisor = '';
@@ -620,6 +731,7 @@
         let staffData = [];
         let filteredData = [];
         let currentFilter = 'all';
+        let currentDetailEmail = '';
 
         // API base URL
         const API_BASE = window.location.origin;
@@ -897,8 +1009,14 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeModal();
+                    closeItrModal();
                 }
             });
+
+            // ITR Modal event listeners
+            document.getElementById('closeItrModalBtn').addEventListener('click', closeItrModal);
+            document.getElementById('closeItrModalBtnFooter').addEventListener('click', closeItrModal);
+            document.getElementById('itrModalBackdrop').addEventListener('click', closeItrModal);
         }
 
         // Load staff data from API
@@ -1093,10 +1211,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm ${getIntentColor(staff.intent_to_return)}">${getIntentStatus(staff.intent_to_return)}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="text-sm text-slate-600">${staff.nps_score || '—'}</span>
+                        <button onclick="event.stopPropagation(); showITRDetail('${staff.Email_Address}')" class="text-sm ${getIntentColor(staff.intent_to_return)} hover:underline cursor-pointer">${getIntentStatus(staff.intent_to_return)}</button>
                     </td>
                     <td class="px-6 py-4">
                         ${getEmployeeStatusBadge(staff.Employment_Status)}
@@ -1132,9 +1247,9 @@
                             <div class="text-lg font-semibold text-slate-900">${staff.total_observations || 0}</div>
                             <div class="text-xs text-slate-500">Total Obs</div>
                         </div>
-                        <div>
-                            <div class="text-lg font-semibold text-slate-900">${staff.nps_score || '—'}</div>
-                            <div class="text-xs text-slate-500">NPS</div>
+                        <div onclick="event.stopPropagation(); showITRDetail('${staff.Email_Address}')" class="cursor-pointer">
+                            <div class="text-lg font-semibold ${getIntentColor(staff.intent_to_return)}">${getIntentStatus(staff.intent_to_return)}</div>
+                            <div class="text-xs text-slate-500">Intent</div>
                         </div>
                     </div>
                     <div class="flex items-center justify-between pt-3 border-t border-slate-100">
@@ -1257,6 +1372,9 @@
 
         // Render detail view modal
         function renderDetailView(staff) {
+            // Store email for ITR detail link
+            currentDetailEmail = staff.Email_Address || '';
+
             const initials = getInitials(staff.Staff_Name);
             document.getElementById('detailAvatar').textContent = initials;
             document.getElementById('detailName').textContent = staff.Staff_Name || 'N/A';
@@ -1340,7 +1458,6 @@
 
             document.getElementById('detailIntentToReturn').textContent = staff.intent_to_return || 'N/A';
             document.getElementById('detailIntentDate').textContent = staff.intent_response_status || 'N/A';
-            document.getElementById('detailNPSScore').textContent = staff.nps_score || 'N/A';
 
             // Render alerts
             const alerts = calculateAlerts(staff);
@@ -1384,6 +1501,175 @@
         // Close modal
         function closeModal() {
             document.getElementById('detailModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Show ITR Detail Modal
+        async function showITRDetail(email) {
+            if (!email) return;
+
+            const modal = document.getElementById('itrModal');
+            const loading = document.getElementById('itrLoading');
+            const noResponse = document.getElementById('itrNoResponse');
+            const content = document.getElementById('itrContent');
+
+            // Show modal with loading state
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            loading.classList.remove('hidden');
+            noResponse.classList.add('hidden');
+            content.classList.add('hidden');
+
+            // Find staff name from current data
+            const staffMember = staffData.find(s => s.Email_Address === email);
+            const staffName = staffMember ? staffMember.Staff_Name : email;
+            document.getElementById('itrEmployeeName').textContent = staffName;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/itr-detail/${encodeURIComponent(email)}`, {
+                    credentials: 'include'
+                });
+
+                loading.classList.add('hidden');
+
+                if (response.status === 404) {
+                    // No ITR data found
+                    noResponse.classList.remove('hidden');
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch ITR data');
+                }
+
+                const data = await response.json();
+                renderITRDetail(data);
+                content.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error fetching ITR detail:', error);
+                loading.classList.add('hidden');
+                noResponse.classList.remove('hidden');
+            }
+        }
+
+        // Render ITR detail data
+        function renderITRDetail(data) {
+            // Status banner
+            const statusBanner = document.getElementById('itrStatusBanner');
+            const statusIcon = document.getElementById('itrStatusIcon');
+            const statusText = document.getElementById('itrStatusText');
+            const responseDate = document.getElementById('itrResponseDate');
+
+            const intent = (data.intent_to_return || '').toLowerCase();
+            let bannerColors, iconHtml, statusLabel;
+
+            if (intent === 'yes') {
+                bannerColors = 'bg-emerald-50 border border-emerald-200';
+                iconHtml = '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100';
+                statusLabel = 'Intends to Return';
+            } else if (intent === 'no') {
+                bannerColors = 'bg-red-50 border border-red-200';
+                iconHtml = '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-red-100';
+                statusLabel = 'Not Returning';
+            } else {
+                bannerColors = 'bg-amber-50 border border-amber-200';
+                iconHtml = '<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-amber-100';
+                statusLabel = 'Unsure / Undecided';
+            }
+
+            statusBanner.className = `p-4 rounded-xl ${bannerColors}`;
+            statusIcon.innerHTML = iconHtml;
+            statusText.textContent = statusLabel;
+            responseDate.textContent = data.response_date ? `Responded: ${formatDate(data.response_date)}` : '';
+
+            // Return Role Section (show only if returning)
+            const returnRoleSection = document.getElementById('itrReturnRoleSection');
+            const rolePreferenceSection = document.getElementById('itrRolePreferenceSection');
+
+            if (intent === 'yes' && data.return_role) {
+                returnRoleSection.classList.remove('hidden');
+                document.getElementById('itrReturnRole').textContent = data.return_role;
+
+                if (data.return_role_preference || data.return_role_preference_other) {
+                    rolePreferenceSection.classList.remove('hidden');
+                    document.getElementById('itrRolePreference').textContent =
+                        data.return_role_preference_other || data.return_role_preference || 'N/A';
+                } else {
+                    rolePreferenceSection.classList.add('hidden');
+                }
+            } else {
+                returnRoleSection.classList.add('hidden');
+            }
+
+            // Decision Factors
+            const decisionSection = document.getElementById('itrDecisionSection');
+            if (data.decision_factors) {
+                decisionSection.classList.remove('hidden');
+                document.getElementById('itrDecisionFactors').textContent = data.decision_factors;
+            } else {
+                decisionSection.classList.add('hidden');
+            }
+
+            // NPS Score
+            const npsSection = document.getElementById('itrNpsSection');
+            if (data.nps_score !== null && data.nps_score !== undefined) {
+                npsSection.classList.remove('hidden');
+                const npsBadge = document.getElementById('itrNpsScoreBadge');
+                const npsCategory = document.getElementById('itrNpsCategory');
+
+                let npsColors;
+                if (data.nps_score >= 9) {
+                    npsColors = 'bg-emerald-100 text-emerald-700';
+                    npsCategory.textContent = 'Promoter';
+                } else if (data.nps_score >= 7) {
+                    npsColors = 'bg-amber-100 text-amber-700';
+                    npsCategory.textContent = 'Passive';
+                } else {
+                    npsColors = 'bg-red-100 text-red-700';
+                    npsCategory.textContent = 'Detractor';
+                }
+
+                npsBadge.className = `w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${npsColors}`;
+                npsBadge.textContent = data.nps_score;
+            } else {
+                npsSection.classList.add('hidden');
+            }
+
+            // Top Factors to Recommend FLS
+            const recommendSection = document.getElementById('itrRecommendSection');
+            if (data.top_factors_recommend_fls) {
+                recommendSection.classList.remove('hidden');
+                document.getElementById('itrTopFactors').textContent = data.top_factors_recommend_fls;
+            } else {
+                recommendSection.classList.add('hidden');
+            }
+
+            // Adult Culture Feedback
+            const cultureSection = document.getElementById('itrCultureSection');
+            if (data.adult_culture_feedback && data.adult_culture_feedback.toLowerCase() !== 'n/a') {
+                cultureSection.classList.remove('hidden');
+                document.getElementById('itrCultureFeedback').textContent = `"${data.adult_culture_feedback}"`;
+            } else {
+                cultureSection.classList.add('hidden');
+            }
+
+            // Retention Improvement Feedback
+            const retentionSection = document.getElementById('itrRetentionSection');
+            if (data.improve_retention_feedback && data.improve_retention_feedback.toLowerCase() !== 'n/a') {
+                retentionSection.classList.remove('hidden');
+                document.getElementById('itrRetentionFeedback').textContent = `"${data.improve_retention_feedback}"`;
+            } else {
+                retentionSection.classList.add('hidden');
+            }
+        }
+
+        // Close ITR modal
+        function closeItrModal() {
+            document.getElementById('itrModal').classList.add('hidden');
             document.body.style.overflow = '';
         }
 
