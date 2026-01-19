@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor Dashboard | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #e47727;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive table */
+        @media (max-width: 1024px) {
+            .desktop-table {
+                display: none;
+            }
+            .mobile-cards {
+                display: block;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .desktop-table {
+                display: table;
+            }
+            .mobile-cards {
+                display: none;
+            }
+        }
+
+        /* Progress bar styling */
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Table row hover */
+        .table-row {
+            transition: all 0.15s ease;
+        }
+
+        .table-row:hover {
+            background-color: #f1f5f9;
+            cursor: pointer;
+        }
+
+        .table-row:hover td:first-child {
+            border-left: 3px solid #e47727;
+            padding-left: calc(1.5rem - 3px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Segmented control */
+        .segmented-control {
+            display: flex;
+            background-color: #f1f5f9;
+            border-radius: 0.75rem;
+            padding: 4px;
+        }
+
+        .segment-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .segment-btn:hover {
+            color: #334155;
+        }
+
+        .segment-btn.active {
+            background-color: #e47727;
+            color: white;
+            box-shadow: 0 1px 3px 0 rgba(228, 119, 39, 0.3), 0 1px 2px -1px rgba(228, 119, 39, 0.2);
+        }
+
+        /* Avatar gradient */
+        .avatar-gradient {
+            background: linear-gradient(135deg, #094aad 0%, #002f60 100%);
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Login/Selection Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+                <!-- Branded Header -->
+                <div class="flex items-center justify-center mb-6">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+                </div>
+
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Supervisor Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">Sign in with your FirstLine Schools account</p>
+
+                <!-- Error Messages -->
+                <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-red-800" id="authErrorTitle">Authentication Error</p>
+                            <p class="text-sm text-red-700 mt-1" id="authErrorMessage"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Not a Supervisor Warning -->
+                <div id="notSupervisorWarning" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-amber-800">Access Limited</p>
+                            <p class="text-sm text-amber-700 mt-1">Your account is not associated with a supervisor role. Please contact your administrator if you believe this is an error.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="authLoading" class="hidden mb-6 text-center">
+                    <div class="loading mx-auto mb-3"></div>
+                    <p class="text-sm text-slate-500">Checking authentication...</p>
+                </div>
+
+                <!-- Supervisor Selection (shown after auth for users with multiple supervisors) -->
+                <div id="supervisorSelection" class="hidden">
+                    <div class="flex items-center gap-2 mb-4">
+                        <img id="loginUserPic" src="" alt="" class="w-10 h-10 rounded-full">
+                        <div>
+                            <p class="text-sm font-medium text-slate-900" id="loginUserName"></p>
+                            <p class="text-xs text-slate-500" id="loginUserEmail"></p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="supervisorSelect" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                            Select a Supervisor to View
+                        </label>
+                        <div class="relative">
+                            <select id="supervisorSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
+                                <option value="">Select a supervisor...</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">You have access to <span id="accessibleCount">0</span> supervisors</p>
+                    </div>
+
+                    <button id="viewDashboardBtn" class="w-full bg-fls-orange hover:bg-fls-orange-dark text-white font-semibold py-3 px-4 rounded-full transition-all shadow-lg shadow-fls-orange/30 hover:shadow-fls-orange/40 mb-3">
+                        View Dashboard
+                    </button>
+
+                    <a href="/logout" class="block text-center text-sm text-slate-500 hover:text-slate-700">
+                        Sign out
+                    </a>
+                </div>
+
+                <!-- Sign In Button -->
+                <a href="/login" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign in with Google
+                </a>
+
+                <p id="signInNote" class="text-xs text-slate-400 text-center mt-4">
+                    Only @firstlineschools.org accounts are allowed
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-4">
+                        <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                        <div>
+                            <h1 class="text-lg font-semibold text-white">Supervisor Dashboard</h1>
+                            <p class="text-xs text-orange-200"><span id="currentSupervisorName"></span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <!-- User Profile -->
+                        <div class="flex items-center gap-2">
+                            <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
+                            <span id="userDisplayName" class="text-sm text-white hidden"></span>
+                        </div>
+                        <!-- Change Supervisor (hidden by default, shown for multi-supervisor users) -->
+                        <button id="changeSupervisorBtn" class="hidden inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                            Change
+                        </button>
+                        <!-- Org Chart Link -->
+                        <a href="/orgchart" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>
+                            </svg>
+                            Org Chart
+                        </a>
+                        <button id="refreshBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                        <a href="/logout" id="logoutBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Summary Stats -->
+            <div id="summaryStats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-fls-navy/10 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-fls-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Staff</p>
+                            <p class="text-2xl font-semibold text-fls-navy" id="statTotalStaff">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Action Needed</p>
+                            <p class="text-2xl font-semibold text-red-500" id="statActionNeeded">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Warnings</p>
+                            <p class="text-2xl font-semibold text-amber-500" id="statWarnings">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Good Standing</p>
+                            <p class="text-2xl font-semibold text-emerald-500" id="statGoodStanding">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input type="text" id="searchInput" placeholder="Search by staff name..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
+                    </div>
+                    <div class="segmented-control">
+                        <button class="segment-btn active" data-filter="all">All Staff</button>
+                        <button class="segment-btn" data-filter="alerts">With Alerts</button>
+                        <button class="segment-btn" data-filter="action">Action Needed</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff List -->
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div id="loadingIndicator" class="p-12 text-center">
+                    <div class="loading mx-auto mb-4"></div>
+                    <p class="text-slate-500 text-sm">Loading staff data...</p>
+                </div>
+
+                <div id="staffTableContainer" class="hidden">
+                    <table class="desktop-table min-w-full">
+                        <thead>
+                            <tr class="border-b border-slate-200 bg-slate-50">
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Staff Member</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">FLS Years of Service</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Birthday</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Time Off Remaining</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Obs</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Last Obs</th>
+                                <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">PMAPS</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Intent to Return</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">NPS</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards View -->
+                    <div class="mobile-cards p-4 space-y-3" id="staffCardsContainer">
+                    </div>
+                </div>
+
+                <div id="noDataMessage" class="hidden p-12 text-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                    </div>
+                    <p class="text-slate-500 text-sm">No staff members found matching your criteria.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail View Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden animate-fade-in">
+        <div class="modal-backdrop absolute inset-0" id="modalBackdrop"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-slide-up">
+                <!-- Modal Header -->
+                <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full avatar-gradient flex items-center justify-center text-white font-semibold text-lg" id="detailAvatar"></div>
+                        <div>
+                            <h2 class="text-xl font-semibold text-slate-900" id="detailName"></h2>
+                            <p class="text-sm text-slate-500" id="detailJobTitleHeader"></p>
+                        </div>
+                    </div>
+                    <button id="closeModalBtn" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="overflow-y-auto max-h-[calc(90vh-140px)]">
+                    <!-- Alert Banner -->
+                    <div id="detailAlertBanner" class="hidden mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-semibold text-red-800">Action Required</h3>
+                                <div id="detailAlertList" class="text-sm text-red-700 mt-1 space-y-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <!-- Personal Information -->
+                        <div class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Personal Information</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Email</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailEmail"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Birthday</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailBirthday"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Hire Date</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailHireDate"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Years of Service</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailYearsOfService"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Job Function</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailJobFunction"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Off Balances -->
+                        <div class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Time Off Balances</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600">PTO Hours</span>
+                                        <span class="font-medium text-slate-900" id="detailPTOHours"></span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill bg-fls-orange" id="detailPTOBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600">Vacation Hours</span>
+                                        <span class="font-medium text-slate-900" id="detailVacationHours"></span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill bg-emerald-500" id="detailVacationBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600">Personal Hours</span>
+                                        <span class="font-medium text-slate-900" id="detailPersonalHours"></span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill bg-violet-500" id="detailPersonalBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600">Sick Hours</span>
+                                        <span class="font-medium text-slate-900" id="detailSickHours"></span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill bg-amber-500" id="detailSickBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observations & Performance -->
+                        <div class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Observations & Performance</h3>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Total Observations</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailTotalObs"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Last Observation</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailLastObsType"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Last Observation Date</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailLastObsDate"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">IAPs/Write-ups</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailDisciplinary"></p>
+                                </div>
+                            </div>
+                            <div class="pt-4 border-t border-slate-200">
+                                <p class="text-xs text-slate-500 mb-3">PMAPS Status</p>
+                                <div class="flex flex-wrap gap-2" id="detailComplianceChips"></div>
+                            </div>
+                        </div>
+
+                        <!-- Intent to Return & Satisfaction -->
+                        <div class="bg-slate-50 rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Intent & Satisfaction</h3>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Intent to Return</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailIntentToReturn"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Response Status</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailIntentDate"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">NPS Score</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailNPSScore"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- All Alerts Section -->
+                        <div id="detailAlertsSection" class="bg-slate-50 rounded-xl p-4 hidden">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">All Alerts & Notes</h3>
+                            <div id="detailAlerts" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
+                    <button id="closeModalBtnFooter" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentSupervisor = '';
+        let currentUser = null;
+        let staffData = [];
+        let filteredData = [];
+        let currentFilter = 'all';
+
+        // API base URL
+        const API_BASE = window.location.origin;
+
+        // Deadline configuration by Job_Function
+        // Values: Teacher, Leadership, Network, Support, Operations
+        // Note: Using Date(year, month-1, day) to avoid timezone issues
+        const DEADLINES = {
+            'Teacher': {
+                sr1: new Date(2025, 10, 17),  // Nov 17, 2025
+                pmap1: new Date(2025, 10, 17),
+                sr2: new Date(2026, 2, 6),    // Mar 6, 2026
+                pmap2: new Date(2026, 2, 6),
+                hasSecondRound: true
+            },
+            'Leadership': {
+                sr1: new Date(2025, 7, 29),   // Aug 29, 2025
+                pmap1: new Date(2025, 7, 29),
+                sr2: new Date(2026, 0, 30),   // Jan 30, 2026
+                pmap2: new Date(2026, 0, 30),
+                hasSecondRound: true
+            },
+            'Network': {
+                sr1: new Date(2025, 7, 29),   // Aug 29, 2025
+                pmap1: new Date(2025, 7, 29),
+                sr2: new Date(2026, 0, 30),   // Jan 30, 2026
+                pmap2: new Date(2026, 0, 30),
+                hasSecondRound: true
+            },
+            'Support': {
+                sr1: new Date(2026, 2, 6),    // Mar 6, 2026
+                pmap1: new Date(2026, 2, 6),
+                sr2: null,
+                pmap2: null,
+                hasSecondRound: false
+            },
+            'Operations': {
+                sr1: new Date(2026, 2, 6),    // Mar 6, 2026
+                pmap1: new Date(2026, 2, 6),
+                sr2: null,
+                pmap2: null,
+                hasSecondRound: false
+            }
+        };
+
+        // Get deadlines for a Job_Function (with fallback to Teacher deadlines)
+        function getDeadlines(jobFunction) {
+            // Try exact match first
+            if (DEADLINES[jobFunction]) {
+                return DEADLINES[jobFunction];
+            }
+            // Try case-insensitive partial match
+            const lowerType = (jobFunction || '').toLowerCase();
+            for (const [key, value] of Object.entries(DEADLINES)) {
+                if (lowerType.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerType)) {
+                    return value;
+                }
+            }
+            // Default to Teacher deadlines (most common)
+            return DEADLINES['Teacher'];
+        }
+
+        // Check if a deadline is overdue
+        function isOverdue(deadline) {
+            if (!deadline) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return today > deadline;
+        }
+
+        // Format deadline for display
+        function formatDeadline(deadline) {
+            if (!deadline) return 'N/A';
+            return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+            setupEventListeners();
+            handleUrlErrors();
+        });
+
+        // Check URL for error parameters
+        function handleUrlErrors() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const domain = urlParams.get('domain');
+
+            if (error) {
+                const errorDiv = document.getElementById('authError');
+                const errorTitle = document.getElementById('authErrorTitle');
+                const errorMessage = document.getElementById('authErrorMessage');
+
+                if (error === 'unauthorized_domain') {
+                    errorTitle.textContent = 'Unauthorized Domain';
+                    errorMessage.textContent = `Only @firstlineschools.org accounts are allowed. You signed in with an @${domain || 'unknown'} account.`;
+                } else if (error === 'auth_failed') {
+                    errorTitle.textContent = 'Authentication Failed';
+                    errorMessage.textContent = 'There was a problem signing you in. Please try again.';
+                } else if (error === 'session_expired') {
+                    errorTitle.textContent = 'Session Expired';
+                    errorMessage.textContent = 'Your session has expired. Please sign in again.';
+                } else {
+                    errorTitle.textContent = 'Error';
+                    errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                }
+
+                errorDiv.classList.remove('hidden');
+                // Clear URL params
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // Check authentication status
+        async function checkAuthStatus() {
+            const authLoading = document.getElementById('authLoading');
+            const googleSignInBtn = document.getElementById('googleSignInBtn');
+            const signInNote = document.getElementById('signInNote');
+            const supervisorSelection = document.getElementById('supervisorSelection');
+
+            try {
+                authLoading.classList.remove('hidden');
+                googleSignInBtn.classList.add('hidden');
+                signInNote.classList.add('hidden');
+
+                const response = await fetch(`${API_BASE}/api/auth/status`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                authLoading.classList.add('hidden');
+
+                if (data.authenticated && data.user) {
+                    currentUser = data.user;
+                    const accessibleSupervisors = data.user.accessible_supervisors || [];
+
+                    // Update user profile in header
+                    if (data.user.picture) {
+                        const profilePic = document.getElementById('userProfilePic');
+                        profilePic.src = data.user.picture;
+                        profilePic.classList.remove('hidden');
+                    }
+                    if (data.user.name) {
+                        const displayName = document.getElementById('userDisplayName');
+                        displayName.textContent = data.user.name;
+                        displayName.classList.remove('hidden');
+                    }
+
+                    // Check accessible supervisors
+                    if (accessibleSupervisors.length === 0) {
+                        // User is authenticated but has no supervisor access
+                        document.getElementById('notSupervisorWarning').classList.remove('hidden');
+                        googleSignInBtn.textContent = 'Sign in with a different account';
+                        googleSignInBtn.classList.remove('hidden');
+                    } else if (accessibleSupervisors.length === 1) {
+                        // Single supervisor - auto-load dashboard
+                        currentSupervisor = accessibleSupervisors[0];
+                        document.getElementById('currentSupervisorName').textContent = currentSupervisor;
+                        document.getElementById('loginScreen').classList.add('hidden');
+                        document.getElementById('dashboardScreen').classList.remove('hidden');
+                        loadStaffData(currentSupervisor);
+                    } else {
+                        // Multiple supervisors - show selection dropdown
+                        showSupervisorSelection(data.user, accessibleSupervisors);
+                    }
+                } else {
+                    // Not authenticated - show sign in button
+                    googleSignInBtn.classList.remove('hidden');
+                    signInNote.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                authLoading.classList.add('hidden');
+                googleSignInBtn.classList.remove('hidden');
+                signInNote.classList.remove('hidden');
+            }
+        }
+
+        // Show supervisor selection for users with multiple accessible supervisors
+        function showSupervisorSelection(user, supervisors) {
+            const supervisorSelection = document.getElementById('supervisorSelection');
+            const loginUserPic = document.getElementById('loginUserPic');
+            const loginUserName = document.getElementById('loginUserName');
+            const loginUserEmail = document.getElementById('loginUserEmail');
+            const supervisorSelect = document.getElementById('supervisorSelect');
+            const accessibleCount = document.getElementById('accessibleCount');
+
+            // Set user info
+            if (user.picture) {
+                loginUserPic.src = user.picture;
+            }
+            loginUserName.textContent = user.name || 'User';
+            loginUserEmail.textContent = user.email || '';
+            accessibleCount.textContent = supervisors.length;
+
+            // Populate supervisor dropdown
+            supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
+            supervisors.forEach(supervisor => {
+                const option = document.createElement('option');
+                option.value = supervisor;
+                option.textContent = supervisor;
+                // Pre-select user's own supervisor if they have one
+                if (supervisor === user.supervisor_name) {
+                    option.selected = true;
+                }
+                supervisorSelect.appendChild(option);
+            });
+
+            // Show the selection UI
+            supervisorSelection.classList.remove('hidden');
+        }
+
+        // Handle view dashboard button click
+        function handleViewDashboard() {
+            const supervisorSelect = document.getElementById('supervisorSelect');
+            const selectedSupervisor = supervisorSelect.value;
+
+            if (!selectedSupervisor) {
+                alert('Please select a supervisor to view');
+                return;
+            }
+
+            currentSupervisor = selectedSupervisor;
+            document.getElementById('currentSupervisorName').textContent = currentSupervisor;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+
+            // Show "Change" button if user has multiple supervisors
+            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
+            if (accessibleSupervisors.length > 1) {
+                document.getElementById('changeSupervisorBtn').classList.remove('hidden');
+            }
+
+            loadStaffData(currentSupervisor);
+        }
+
+        // Handle change supervisor button click (go back to selection)
+        function handleChangeSupervisor() {
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+
+            // Reset state
+            currentSupervisor = '';
+            staffData = [];
+            filteredData = [];
+
+            // Show supervisor selection again
+            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
+            if (accessibleSupervisors.length > 1) {
+                showSupervisorSelection(currentUser, accessibleSupervisors);
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+            document.getElementById('searchInput').addEventListener('input', filterData);
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            document.getElementById('closeModalBtnFooter').addEventListener('click', closeModal);
+            document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+            document.getElementById('viewDashboardBtn').addEventListener('click', handleViewDashboard);
+            document.getElementById('changeSupervisorBtn').addEventListener('click', handleChangeSupervisor);
+
+            // Filter buttons (segmented control)
+            document.querySelectorAll('.segment-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    currentFilter = e.target.dataset.filter;
+                    updateFilterButtons();
+                    filterData();
+                });
+            });
+
+            // Close modal on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        }
+
+        // Load staff data from API
+        async function loadStaffData(supervisor) {
+            try {
+                document.getElementById('loadingIndicator').classList.remove('hidden');
+                document.getElementById('staffTableContainer').classList.add('hidden');
+                document.getElementById('noDataMessage').classList.add('hidden');
+
+                const response = await fetch(`${API_BASE}/api/staff/${encodeURIComponent(supervisor)}`, {
+                    credentials: 'include'
+                });
+
+                // Handle authentication errors
+                if (response.status === 401) {
+                    // Session expired - redirect to login
+                    window.location.href = '/?error=session_expired';
+                    return;
+                }
+
+                if (response.status === 403) {
+                    // Access denied
+                    alert('Access denied. You can only view your own team data.');
+                    window.location.href = '/';
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Failed to fetch staff data');
+
+                staffData = await response.json();
+                filteredData = [...staffData];
+
+                document.getElementById('loadingIndicator').classList.add('hidden');
+
+                if (staffData.length === 0) {
+                    document.getElementById('noDataMessage').classList.remove('hidden');
+                } else {
+                    document.getElementById('staffTableContainer').classList.remove('hidden');
+                    updateSummaryStats(staffData);
+                    renderListView(filteredData);
+                }
+            } catch (error) {
+                console.error('Error loading staff data:', error);
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                alert('Failed to load staff data. Please try again.');
+            }
+        }
+
+        // Calculate and update summary stats
+        function updateSummaryStats(data) {
+            let actionNeeded = 0;
+            let warnings = 0;
+            let goodStanding = 0;
+
+            data.forEach(staff => {
+                const alerts = calculateAlerts(staff);
+                if (alerts.level === 'red') actionNeeded++;
+                else if (alerts.level === 'yellow') warnings++;
+                else goodStanding++;
+            });
+
+            document.getElementById('statTotalStaff').textContent = data.length;
+            document.getElementById('statActionNeeded').textContent = actionNeeded;
+            document.getElementById('statWarnings').textContent = warnings;
+            document.getElementById('statGoodStanding').textContent = goodStanding;
+        }
+
+        // Refresh data
+        function refreshData() {
+            if (currentSupervisor) {
+                loadStaffData(currentSupervisor);
+            }
+        }
+
+        // Filter data based on search and filter type
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredData = staffData.filter(staff => {
+                // Search filter
+                const matchesSearch = !searchTerm ||
+                    (staff.Staff_Name || '').toLowerCase().includes(searchTerm);
+
+                // Alert filter
+                const alerts = calculateAlerts(staff);
+                let matchesFilter = true;
+
+                if (currentFilter === 'alerts') {
+                    matchesFilter = alerts.level === 'red' || alerts.level === 'yellow';
+                } else if (currentFilter === 'action') {
+                    matchesFilter = alerts.level === 'red';
+                }
+
+                return matchesSearch && matchesFilter;
+            });
+
+            renderListView(filteredData);
+        }
+
+        // Update filter button styles (segmented control)
+        function updateFilterButtons() {
+            document.querySelectorAll('.segment-btn').forEach(btn => {
+                if (btn.dataset.filter === currentFilter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Get avatar initials
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.split(' ').filter(p => p.length > 0);
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return parts[0] ? parts[0][0].toUpperCase() : '?';
+        }
+
+        // Get time off progress percentage (max 80 hours assumed)
+        function getTimeOffProgress(hours, maxHours = 80) {
+            const num = parseFloat(hours) || 0;
+            return Math.min(100, (num / maxHours) * 100);
+        }
+
+        // Render list view
+        function renderListView(data) {
+            const tableBody = document.getElementById('staffTableBody');
+            const cardsContainer = document.getElementById('staffCardsContainer');
+
+            tableBody.innerHTML = '';
+            cardsContainer.innerHTML = '';
+
+            if (data.length === 0) {
+                document.getElementById('staffTableContainer').classList.add('hidden');
+                document.getElementById('noDataMessage').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('staffTableContainer').classList.remove('hidden');
+            document.getElementById('noDataMessage').classList.add('hidden');
+
+            data.forEach(staff => {
+                const alerts = calculateAlerts(staff);
+                const yearsOfService = staff.years_of_service ? `${staff.years_of_service}` : '—';
+                const initials = getInitials(staff.Staff_Name);
+                const timeOffHours = parseFloat(staff.pto_hours_left) || parseFloat(staff.vacation_hours_left) || 0;
+                const timeOffProgress = getTimeOffProgress(timeOffHours);
+                const timeOffColor = timeOffHours < 20 ? 'bg-red-500' : timeOffHours < 40 ? 'bg-amber-500' : 'bg-emerald-500';
+
+                // Desktop table row
+                const row = document.createElement('tr');
+                row.className = 'table-row';
+                row.onclick = () => renderDetailView(staff);
+
+                row.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full avatar-gradient flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">${initials}</div>
+                            <div>
+                                <div class="font-medium text-slate-900">${staff.Staff_Name || 'N/A'}</div>
+                                <div class="text-xs text-slate-500">${staff.job_title || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600">${yearsOfService}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600">${formatBirthday(staff.Date_of_Birth)}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="w-24">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-600">${timeOffHours.toFixed(0)}h</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill ${timeOffColor}" style="width: ${timeOffProgress}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600">${staff.total_observations || 0}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-500">${formatShortDate(staff.last_observation_date)}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-1">
+                            ${getPmapIconsForStaff(staff)}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm ${getIntentColor(staff.intent_to_return)}">${getIntentStatus(staff.intent_to_return)}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600">${staff.nps_score || '—'}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        ${getEmployeeStatusBadge(staff.Employment_Status)}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+
+                // Mobile card
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-slate-200 rounded-xl p-4 cursor-pointer hover:border-slate-300 transition-colors';
+                card.onclick = () => renderDetailView(staff);
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-full avatar-gradient flex items-center justify-center text-white font-semibold">${initials}</div>
+                            <div>
+                                <div class="font-semibold text-slate-900">${staff.Staff_Name || 'N/A'}</div>
+                                <div class="text-sm text-slate-500">${staff.job_title || 'N/A'}</div>
+                            </div>
+                        </div>
+                        ${getEmployeeStatusBadge(staff.Employment_Status)}
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 mb-3 text-center">
+                        <div>
+                            <div class="text-lg font-semibold text-slate-900">${yearsOfService}</div>
+                            <div class="text-xs text-slate-500">FLS Years</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-semibold text-slate-900">${formatBirthday(staff.Date_of_Birth)}</div>
+                            <div class="text-xs text-slate-500">Birthday</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-semibold text-slate-900">${staff.total_observations || 0}</div>
+                            <div class="text-xs text-slate-500">Total Obs</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-semibold text-slate-900">${staff.nps_score || '—'}</div>
+                            <div class="text-xs text-slate-500">NPS</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center gap-1">
+                            ${getPmapIconsForStaff(staff)}
+                        </div>
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                `;
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        // Get PMAP icon HTML with deadline awareness
+        function getPmapIcon(status, label, deadline = null) {
+            const complete = isComplete(status);
+            const overdue = !complete && isOverdue(deadline);
+
+            if (complete) {
+                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-emerald-50 text-emerald-600" title="${label}: Complete">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </span>`;
+            }
+
+            // Overdue - show with pulsing red background
+            if (overdue) {
+                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-red-100 text-red-600 ring-2 ring-red-300" title="${label}: OVERDUE (was due ${formatDeadline(deadline)})">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </span>`;
+            }
+
+            // Not complete but not overdue yet
+            return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-50 text-amber-500" title="${label}: Pending (due ${formatDeadline(deadline)})">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </span>`;
+        }
+
+        // Get PMAP icons for a staff member based on their user type
+        function getPmapIconsForStaff(staff) {
+            const userType = staff.Job_Function || '';
+            const deadlines = getDeadlines(userType);
+
+            let icons = '';
+            icons += getPmapIcon(staff.self_reflection_1_count, 'SR1', deadlines.sr1);
+            icons += getPmapIcon(staff.pmap_1_count, 'PMAP1', deadlines.pmap1);
+
+            // Only show SR2/PMAP2 if this user type has them
+            if (deadlines.hasSecondRound) {
+                icons += getPmapIcon(staff.self_reflection_2_count, 'SR2', deadlines.sr2);
+                icons += getPmapIcon(staff.pmap_2_count, 'PMAP2', deadlines.pmap2);
+            }
+
+            return icons;
+        }
+
+        // Get employee status badge HTML (actual status from data)
+        function getEmployeeStatusBadge(status) {
+            const statusLower = (status || '').toLowerCase();
+            let colors, text;
+
+            if (statusLower === 'active' || statusLower === 'employed') {
+                colors = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                text = 'Active';
+            } else if (statusLower === 'on leave' || statusLower === 'leave' || statusLower === 'leave of absence') {
+                colors = 'bg-amber-50 text-amber-700 border-amber-200';
+                text = 'On Leave';
+            } else if (statusLower === 'terminated' || statusLower === 'inactive') {
+                colors = 'bg-red-50 text-red-700 border-red-200';
+                text = 'Inactive';
+            } else if (statusLower === 'pending') {
+                colors = 'bg-fls-navy/10 text-fls-navy border-fls-navy/20';
+                text = 'Pending';
+            } else {
+                colors = 'bg-slate-50 text-slate-600 border-slate-200';
+                text = status || '—';
+            }
+
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${colors}">${text}</span>`;
+        }
+
+        // Format birthday as month/day only
+        function formatBirthday(dateStr) {
+            if (!dateStr) return '—';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } catch {
+                return '—';
+            }
+        }
+
+        // Format short date (for last observation)
+        function formatShortDate(dateStr) {
+            if (!dateStr) return '—';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+            } catch {
+                return '—';
+            }
+        }
+
+        // Get intent color class
+        function getIntentColor(intent) {
+            if (!intent) return 'text-slate-500';
+            const str = String(intent).toLowerCase();
+            if (str === 'yes') return 'text-emerald-600 font-medium';
+            if (str === 'no') return 'text-red-600 font-medium';
+            if (str === 'unsure') return 'text-amber-600 font-medium';
+            return 'text-slate-500';
+        }
+
+        // Render detail view modal
+        function renderDetailView(staff) {
+            const initials = getInitials(staff.Staff_Name);
+            document.getElementById('detailAvatar').textContent = initials;
+            document.getElementById('detailName').textContent = staff.Staff_Name || 'N/A';
+            document.getElementById('detailJobTitleHeader').textContent = staff.job_title || 'N/A';
+            document.getElementById('detailEmail').textContent = staff.Email_Address || 'N/A';
+            document.getElementById('detailBirthday').textContent = formatDate(staff.Date_of_Birth);
+            document.getElementById('detailHireDate').textContent = formatDate(staff.Last_Hire_Date);
+            document.getElementById('detailYearsOfService').textContent = staff.years_of_service ? `${staff.years_of_service} years` : 'N/A';
+            document.getElementById('detailJobFunction').textContent = staff.Job_Function || 'N/A';
+
+            // Time off with progress bars
+            const ptoHours = parseFloat(staff.pto_hours_left) || 0;
+            const vacationHours = parseFloat(staff.vacation_hours_left) || 0;
+            const personalHours = parseFloat(staff.personal_hours_left) || 0;
+            const sickHours = parseFloat(staff.sick_hours_left) || 0;
+
+            document.getElementById('detailPTOHours').textContent = formatHours(staff.pto_hours_left);
+            document.getElementById('detailVacationHours').textContent = formatHours(staff.vacation_hours_left);
+            document.getElementById('detailPersonalHours').textContent = formatHours(staff.personal_hours_left);
+            document.getElementById('detailSickHours').textContent = formatHours(staff.sick_hours_left);
+
+            document.getElementById('detailPTOBar').style.width = `${getTimeOffProgress(ptoHours)}%`;
+            document.getElementById('detailVacationBar').style.width = `${getTimeOffProgress(vacationHours)}%`;
+            document.getElementById('detailPersonalBar').style.width = `${getTimeOffProgress(personalHours, 24)}%`;
+            document.getElementById('detailSickBar').style.width = `${getTimeOffProgress(sickHours, 40)}%`;
+
+            document.getElementById('detailTotalObs').textContent = staff.total_observations || '0';
+            document.getElementById('detailLastObsType').textContent = staff.last_observation_type || 'N/A';
+            document.getElementById('detailLastObsDate').textContent = formatDate(staff.last_observation_date);
+            document.getElementById('detailDisciplinary').textContent =
+                `${staff.iap_count || 0} IAPs, ${staff.writeup_count || 0} Write-ups`;
+
+            // PMAP chips - user type aware
+            const chipsContainer = document.getElementById('detailComplianceChips');
+            chipsContainer.innerHTML = '';
+
+            const userType = staff.Job_Function || '';
+            const deadlines = getDeadlines(userType);
+
+            const pmapItems = [
+                { label: 'SR1', complete: isComplete(staff.self_reflection_1_count), deadline: deadlines.sr1 },
+                { label: 'PMAP1', complete: isComplete(staff.pmap_1_count), deadline: deadlines.pmap1 }
+            ];
+
+            // Only add SR2/PMAP2 if this user type has them
+            if (deadlines.hasSecondRound) {
+                pmapItems.push(
+                    { label: 'SR2', complete: isComplete(staff.self_reflection_2_count), deadline: deadlines.sr2 },
+                    { label: 'PMAP2', complete: isComplete(staff.pmap_2_count), deadline: deadlines.pmap2 }
+                );
+            }
+
+            pmapItems.forEach(item => {
+                const overdue = !item.complete && isOverdue(item.deadline);
+                let chipClass, icon, statusText;
+
+                if (item.complete) {
+                    chipClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    statusText = 'Complete';
+                } else if (overdue) {
+                    chipClass = 'bg-red-100 text-red-700 border-red-300 ring-1 ring-red-300';
+                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                    statusText = `OVERDUE`;
+                } else {
+                    chipClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                    statusText = `Due ${formatDeadline(item.deadline)}`;
+                }
+
+                const chip = document.createElement('div');
+                chip.className = `inline-flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium border ${chipClass}`;
+                chip.innerHTML = `
+                    <div class="flex items-center gap-1.5">
+                        ${icon} ${item.label}
+                    </div>
+                    <span class="text-[10px] opacity-80">${statusText}</span>
+                `;
+                chipsContainer.appendChild(chip);
+            });
+
+            document.getElementById('detailIntentToReturn').textContent = staff.intent_to_return || 'N/A';
+            document.getElementById('detailIntentDate').textContent = staff.intent_response_status || 'N/A';
+            document.getElementById('detailNPSScore').textContent = staff.nps_score || 'N/A';
+
+            // Render alerts
+            const alerts = calculateAlerts(staff);
+            const alertBanner = document.getElementById('detailAlertBanner');
+            const alertList = document.getElementById('detailAlertList');
+            const alertsSection = document.getElementById('detailAlertsSection');
+            const alertsContainer = document.getElementById('detailAlerts');
+
+            // Show alert banner if there are red alerts
+            const redAlerts = alerts.items.filter(a => a.level === 'red');
+            if (redAlerts.length > 0) {
+                alertBanner.classList.remove('hidden');
+                alertList.innerHTML = redAlerts.map(a => `<p>• ${a.message}</p>`).join('');
+            } else {
+                alertBanner.classList.add('hidden');
+            }
+
+            // Show all alerts section if there are any alerts
+            alertsContainer.innerHTML = '';
+            if (alerts.items.length === 0) {
+                alertsSection.classList.add('hidden');
+            } else {
+                alertsSection.classList.remove('hidden');
+                alerts.items.forEach(alert => {
+                    const alertDiv = document.createElement('div');
+                    const alertColors = {
+                        red: 'bg-red-50 border-red-200 text-red-700',
+                        yellow: 'bg-amber-50 border-amber-200 text-amber-700',
+                        green: 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    };
+                    alertDiv.className = `p-3 rounded-lg border text-sm ${alertColors[alert.level]}`;
+                    alertDiv.textContent = alert.message;
+                    alertsContainer.appendChild(alertDiv);
+                });
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Calculate alerts for a staff member (deadline-aware)
+        function calculateAlerts(staff) {
+            const alerts = [];
+            const userType = staff.Job_Function || '';
+            const deadlines = getDeadlines(userType);
+
+            // Check SR1 observation
+            if (!isComplete(staff.self_reflection_1_count)) {
+                if (isOverdue(deadlines.sr1)) {
+                    alerts.push({ level: 'red', message: `SR1 OVERDUE (was due ${formatDeadline(deadlines.sr1)})` });
+                } else {
+                    alerts.push({ level: 'yellow', message: `SR1 pending (due ${formatDeadline(deadlines.sr1)})` });
+                }
+            }
+
+            // Check PMAP1 observation
+            if (!isComplete(staff.pmap_1_count)) {
+                if (isOverdue(deadlines.pmap1)) {
+                    alerts.push({ level: 'red', message: `PMAP1 OVERDUE (was due ${formatDeadline(deadlines.pmap1)})` });
+                } else {
+                    alerts.push({ level: 'yellow', message: `PMAP1 pending (due ${formatDeadline(deadlines.pmap1)})` });
+                }
+            }
+
+            // Only check SR2/PMAP2 if this user type requires them
+            if (deadlines.hasSecondRound) {
+                if (!isComplete(staff.self_reflection_2_count)) {
+                    if (isOverdue(deadlines.sr2)) {
+                        alerts.push({ level: 'red', message: `SR2 OVERDUE (was due ${formatDeadline(deadlines.sr2)})` });
+                    } else {
+                        alerts.push({ level: 'yellow', message: `SR2 pending (due ${formatDeadline(deadlines.sr2)})` });
+                    }
+                }
+
+                if (!isComplete(staff.pmap_2_count)) {
+                    if (isOverdue(deadlines.pmap2)) {
+                        alerts.push({ level: 'red', message: `PMAP2 OVERDUE (was due ${formatDeadline(deadlines.pmap2)})` });
+                    } else {
+                        alerts.push({ level: 'yellow', message: `PMAP2 pending (due ${formatDeadline(deadlines.pmap2)})` });
+                    }
+                }
+            }
+
+            // Check intent to return
+            const intent = (staff.intent_to_return || '').toLowerCase();
+            if (intent === 'no') {
+                alerts.push({ level: 'red', message: 'Staff member does not intend to return' });
+            } else if (!intent || intent === 'pending' || intent === '' || intent === 'n/a') {
+                alerts.push({ level: 'yellow', message: 'Intent to return status pending' });
+            }
+
+            // Check PTO balance
+            const ptoHours = parseFloat(staff.pto_hours_left) || parseFloat(staff.vacation_hours_left) || 0;
+            if (ptoHours < 20) {
+                alerts.push({ level: 'red', message: `Low time off balance (${ptoHours.toFixed(1)} hours)` });
+            } else if (ptoHours < 40) {
+                alerts.push({ level: 'yellow', message: `Medium time off balance (${ptoHours.toFixed(1)} hours)` });
+            }
+
+            // Check disciplinary actions
+            const iapCount = parseInt(staff.iap_count) || 0;
+            const writeupCount = parseInt(staff.writeup_count) || 0;
+            if (iapCount > 0 || writeupCount > 0) {
+                alerts.push({ level: 'yellow', message: `${iapCount} IAPs, ${writeupCount} write-ups on record` });
+            }
+
+            // Determine overall level
+            let level = 'green';
+            if (alerts.some(a => a.level === 'red')) {
+                level = 'red';
+            } else if (alerts.some(a => a.level === 'yellow')) {
+                level = 'yellow';
+            }
+
+            const text = level === 'green' ? 'Good' : level === 'yellow' ? 'Warning' : 'Action Needed';
+
+            return { level, text, items: alerts };
+        }
+
+        // Helper functions
+        function isComplete(count) {
+            // For counts: > 0 means complete, 0 or null means incomplete
+            if (count === null || count === undefined) return false;
+            const num = parseInt(count);
+            return !isNaN(num) && num > 0;
+        }
+
+        function getIntentStatus(status) {
+            if (!status) return 'Pending';
+            const str = String(status).trim();
+            // Return the actual value (Yes, No, Unsure, etc.)
+            return str;
+        }
+
+        function formatHours(hours) {
+            const num = parseFloat(hours);
+            return isNaN(num) ? 'N/A' : `${num.toFixed(1)}h`;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch {
+                return 'N/A';
+            }
+        }
+    </script>
+</body>
+</html>

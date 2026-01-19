@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Chart | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #e47727;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Org Chart Styles */
+        .org-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .org-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px 28px;
+            min-width: 220px;
+            max-width: 280px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+
+        .org-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .org-card.ceo {
+            background: linear-gradient(135deg, #002f60 0%, #094aad 100%);
+            border-color: #002f60;
+            color: white;
+            min-width: 260px;
+        }
+
+        .org-card.chief {
+            background: linear-gradient(135deg, #e47727 0%, #f59e0b 100%);
+            border-color: #e47727;
+            color: white;
+        }
+
+        .org-card.director {
+            background: #f8fafc;
+            border-color: #002f60;
+            border-width: 2px;
+        }
+
+        .org-card.manager {
+            background: #fff7ed;
+            border-color: #e47727;
+        }
+
+        .org-card .name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .org-card .title {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .org-card .dept {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 6px;
+        }
+
+        .org-card .reports-badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.1);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+
+        .org-card.ceo .reports-badge,
+        .org-card.chief .reports-badge {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Connector lines */
+        .connector-down {
+            width: 2px;
+            height: 40px;
+            background: #cbd5e1;
+            margin: 0 auto;
+        }
+
+        .connector-horizontal {
+            height: 2px;
+            background: #cbd5e1;
+        }
+
+        /* Children row */
+        .children-row {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            position: relative;
+            padding-top: 40px;
+        }
+
+        .children-row::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 40px;
+            background: #cbd5e1;
+        }
+
+        .child-node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .child-node::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            width: 2px;
+            height: 40px;
+            background: #cbd5e1;
+        }
+
+        /* Horizontal line connecting siblings */
+        .children-row.multi::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: calc(50% - var(--line-width) / 2);
+            width: var(--line-width);
+            height: 2px;
+            background: #cbd5e1;
+        }
+
+        /* Tab navigation */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+
+        .tab-btn:hover {
+            color: #002f60;
+            background: white;
+        }
+
+        .tab-btn.active {
+            background: #002f60;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,47,96,0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Page title */
+        .page-title {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .page-title h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #002f60;
+        }
+
+        .page-title p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .tab-content {
+                display: block !important;
+                page-break-after: always;
+            }
+            .tab-content:last-child {
+                page-break-after: avoid;
+            }
+            body {
+                background: white;
+            }
+            .org-card {
+                break-inside: avoid;
+            }
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.2s ease;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .report-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .report-item:hover {
+            background: #f1f5f9;
+        }
+
+        .report-item .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e47727 0%, #f59e0b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 12px;
+        }
+
+        .report-item .info {
+            flex: 1;
+        }
+
+        .report-item .name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 14px;
+        }
+
+        .report-item .title {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .report-item .loa-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .org-card.clickable {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-fls-navy text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png"
+                         alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                    <div>
+                        <h1 class="text-xl font-bold">Organization Chart</h1>
+                        <p class="text-sm text-gray-300">Leadership & Management Structure</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="/" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors">
+                        Back to Dashboard
+                    </a>
+                    <button onclick="window.print()" class="px-4 py-2 bg-fls-orange hover:bg-fls-orange-dark rounded-lg text-sm transition-colors">
+                        Print All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <div class="bg-white border-b sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <nav class="tab-nav" id="tabNav">
+                <button class="tab-btn active" data-tab="c-team">C-Team</button>
+                <button class="tab-btn" data-tab="operations">Operations Team</button>
+                <button class="tab-btn" data-tab="devcomm">Dev/Comm Team</button>
+                <button class="tab-btn" data-tab="hr-talent">HR/Talent Team</button>
+                <button class="tab-btn" data-tab="academics">Academics Team</button>
+                <button class="tab-btn" data-tab="schools">School Directors</button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+        <div class="loading mb-4"></div>
+        <p class="text-gray-600">Loading organization chart...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="errorState" class="hidden flex flex-col items-center justify-center py-20">
+        <div class="text-red-500 text-6xl mb-4">!</div>
+        <p class="text-gray-800 font-semibold mb-2">Failed to load organization data</p>
+        <p id="errorMessage" class="text-gray-600 mb-4"></p>
+        <button onclick="loadOrgData()" class="px-4 py-2 bg-fls-orange text-white rounded-lg hover:bg-fls-orange-dark">
+            Try Again
+        </button>
+    </div>
+
+    <!-- Tab Content Container -->
+    <div id="tabContent" class="hidden max-w-7xl mx-auto px-4 py-8">
+
+        <!-- C-Team -->
+        <div class="tab-content active" id="tab-c-team">
+            <div class="page-title">
+                <h2>C-Team</h2>
+                <p>Executive Leadership</p>
+            </div>
+            <div class="org-tree" id="org-c-team"></div>
+        </div>
+
+        <!-- Operations Team -->
+        <div class="tab-content" id="tab-operations">
+            <div class="page-title">
+                <h2>Operations Team</h2>
+                <p>Operations, Finance & Technology</p>
+            </div>
+            <div class="org-tree" id="org-operations"></div>
+        </div>
+
+        <!-- Dev/Comm Team -->
+        <div class="tab-content" id="tab-devcomm">
+            <div class="page-title">
+                <h2>Dev/Comm Team</h2>
+                <p>Development & Communications</p>
+            </div>
+            <div class="org-tree" id="org-devcomm"></div>
+        </div>
+
+        <!-- HR/Talent Team -->
+        <div class="tab-content" id="tab-hr-talent">
+            <div class="page-title">
+                <h2>HR/Talent Team</h2>
+                <p>Human Resources & Talent Management</p>
+            </div>
+            <div class="org-tree" id="org-hr-talent"></div>
+        </div>
+
+        <!-- Academics Team -->
+        <div class="tab-content" id="tab-academics">
+            <div class="page-title">
+                <h2>Academics Team</h2>
+                <p>Teaching, Learning & Student Support</p>
+            </div>
+            <div class="org-tree" id="org-academics"></div>
+        </div>
+
+        <!-- School Directors -->
+        <div class="tab-content" id="tab-schools">
+            <div class="page-title">
+                <h2>School Directors</h2>
+                <p>School Leadership</p>
+            </div>
+            <div class="org-tree" id="org-schools"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let orgData = [];
+
+        // Load org data from API
+        async function loadOrgData() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('tabContent').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/orgchart');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                orgData = await response.json();
+                renderAllCharts();
+            } catch (error) {
+                console.error('Error loading org data:', error);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        // Find a person by name (partial match on full name, last name, or name_key)
+        function findPerson(searchName) {
+            const search = searchName.toLowerCase();
+            // First try exact-ish match on name_key (Last, First format)
+            let found = orgData.find(p => p.name_key.toLowerCase().includes(search));
+            if (found) return found;
+            // Then try full name
+            found = orgData.find(p => p.full_name.toLowerCase().includes(search));
+            if (found) return found;
+            // Finally try just last name for flexibility with preferred names
+            const lastName = search.split(' ').pop();
+            return orgData.find(p => p.last_name.toLowerCase() === lastName);
+        }
+
+        // Find direct reports of a person
+        function getDirectReports(nameKey) {
+            return orgData.filter(p => p.reports_to === nameKey);
+        }
+
+        // Get card class based on job title
+        function getCardClass(title) {
+            if (title.includes('CEO') || title.includes('Executive')) return 'ceo';
+            if (title.includes('Chief')) return 'chief';
+            if (title.includes('Director') || title.includes('ExDir')) return 'director';
+            return 'manager';
+        }
+
+        // Render a single org card (clickable if has direct reports)
+        function renderCard(person, overrideClass = null) {
+            const cardClass = overrideClass || getCardClass(person.job_title);
+            const isLOA = person.employment_status === 'Leave of absence';
+            const hasReports = person.direct_reports > 0;
+            // Use data attribute instead of inline onclick to handle special characters
+            const dataAttr = hasReports ? `data-namekey="${encodeURIComponent(person.name_key)}"` : '';
+            return `
+                <div class="org-card ${cardClass} ${hasReports ? 'clickable' : ''}" ${isLOA ? 'style="opacity: 0.7;"' : ''} ${dataAttr}>
+                    <div class="name">${person.full_name}</div>
+                    <div class="title">${person.job_title}</div>
+                    <div class="dept">${person.dept}</div>
+                    ${isLOA ? '<div class="reports-badge" style="background: #fef3c7; color: #92400e;">On Leave</div>' : ''}
+                    ${!isLOA && hasReports ? `<div class="reports-badge">${person.direct_reports} direct reports - click to view</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Attach click handlers after rendering
+        function attachClickHandlers() {
+            document.querySelectorAll('.org-card[data-namekey]').forEach(card => {
+                card.addEventListener('click', () => {
+                    const nameKey = decodeURIComponent(card.dataset.namekey);
+                    showDirectReports(nameKey);
+                });
+            });
+        }
+
+        // Show modal with direct reports
+        async function showDirectReports(nameKey) {
+            const person = orgData.find(p => p.name_key === nameKey);
+            if (!person) return;
+
+            // Always fetch from API to get complete list of direct reports
+            let reports = [];
+            try {
+                const response = await fetch(`/api/staff-reports/${encodeURIComponent(nameKey)}`);
+                if (response.ok) {
+                    reports = await response.json();
+                }
+            } catch (e) {
+                console.log('Could not fetch reports from API, falling back to orgData');
+                reports = getDirectReports(nameKey);
+            }
+
+            let reportsHtml = '';
+            if (reports.length === 0) {
+                reportsHtml = '<p class="text-gray-500 text-sm">Direct reports not available in org chart data.</p>';
+            } else {
+                reports.forEach(report => {
+                    const firstName = report.first_name || report.First_Name || '';
+                    const lastName = report.last_name || report.Last_Name || '';
+                    const fullName = report.full_name || `${firstName} ${lastName}`;
+                    const jobTitle = report.job_title || report.Job_Title || '';
+                    const initials = (firstName[0] + lastName[0]).toUpperCase();
+                    const isLOA = (report.employment_status || report.Employment_Status) === 'Leave of absence';
+                    reportsHtml += `
+                        <div class="report-item">
+                            <div class="avatar">${initials}</div>
+                            <div class="info">
+                                <div class="name">${fullName}${isLOA ? '<span class="loa-badge">On Leave</span>' : ''}</div>
+                                <div class="title">${jobTitle}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('modalPersonName').textContent = person.full_name;
+            document.getElementById('modalPersonTitle').textContent = person.job_title;
+            document.getElementById('modalReportsList').innerHTML = reportsHtml;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Render a leader with their direct reports
+        function renderLeaderWithReports(leader, reports) {
+            if (!leader) return '<p class="text-gray-500">Person not found</p>';
+
+            let html = renderCard(leader);
+
+            if (reports && reports.length > 0) {
+                const lineWidth = Math.min(reports.length * 250, 800);
+                html += `<div class="children-row ${reports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                reports.forEach(report => {
+                    html += `<div class="child-node">${renderCard(report)}</div>`;
+                });
+                html += '</div>';
+            }
+
+            return html;
+        }
+
+        // Render C-Team: Sabrina and direct reports, with Kirsten/Brittney/Scott at second level
+        function renderCTeam() {
+            const sabrina = findPerson('Pence');
+            const lashanda = findPerson('Gentry');
+            const kirsten = findPerson('Feil');
+            const donna = findPerson('Cavato');
+            const sivi = findPerson('Domango');
+            const brittney = findPerson('Richardson');
+            const scott = findPerson('Shirey');
+            const rebekah = findPerson('Straub');
+
+            let html = '';
+
+            // Sabrina at top
+            if (sabrina) {
+                html += renderCard(sabrina);
+            }
+
+            // Get direct reports and filter out Brittney and Scott (they'll be shown at 2nd level)
+            let directReports = sabrina ? getDirectReports(sabrina.name_key) : [];
+            directReports = directReports.filter(p =>
+                p.name_key !== brittney?.name_key && p.name_key !== scott?.name_key
+            );
+
+            // Sort chiefs: Rebekah, Brittney, Donna, Scott, Sivi, Lashanda+Kirsten
+            // This positions Brittney between Rebekah/Donna and Scott between Donna/Sivi
+            const orderedChiefs = [];
+            if (rebekah && directReports.find(p => p.name_key === rebekah.name_key)) orderedChiefs.push(rebekah);
+            if (brittney) orderedChiefs.push({...brittney, _isSecondLevel: true, _reportsTo: donna});
+            if (donna && directReports.find(p => p.name_key === donna.name_key)) orderedChiefs.push(donna);
+            if (scott) orderedChiefs.push({...scott, _isSecondLevel: true, _reportsTo: sivi});
+            if (sivi && directReports.find(p => p.name_key === sivi.name_key)) orderedChiefs.push(sivi);
+            if (lashanda && directReports.find(p => p.name_key === lashanda.name_key)) orderedChiefs.push(lashanda);
+            if (kirsten) orderedChiefs.push({...kirsten, _isSecondLevel: true, _reportsTo: lashanda});
+
+            // Add any other chiefs not in our list
+            directReports.forEach(p => {
+                if (!orderedChiefs.find(c => c.name_key === p.name_key)) {
+                    orderedChiefs.push(p);
+                }
+            });
+
+            // Render all in one row
+            if (orderedChiefs.length > 0) {
+                const lineWidth = Math.min(orderedChiefs.length * 220, 1400);
+                html += `<div class="children-row multi" style="--line-width: ${lineWidth}px;">`;
+                orderedChiefs.forEach(person => {
+                    html += '<div class="child-node">';
+                    html += renderCard(person, 'chief');
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            document.getElementById('org-c-team').innerHTML = html;
+        }
+
+        // Render Operations Team: Rebekah and her team (with extra layer for Michael Burbano)
+        function renderOperations() {
+            const rebekah = findPerson('Straub');
+            const directReports = rebekah ? getDirectReports(rebekah.name_key) : [];
+
+            let html = '';
+            if (rebekah) {
+                html += renderCard(rebekah);
+            }
+
+            if (directReports.length > 0) {
+                const lineWidth = Math.min(directReports.length * 250, 800);
+                html += `<div class="children-row ${directReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                directReports.forEach(report => {
+                    html += '<div class="child-node">';
+                    html += renderCard(report);
+
+                    // Check for Neil Williams -> Michael Burbano chain
+                    if (report.last_name === 'Williams') {
+                        const neilReports = getDirectReports(report.name_key);
+                        const michael = neilReports.find(p => p.last_name === 'Burbano');
+                        if (michael) {
+                            html += `<div class="children-row" style="--line-width: 250px;">`;
+                            html += '<div class="child-node">';
+                            html += renderCard(michael);
+                            // Show Michael's direct reports
+                            const michaelReports = getDirectReports(michael.name_key);
+                            if (michaelReports.length > 0) {
+                                const mLineWidth = Math.min(michaelReports.length * 200, 500);
+                                html += `<div class="children-row ${michaelReports.length > 1 ? 'multi' : ''}" style="--line-width: ${mLineWidth}px;">`;
+                                michaelReports.forEach(mr => {
+                                    html += `<div class="child-node">${renderCard(mr)}</div>`;
+                                });
+                                html += '</div>';
+                            }
+                            html += '</div></div>';
+                        }
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            document.getElementById('org-operations').innerHTML = html;
+        }
+
+        // Render Dev/Comm Team: Donna and her team
+        function renderDevComm() {
+            const donna = findPerson('Cavato');
+            const directReports = donna ? getDirectReports(donna.name_key) : [];
+
+            document.getElementById('org-devcomm').innerHTML = renderLeaderWithReports(donna, directReports);
+        }
+
+        // Render HR/Talent Team: Brittney and Scott side by side
+        function renderHRTalent() {
+            const brittney = findPerson('Richardson');
+            const scott = findPerson('Shirey');
+
+            let html = '';
+
+            // Show Brittney and Scott side by side at the top
+            html += '<div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">';
+            if (brittney) {
+                html += `<div style="display: flex; flex-direction: column; align-items: center;">`;
+                html += renderCard(brittney);
+                // Brittney's direct reports
+                const brittneyReports = getDirectReports(brittney.name_key);
+                if (brittneyReports.length > 0) {
+                    const lineWidth = Math.min(brittneyReports.length * 250, 600);
+                    html += `<div class="children-row ${brittneyReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                    brittneyReports.forEach(report => {
+                        html += `<div class="child-node">${renderCard(report)}</div>`;
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            if (scott) {
+                html += `<div style="display: flex; flex-direction: column; align-items: center;">`;
+                html += renderCard(scott);
+                // Scott's direct reports
+                const scottReports = getDirectReports(scott.name_key);
+                if (scottReports.length > 0) {
+                    const lineWidth = Math.min(scottReports.length * 250, 600);
+                    html += `<div class="children-row ${scottReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                    scottReports.forEach(report => {
+                        html += `<div class="child-node">${renderCard(report)}</div>`;
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+
+            document.getElementById('org-hr-talent').innerHTML = html;
+        }
+
+        // Render Academics Team: Shanda, Kirsten, and Charlotte/Zach chain
+        function renderAcademics() {
+            const lashanda = findPerson('Gentry');
+            const kirsten = findPerson('Feil');
+
+            let html = '';
+
+            // Lashanda at top
+            if (lashanda) {
+                html += renderCard(lashanda);
+                html += '<div class="connector-down"></div>';
+            }
+
+            // Kirsten and other academic leaders (excluding school directors)
+            const academicLeaders = lashanda ? getDirectReports(lashanda.name_key).filter(p =>
+                !p.job_title.includes('School Director') &&
+                (p.job_title.includes('ExDir') || p.job_title.includes('Dir') || p.last_name === 'Feil')
+            ) : [];
+
+            if (academicLeaders.length > 0) {
+                const lineWidth = Math.min(academicLeaders.length * 250, 1000);
+                html += `<div class="children-row ${academicLeaders.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                academicLeaders.forEach(leader => {
+                    html += '<div class="child-node">';
+                    html += renderCard(leader);
+
+                    // Check for Charlotte Steele -> Zach O'Donnell chain
+                    if (leader.last_name === 'Steele') {
+                        const charlotteReports = getDirectReports(leader.name_key);
+                        const zach = charlotteReports.find(p => p.last_name === "O'Donnell");
+                        if (zach) {
+                            html += `<div class="children-row" style="--line-width: 250px;">`;
+                            html += '<div class="child-node">';
+                            html += renderCard(zach);
+                            // Show Zach's direct reports
+                            const zachReports = getDirectReports(zach.name_key);
+                            if (zachReports.length > 0) {
+                                const zLineWidth = Math.min(zachReports.length * 200, 500);
+                                html += `<div class="children-row ${zachReports.length > 1 ? 'multi' : ''}" style="--line-width: ${zLineWidth}px;">`;
+                                zachReports.forEach(zr => {
+                                    html += `<div class="child-node">${renderCard(zr)}</div>`;
+                                });
+                                html += '</div>';
+                            }
+                            html += '</div></div>';
+                        }
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+
+            // Show Kirsten's direct reports if any
+            if (kirsten) {
+                const kirstenReports = getDirectReports(kirsten.name_key);
+                if (kirstenReports.length > 0) {
+                    html += '<div style="margin-top: 40px;"><h3 class="text-center text-gray-600 mb-4">Teaching & Learning Team</h3>';
+                    const lineWidth = Math.min(kirstenReports.length * 250, 800);
+                    html += `<div class="children-row ${kirstenReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                    kirstenReports.forEach(report => {
+                        html += `<div class="child-node">${renderCard(report)}</div>`;
+                    });
+                    html += '</div></div>';
+                }
+            }
+
+            document.getElementById('org-academics').innerHTML = html;
+        }
+
+        // Render School Directors: Shanda and School Directors
+        function renderSchools() {
+            const lashanda = findPerson('Gentry');
+
+            let html = '';
+
+            // Lashanda at top
+            if (lashanda) {
+                html += renderCard(lashanda);
+            }
+
+            // School Directors only
+            const schoolDirectors = lashanda ? getDirectReports(lashanda.name_key).filter(p =>
+                p.job_title.includes('School Director')
+            ) : [];
+
+            if (schoolDirectors.length > 0) {
+                const lineWidth = Math.min(schoolDirectors.length * 280, 1000);
+                html += `<div class="children-row ${schoolDirectors.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
+                schoolDirectors.forEach(director => {
+                    html += `<div class="child-node">${renderCard(director)}</div>`;
+                });
+                html += '</div>';
+            }
+
+            document.getElementById('org-schools').innerHTML = html;
+        }
+
+        // Render all charts
+        function renderAllCharts() {
+            renderCTeam();
+            renderOperations();
+            renderDevComm();
+            renderHRTalent();
+            renderAcademics();
+            renderSchools();
+
+            // Attach click handlers for popup
+            attachClickHandlers();
+
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('tabContent').classList.remove('hidden');
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active tab button
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Show corresponding content
+                const tabId = btn.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+            });
+        });
+
+        // Initialize
+        loadOrgData();
+
+        // Close modal when clicking outside
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+
+    <!-- Direct Reports Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalPersonName" class="text-lg font-bold text-gray-900"></h3>
+                    <p id="modalPersonTitle" class="text-sm text-gray-500"></p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Direct Reports</h4>
+            <div id="modalReportsList"></div>
+        </div>
+    </div>
+</body>
+</html>
