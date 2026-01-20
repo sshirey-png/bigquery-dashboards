@@ -514,6 +514,160 @@ def get_itr_detail(email):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/cert-status', methods=['GET'])
+@login_required
+def get_cert_status():
+    """
+    Get certification status for all teachers and leaders.
+    Returns a dict of email -> certification info for staff who are certified.
+    Only includes teachers and leadership roles (not network/support staff).
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    try:
+        query = """
+            SELECT
+                LOWER(FLS_Email) as email,
+                certification_status,
+                active_certifications,
+                active_qualifications,
+                earliest_active_expiration,
+                days_until_earliest_expiration
+            FROM `talent-demo-482004.talent_certification.staff_with_certifications_native`
+            WHERE certification_status = 'Certified'
+            AND (
+                Title LIKE '%Teacher%'
+                OR Title LIKE '%Principal%'
+                OR Title LIKE '%Dean%'
+                OR Title LIKE '%Director%'
+                OR Title LIKE '%Content Lead%'
+            )
+        """
+
+        logger.info("Fetching certification status for teachers/leaders")
+        query_job = client.query(query)
+        results = query_job.result()
+
+        # Build dict of email -> cert info
+        cert_status = {}
+        for row in results:
+            cert_status[row.email] = {
+                'status': row.certification_status,
+                'active_count': row.active_certifications,
+                'qualifications': row.active_qualifications,
+                'earliest_expiration': row.earliest_active_expiration.isoformat() if row.earliest_active_expiration else None,
+                'days_until_expiration': row.days_until_earliest_expiration
+            }
+
+        logger.info(f"Found {len(cert_status)} certified teachers/leaders")
+        return jsonify(cert_status)
+
+    except Exception as e:
+        logger.error(f"Error fetching certification status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cert-detail/<email>', methods=['GET'])
+@login_required
+def get_cert_detail(email):
+    """
+    Get detailed certification information for a specific staff member.
+    Returns all certifications (active and expired) for the popup modal.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    try:
+        # First get summary info
+        summary_query = """
+            SELECT
+                First_Name,
+                Last_Name,
+                Title,
+                School_Site,
+                certification_status,
+                total_certifications,
+                active_certifications,
+                expired_certifications,
+                active_qualifications,
+                earliest_active_expiration,
+                days_until_earliest_expiration
+            FROM `talent-demo-482004.talent_certification.staff_with_certifications_native`
+            WHERE LOWER(FLS_Email) = LOWER(@email)
+            LIMIT 1
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", email)
+            ]
+        )
+
+        query_job = client.query(summary_query, job_config=job_config)
+        summary_results = list(query_job.result())
+
+        if not summary_results:
+            return jsonify({'error': 'No certification data found for this employee'}), 404
+
+        summary = summary_results[0]
+
+        # Get detailed certifications
+        detail_query = """
+            SELECT
+                Category_Name,
+                Qualification_Name,
+                Certification_Number,
+                Status,
+                Earn_Date,
+                Expire_Date,
+                days_until_expiration,
+                expiration_status
+            FROM `talent-demo-482004.talent_certification.staff_certifications_detail_native`
+            WHERE LOWER(FLS_Email) = LOWER(@email)
+            ORDER BY
+                CASE WHEN Status = 'Active' THEN 0 ELSE 1 END,
+                Expire_Date DESC
+        """
+
+        query_job = client.query(detail_query, job_config=job_config)
+        detail_results = query_job.result()
+
+        certifications = []
+        for row in detail_results:
+            certifications.append({
+                'category': row.Category_Name,
+                'qualification': row.Qualification_Name,
+                'certification_number': row.Certification_Number,
+                'status': row.Status,
+                'earn_date': row.Earn_Date.isoformat() if row.Earn_Date else None,
+                'expire_date': row.Expire_Date.isoformat() if row.Expire_Date else None,
+                'days_until_expiration': row.days_until_expiration,
+                'expiration_status': row.expiration_status
+            })
+
+        cert_data = {
+            'name': f"{summary.First_Name} {summary.Last_Name}",
+            'title': summary.Title,
+            'school': summary.School_Site,
+            'certification_status': summary.certification_status,
+            'total_certifications': summary.total_certifications,
+            'active_certifications': summary.active_certifications,
+            'expired_certifications': summary.expired_certifications,
+            'active_qualifications': summary.active_qualifications,
+            'earliest_expiration': summary.earliest_active_expiration.isoformat() if summary.earliest_active_expiration else None,
+            'days_until_expiration': summary.days_until_earliest_expiration,
+            'certifications': certifications
+        }
+
+        logger.info(f"Found {len(certifications)} certifications for {email}")
+        return jsonify(cert_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching certification detail for {email}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/orgchart')
 def orgchart():
     """Serve the organization chart HTML file"""

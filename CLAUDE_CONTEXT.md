@@ -55,7 +55,18 @@ Due to Windows timestamp issues, deploy using temp directory:
 # Copy files to temp dir with fresh timestamps, then deploy from there
 ```
 
-## Last Session: January 19, 2026
+## Last Session: January 19, 2026 (Evening)
+- Added certification badges for teachers and leaders (not network staff)
+- Orange "C" badge appears next to certified staff names
+- Click badge to see popup with all certifications (active and expired)
+- New BigQuery dataset: `talent_certification` with native tables:
+  - `staff_list_LASID_native` - Staff with LASID identifiers
+  - `state_certification_list_native` - State certification records
+- New views: `certification_summary_native`, `staff_with_certifications_native`, `staff_certifications_detail_native`
+- New API endpoints: `/api/cert-status` (all certified teachers/leaders), `/api/cert-detail/<email>` (individual details)
+- Certification data refreshed monthly (manual upload)
+
+## Previous Session: January 19, 2026 (Morning)
 - Removed NPS column from main staff table
 - Added clickable Intent to Return popup with detailed survey responses
 - New API endpoint: `/api/itr-detail/<email>` queries `intent_to_return_native` table
