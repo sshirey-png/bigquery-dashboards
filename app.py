@@ -181,7 +181,7 @@ def get_accessible_supervisors(email, supervisor_name):
                     s.Email_Address AS employee_email,
                     s.Supervisor_Name__Unsecured_ AS reports_to,
                     sl.supervisor_name AS employee_supervisor_name
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list` s
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
                 LEFT JOIN supervisor_lookup sl ON LOWER(s.Email_Address) = LOWER(sl.supervisor_email)
                 WHERE s.Supervisor_Name__Unsecured_ IS NOT NULL
                 AND s.Employment_Status IN ('Active', 'Leave of absence')
@@ -695,7 +695,7 @@ def get_orgchart_data():
             -- Get all unique supervisor names (how they appear when someone reports to them)
             supervisor_names AS (
                 SELECT DISTINCT Supervisor_Name__Unsecured_ as supervisor_key
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list`
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
                 WHERE Employment_Status IN ('Active', 'Leave of absence')
                 AND Supervisor_Name__Unsecured_ IS NOT NULL
             ),
@@ -703,7 +703,7 @@ def get_orgchart_data():
             c_level_names AS (
                 SELECT DISTINCT
                     COALESCE(sn.supervisor_key, CONCAT(s.Last_Name, ', ', s.First_Name)) as chief_name
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list` s
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
                 LEFT JOIN supervisor_names sn
                     ON LOWER(sn.supervisor_key) LIKE CONCAT(LOWER(s.Last_Name), ', ', LOWER(s.First_Name), '%')
                 WHERE s.Employment_Status IN ('Active', 'Leave of absence')
@@ -736,7 +736,7 @@ def get_orgchart_data():
                     COALESCE(s.Supervisor_Name__Unsecured_, '') as reports_to,
                     -- Use the matched supervisor_key format, or fall back to simple format
                     COALESCE(sn.supervisor_key, CONCAT(s.Last_Name, ', ', s.First_Name)) as name_key
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list` s
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
                 LEFT JOIN supervisor_names sn
                     ON LOWER(sn.supervisor_key) LIKE CONCAT(LOWER(s.Last_Name), ', ', LOWER(s.First_Name), '%')
                 WHERE s.Employment_Status IN ('Active', 'Leave of absence')
@@ -746,7 +746,7 @@ def get_orgchart_data():
                 SELECT
                     Supervisor_Name__Unsecured_ as supervisor_key,
                     COUNT(*) as direct_reports
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list`
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
                 WHERE Employment_Status IN ('Active', 'Leave of absence')
                 AND Supervisor_Name__Unsecured_ IS NOT NULL
                 GROUP BY Supervisor_Name__Unsecured_
@@ -852,7 +852,7 @@ def get_staff_reports(supervisor_name):
                 ) as full_name,
                 Job_Title,
                 Employment_Status
-            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list`
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
             WHERE Supervisor_Name__Unsecured_ = @supervisor
             AND Employment_Status IN ('Active', 'Leave of absence')
             ORDER BY Last_Name, First_Name
