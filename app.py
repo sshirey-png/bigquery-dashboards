@@ -166,19 +166,25 @@ def get_accessible_supervisors(email, supervisor_name):
         # This traverses the hierarchy: user -> their direct reports -> their reports' reports, etc.
         query = f"""
             WITH RECURSIVE
-            -- First, get all people and their supervisors from staff_master_list
-            staff_hierarchy AS (
-                SELECT
-                    CONCAT(first_name, ' ', last_name) AS employee_name,
-                    Supervisor_Name__Unsecured_ AS supervisor_name
-                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list`
-                WHERE Supervisor_Name__Unsecured_ IS NOT NULL
-            ),
-            -- Get list of all supervisor names (people who have direct reports)
-            all_supervisors AS (
-                SELECT DISTINCT Supervisor_Name__Unsecured_ AS supervisor_name
+            -- Get all supervisors with their email (for mapping employee to supervisor name format)
+            supervisor_lookup AS (
+                SELECT DISTINCT
+                    Supervisor_Name__Unsecured_ AS supervisor_name,
+                    Supervisor_Email AS supervisor_email
                 FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
                 WHERE Supervisor_Name__Unsecured_ IS NOT NULL
+                AND Supervisor_Email IS NOT NULL
+            ),
+            -- Map each employee to their supervisor AND their own supervisor_name format (if they are a supervisor)
+            staff_with_supervisor_format AS (
+                SELECT
+                    s.Email_Address AS employee_email,
+                    s.Supervisor_Name__Unsecured_ AS reports_to,
+                    sl.supervisor_name AS employee_supervisor_name
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list` s
+                LEFT JOIN supervisor_lookup sl ON LOWER(s.Email_Address) = LOWER(sl.supervisor_email)
+                WHERE s.Supervisor_Name__Unsecured_ IS NOT NULL
+                AND s.Employment_Status IN ('Active', 'Leave of absence')
             ),
             -- Recursive traversal: start with logged-in supervisor, find all reports down the chain
             downline AS (
@@ -188,12 +194,12 @@ def get_accessible_supervisors(email, supervisor_name):
                 UNION ALL
 
                 -- Recursive case: find employees who report to someone in our downline
-                -- and who are themselves supervisors (have people reporting to them)
-                SELECT sh.employee_name AS supervisor_name, d.level + 1
-                FROM staff_hierarchy sh
-                INNER JOIN downline d ON sh.supervisor_name = d.supervisor_name
-                INNER JOIN all_supervisors a ON sh.employee_name = a.supervisor_name
-                WHERE d.level < 10  -- Safety limit to prevent infinite recursion
+                -- and who are themselves supervisors (have their own direct reports)
+                SELECT sw.employee_supervisor_name AS supervisor_name, d.level + 1
+                FROM staff_with_supervisor_format sw
+                INNER JOIN downline d ON sw.reports_to = d.supervisor_name
+                WHERE sw.employee_supervisor_name IS NOT NULL  -- Only include if they are a supervisor
+                AND d.level < 10  -- Safety limit to prevent infinite recursion
             )
             SELECT DISTINCT supervisor_name
             FROM downline
