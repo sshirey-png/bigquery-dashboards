@@ -15,6 +15,7 @@ import logging
 import re
 import sys
 from datetime import datetime, timezone
+from dateutil import parser as date_parser
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 
@@ -39,6 +40,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# School year filter - only sync records created on or after this date
+SCHOOL_YEAR_START = datetime(2025, 7, 1, tzinfo=timezone.utc)
 
 # BigQuery table schema
 TABLE_SCHEMA = [
@@ -184,6 +187,23 @@ def extract_tags(tags_list):
     return ', '.join(tag_names) if tag_names else None
 
 
+def is_current_school_year(record):
+    """Check if record was created in the current school year."""
+    created = record.get('created')
+    if not created:
+        return False
+    try:
+        if isinstance(created, str):
+            created_dt = date_parser.parse(created)
+            # Ensure timezone aware
+            if created_dt.tzinfo is None:
+                created_dt = created_dt.replace(tzinfo=timezone.utc)
+            return created_dt >= SCHOOL_YEAR_START
+        return False
+    except Exception:
+        return False
+
+
 def transform_record(record, sync_time):
     """Transform API record to BigQuery row format."""
     creator = record.get('creator', {}) or {}
@@ -215,7 +235,7 @@ def transform_record(record, sync_time):
 
 
 def fetch_all_records(token):
-    """Fetch all records from the API with pagination."""
+    """Fetch all records from the API with pagination, filtered to current school year."""
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json'
@@ -223,8 +243,9 @@ def fetch_all_records(token):
 
     all_records = []
     skip = 0
+    total_fetched = 0
 
-    logger.info("Starting API data fetch...")
+    logger.info(f"Starting API data fetch (filtering to records on or after {SCHOOL_YEAR_START.date()})...")
 
     while True:
         params = {
@@ -252,8 +273,13 @@ def fetch_all_records(token):
                 logger.info(f"No more records at skip={skip}")
                 break
 
-            all_records.extend(records)
-            logger.info(f"Fetched {len(records)} records (skip={skip}, total so far: {len(all_records)})")
+            total_fetched += len(records)
+
+            # Filter to current school year only
+            current_year_records = [r for r in records if is_current_school_year(r)]
+            all_records.extend(current_year_records)
+
+            logger.info(f"Fetched {len(records)} records, {len(current_year_records)} from current school year (skip={skip}, total kept: {len(all_records)})")
 
             # Check if we got fewer records than requested (last page)
             if len(records) < PAGE_SIZE:
@@ -265,7 +291,7 @@ def fetch_all_records(token):
             logger.error(f"API request failed at skip={skip}: {e}")
             raise
 
-    logger.info(f"Total records fetched: {len(all_records)}")
+    logger.info(f"Total records from API: {total_fetched}, kept for current school year: {len(all_records)}")
     return all_records
 
 

@@ -372,20 +372,26 @@
 
             <!-- Search and Filters -->
             <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1 relative">
+                <div class="flex flex-col md:flex-row gap-4 items-center">
+                    <div class="w-full md:w-56 relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <input type="text" id="searchInput" placeholder="Search by staff name..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
+                        <input type="text" id="searchInput" placeholder="Search staff..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
                     </div>
                     <div class="segmented-control">
                         <button class="segment-btn active" data-filter="all">All Staff</button>
                         <button class="segment-btn" data-filter="alerts">With Alerts</button>
                         <button class="segment-btn" data-filter="action">Action Needed</button>
                     </div>
+                    <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 bg-fls-orange text-white font-medium rounded-xl hover:bg-orange-600 transition-colors whitespace-nowrap">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Data Portal
+                    </a>
                 </div>
             </div>
 
@@ -396,19 +402,19 @@
                     <p class="text-slate-500 text-sm">Loading staff data...</p>
                 </div>
 
-                <div id="staffTableContainer" class="hidden">
+                <div id="staffTableContainer" class="hidden overflow-x-auto">
                     <table class="desktop-table min-w-full">
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50">
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Staff Member</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Start Date / Years</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Birthday</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Time Off Remaining</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Obs</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Last Obs</th>
-                                <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">PMAPS</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Intent to Return</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Staff Member</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start / Years</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Birthday</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Total Obs</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Action Step</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">PMAPS</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Intent to Return</th>
                             </tr>
                         </thead>
                         <tbody id="staffTableBody" class="divide-y divide-slate-100">
@@ -815,6 +821,78 @@
         </div>
     </div>
 
+    <!-- Action Step Modal -->
+    <div id="actionStepModal" class="fixed inset-0 z-50 hidden animate-fade-in">
+        <div class="modal-backdrop absolute inset-0" onclick="closeActionStepModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up">
+                <!-- Modal Header -->
+                <div class="sticky top-0 bg-fls-navy text-white px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold">Current Action Step</h2>
+                        </div>
+                    </div>
+                    <button onclick="closeActionStepModal()" class="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6 space-y-4">
+                    <!-- Progress -->
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-slate-500 uppercase">Progress</span>
+                            <span class="text-lg font-bold text-fls-navy" id="actionStepProgress">0%</span>
+                        </div>
+                        <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="actionStepProgressBar" class="h-full bg-fls-orange rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Action Step Text -->
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Action Step</p>
+                        <p class="text-sm text-slate-800 leading-relaxed" id="actionStepName"></p>
+                    </div>
+
+                    <!-- Tags -->
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Tags</p>
+                        <div id="actionStepTags" class="flex flex-wrap gap-1"></div>
+                    </div>
+
+                    <!-- Meta Info -->
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+                        <div>
+                            <p class="text-xs text-slate-500">Assigned By</p>
+                            <p class="text-sm font-medium text-slate-900" id="actionStepCreator"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Created</p>
+                            <p class="text-sm font-medium text-slate-900" id="actionStepCreated"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
+                    <button onclick="closeActionStepModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global state
         let currentSupervisor = '';
@@ -824,6 +902,7 @@
         let currentFilter = 'all';
         let currentDetailEmail = '';
         let certificationStatus = {}; // email -> cert info for teachers/leaders
+        let actionStepsData = {}; // email -> most recent action step
 
         // API base URL
         const API_BASE = window.location.origin;
@@ -1124,12 +1203,15 @@
                 document.getElementById('staffTableContainer').classList.add('hidden');
                 document.getElementById('noDataMessage').classList.add('hidden');
 
-                // Load staff data and certification status in parallel
-                const [staffResponse, certResponse] = await Promise.all([
+                // Load staff data, certification status, and action steps in parallel
+                const [staffResponse, certResponse, actionStepsResponse] = await Promise.all([
                     fetch(`${API_BASE}/api/staff/${encodeURIComponent(supervisor)}`, {
                         credentials: 'include'
                     }),
                     fetch(`${API_BASE}/api/cert-status`, {
+                        credentials: 'include'
+                    }),
+                    fetch(`${API_BASE}/api/action-steps/${encodeURIComponent(supervisor)}`, {
                         credentials: 'include'
                     })
                 ]);
@@ -1158,6 +1240,13 @@
                     certificationStatus = await certResponse.json();
                 } else {
                     certificationStatus = {};
+                }
+
+                // Load action steps (non-blocking if fails)
+                if (actionStepsResponse.ok) {
+                    actionStepsData = await actionStepsResponse.json();
+                } else {
+                    actionStepsData = {};
                 }
 
                 document.getElementById('loadingIndicator').classList.add('hidden');
@@ -1297,24 +1386,25 @@
                 row.onclick = () => renderDetailView(staff);
 
                 row.innerHTML = `
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full avatar-gradient flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">${initials}</div>
                             <div>
-                                <div class="flex items-center font-medium text-slate-900">${staff.Staff_Name || 'N/A'}${getCertBadge(staff.Email_Address)}</div>
-                                <div class="text-xs text-slate-500">${staff.job_title || 'N/A'}</div>
+                                <div class="flex items-center font-medium text-slate-900 whitespace-nowrap">${staff.Staff_Name || 'N/A'}${getCertBadge(staff.Email_Address)}</div>
+                                <div class="text-xs text-slate-500 whitespace-nowrap">${staff.job_title || 'N/A'}</div>
+                                <div class="mt-1">${getEmployeeStatusBadgeSmall(staff.Employment_Status)}</div>
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <div class="text-sm text-slate-600">${formatDate(staff.Last_Hire_Date)}</div>
                         <div class="text-xs text-slate-400">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <span class="text-sm text-slate-600">${formatBirthday(staff.Date_of_Birth)}</span>
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="w-24">
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="w-20">
                             <div class="flex justify-between text-xs mb-1">
                                 <span class="text-slate-600">${timeOffHours.toFixed(0)}h</span>
                             </div>
@@ -1323,22 +1413,22 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap text-center">
                         <span class="text-sm text-slate-600">${staff.total_observations || 0}</span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <span class="text-sm text-slate-500">${formatShortDate(staff.last_observation_date)}</span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        ${getActionStepCell(staff.Email_Address)}
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <div class="flex items-center justify-center gap-1">
                             ${getPmapIconsForStaff(staff)}
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <button onclick="event.stopPropagation(); showITRDetail('${staff.Email_Address}')" class="text-sm ${getIntentColor(staff.intent_to_return)} hover:underline cursor-pointer">${getIntentStatus(staff.intent_to_return)}</button>
-                    </td>
-                    <td class="px-6 py-4">
-                        ${getEmployeeStatusBadge(staff.Employment_Status)}
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -1354,9 +1444,9 @@
                             <div>
                                 <div class="flex items-center font-semibold text-slate-900">${staff.Staff_Name || 'N/A'}${getCertBadge(staff.Email_Address)}</div>
                                 <div class="text-sm text-slate-500">${staff.job_title || 'N/A'}</div>
+                                <div class="mt-1">${getEmployeeStatusBadgeSmall(staff.Employment_Status)}</div>
                             </div>
                         </div>
-                        ${getEmployeeStatusBadge(staff.Employment_Status)}
                     </div>
                     <div class="grid grid-cols-4 gap-2 mb-3 text-center">
                         <div>
@@ -1460,6 +1550,106 @@
             }
 
             return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${colors}">${text}</span>`;
+        }
+
+        // Get employee status badge HTML - smaller version for inline display
+        function getEmployeeStatusBadgeSmall(status) {
+            const statusLower = (status || '').toLowerCase();
+            let colors, text;
+
+            if (statusLower === 'active' || statusLower === 'employed') {
+                colors = 'bg-emerald-50 text-emerald-700';
+                text = 'Active';
+            } else if (statusLower === 'on leave' || statusLower === 'leave' || statusLower === 'leave of absence') {
+                colors = 'bg-amber-50 text-amber-700';
+                text = 'On Leave';
+            } else if (statusLower === 'terminated' || statusLower === 'inactive') {
+                colors = 'bg-red-50 text-red-700';
+                text = 'Inactive';
+            } else if (statusLower === 'pending') {
+                colors = 'bg-slate-100 text-slate-600';
+                text = 'Pending';
+            } else {
+                colors = 'bg-slate-50 text-slate-500';
+                text = status || '—';
+            }
+
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${colors}">${text}</span>`;
+        }
+
+        // Get action step cell HTML
+        function getActionStepCell(email) {
+            const actionStep = actionStepsData[email.toLowerCase()];
+
+            if (!actionStep) {
+                return `<span class="text-xs text-slate-400">—</span>`;
+            }
+
+            const progress = actionStep.progress_percent || 0;
+            let progressColor, statusText;
+
+            if (progress >= 100) {
+                progressColor = 'bg-emerald-500';
+                statusText = 'Complete';
+            } else if (progress > 0) {
+                progressColor = 'bg-fls-orange';
+                statusText = `${progress}%`;
+            } else {
+                progressColor = 'bg-slate-300';
+                statusText = 'Not Started';
+            }
+
+            return `
+                <button onclick="event.stopPropagation(); showActionStepModal('${email}')"
+                    class="text-left hover:bg-slate-50 rounded-lg p-1 -m-1 transition-colors w-full">
+                    <div class="flex items-center gap-2">
+                        <div class="w-16">
+                            <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full ${progressColor} rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-medium ${progress >= 100 ? 'text-emerald-600' : 'text-slate-600'}">${statusText}</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        // Show action step modal
+        function showActionStepModal(email) {
+            const actionStep = actionStepsData[email.toLowerCase()];
+            const modal = document.getElementById('actionStepModal');
+
+            if (!actionStep) {
+                return;
+            }
+
+            document.getElementById('actionStepName').innerHTML = actionStep.name || 'No action step assigned';
+            document.getElementById('actionStepCreator').textContent = actionStep.creator_name || 'Unknown';
+            document.getElementById('actionStepCreated').textContent = formatShortDate(actionStep.created);
+            document.getElementById('actionStepProgress').textContent = `${actionStep.progress_percent || 0}%`;
+
+            const progressBar = document.getElementById('actionStepProgressBar');
+            const progress = actionStep.progress_percent || 0;
+            progressBar.style.width = `${progress}%`;
+            progressBar.className = `h-full rounded-full ${progress >= 100 ? 'bg-emerald-500' : 'bg-fls-orange'}`;
+
+            // Tags
+            const tagsContainer = document.getElementById('actionStepTags');
+            if (actionStep.tags) {
+                const tags = actionStep.tags.split(', ');
+                tagsContainer.innerHTML = tags.map(tag =>
+                    `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-fls-navy/10 text-fls-navy">${tag}</span>`
+                ).join('');
+            } else {
+                tagsContainer.innerHTML = '<span class="text-xs text-slate-400">No tags</span>';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // Close action step modal
+        function closeActionStepModal() {
+            document.getElementById('actionStepModal').classList.add('hidden');
         }
 
         // Format birthday as month/day only

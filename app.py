@@ -884,6 +884,99 @@ def get_staff_reports(supervisor_name):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/action-steps/<supervisor_name>', methods=['GET'])
+@login_required
+def get_action_steps(supervisor_name):
+    """
+    Get the most recent action step for each staff member under a supervisor.
+    Returns a dict of email -> action step info.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    # Verify access
+    user = session.get('user', {})
+    accessible_supervisors = user.get('accessible_supervisors', [])
+
+    if not is_admin(user.get('email', '')) and supervisor_name not in accessible_supervisors:
+        logger.warning(f"Access denied: {user.get('email')} tried to access {supervisor_name}'s action steps")
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get the most recent action step for each staff member
+        query = """
+            WITH ranked_steps AS (
+                SELECT
+                    a._id,
+                    a.name,
+                    a.user_email,
+                    a.user_name,
+                    a.creator_name,
+                    a.creator_email,
+                    a.progress_percent,
+                    a.tags,
+                    a.created,
+                    a.lastModified,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY LOWER(a.user_email)
+                        ORDER BY a.created DESC
+                    ) as rn
+                FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
+                INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
+                    ON LOWER(a.user_email) = LOWER(s.Email_Address)
+                WHERE s.Supervisor_Name__Unsecured_ = @supervisor_name
+                AND a.archivedAt IS NULL
+                AND a.created >= '2025-07-01'
+            )
+            SELECT
+                _id,
+                name,
+                user_email,
+                user_name,
+                creator_name,
+                creator_email,
+                progress_percent,
+                tags,
+                created,
+                lastModified
+            FROM ranked_steps
+            WHERE rn = 1
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("supervisor_name", "STRING", supervisor_name)
+            ]
+        )
+
+        logger.info(f"Fetching action steps for supervisor: {supervisor_name}")
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        # Build dict of email -> action step info
+        action_steps = {}
+        for row in results:
+            email = row.user_email.lower() if row.user_email else ''
+            action_steps[email] = {
+                'id': row._id,
+                'name': row.name,
+                'user_name': row.user_name,
+                'creator_name': row.creator_name,
+                'creator_email': row.creator_email,
+                'progress_percent': row.progress_percent,
+                'tags': row.tags,
+                'created': row.created.isoformat() if row.created else None,
+                'lastModified': row.lastModified.isoformat() if row.lastModified else None
+            }
+
+        logger.info(f"Found {len(action_steps)} action steps for {supervisor_name}")
+        return jsonify(action_steps)
+
+    except Exception as e:
+        logger.error(f"Error fetching action steps for {supervisor_name}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
