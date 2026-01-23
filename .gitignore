@@ -1,0 +1,23 @@
+# Credentials - NEVER commit these
+ldg_config.py
+*.json
+!package.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
