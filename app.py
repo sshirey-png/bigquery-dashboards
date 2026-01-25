@@ -903,44 +903,26 @@ def get_action_steps(supervisor_name):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        # Get the most recent action step for each staff member
+        # Get all action steps for each staff member (current school year)
         query = """
-            WITH ranked_steps AS (
-                SELECT
-                    a._id,
-                    a.name,
-                    a.user_email,
-                    a.user_name,
-                    a.creator_name,
-                    a.creator_email,
-                    a.progress_percent,
-                    a.tags,
-                    a.created,
-                    a.lastModified,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY LOWER(a.user_email)
-                        ORDER BY a.created DESC
-                    ) as rn
-                FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
-                INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
-                    ON LOWER(a.user_email) = LOWER(s.Email_Address)
-                WHERE s.Supervisor_Name__Unsecured_ = @supervisor_name
-                AND a.archivedAt IS NULL
-                AND a.created >= '2025-07-01'
-            )
             SELECT
-                _id,
-                name,
-                user_email,
-                user_name,
-                creator_name,
-                creator_email,
-                progress_percent,
-                tags,
-                created,
-                lastModified
-            FROM ranked_steps
-            WHERE rn = 1
+                a._id,
+                a.name,
+                a.user_email,
+                a.user_name,
+                a.creator_name,
+                a.creator_email,
+                a.progress_percent,
+                a.tags,
+                a.created,
+                a.lastModified
+            FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
+            INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
+                ON LOWER(a.user_email) = LOWER(s.Email_Address)
+            WHERE s.Supervisor_Name__Unsecured_ = @supervisor_name
+            AND a.archivedAt IS NULL
+            AND a.created >= '2025-07-01'
+            ORDER BY a.user_email, a.created DESC
         """
 
         job_config = bigquery.QueryJobConfig(
@@ -953,11 +935,11 @@ def get_action_steps(supervisor_name):
         query_job = client.query(query, job_config=job_config)
         results = query_job.result()
 
-        # Build dict of email -> action step info
+        # Build dict of email -> list of action steps
         action_steps = {}
         for row in results:
             email = row.user_email.lower() if row.user_email else ''
-            action_steps[email] = {
+            step = {
                 'id': row._id,
                 'name': row.name,
                 'user_name': row.user_name,
@@ -968,8 +950,11 @@ def get_action_steps(supervisor_name):
                 'created': row.created.isoformat() if row.created else None,
                 'lastModified': row.lastModified.isoformat() if row.lastModified else None
             }
+            if email not in action_steps:
+                action_steps[email] = []
+            action_steps[email].append(step)
 
-        logger.info(f"Found {len(action_steps)} action steps for {supervisor_name}")
+        logger.info(f"Found action steps for {len(action_steps)} staff members for {supervisor_name}")
         return jsonify(action_steps)
 
     except Exception as e:
