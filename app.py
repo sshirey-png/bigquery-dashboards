@@ -39,6 +39,10 @@ ALLOWED_DOMAIN = 'firstlineschools.org'
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
+# Dev mode - bypasses OAuth for local testing
+DEV_MODE = os.environ.get('FLASK_ENV') == 'development' or not GOOGLE_CLIENT_ID
+DEV_USER_EMAIL = 'sshirey@firstlineschools.org'  # Default dev user
+
 # Admin emails - these users have access to ALL supervisors
 ADMIN_EMAILS = [
     'sshirey@firstlineschools.org',      # Scott Shirey - Chief People Officer
@@ -233,6 +237,23 @@ def get_accessible_supervisors(email, supervisor_name):
 @app.route('/login')
 def login():
     """Initiate Google OAuth flow"""
+    # Dev mode - auto authenticate
+    if DEV_MODE:
+        logger.info(f"DEV MODE: Auto-authenticating as {DEV_USER_EMAIL}")
+        email = DEV_USER_EMAIL
+        supervisor_name = get_supervisor_name_for_email(email)
+        accessible_supervisors = get_accessible_supervisors(email, supervisor_name)
+
+        session['user'] = {
+            'email': email,
+            'name': 'Dev User',
+            'picture': '',
+            'supervisor_name': supervisor_name,
+            'is_admin': is_admin(email),
+            'accessible_supervisors': accessible_supervisors
+        }
+        return redirect('/')
+
     # Build redirect URI based on request
     redirect_uri = url_for('auth_callback', _external=True)
     return google.authorize_redirect(redirect_uri)
@@ -959,6 +980,163 @@ def get_action_steps(supervisor_name):
 
     except Exception as e:
         logger.error(f"Error fetching action steps for {supervisor_name}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/observations/<email>', methods=['GET'])
+@login_required
+def get_observations(email):
+    """
+    Get observation history for a specific staff member.
+    Returns a list of observations with details.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    try:
+        # Get unique observations for this staff member (current school year)
+        # Use aggregation to ensure we get the observation_link (some rows may have NULL)
+        query = """
+            SELECT
+                teacher_email,
+                teacher_name,
+                observer_name,
+                observation_type,
+                observed_at,
+                rubric_form,
+                school_when_observed,
+                MAX(observation_link) as observation_link
+            FROM `talent-demo-482004.talent_grow_observations.observations_raw_native`
+            WHERE LOWER(teacher_email) = LOWER(@email)
+            AND observed_at >= '2025-07-01'
+            GROUP BY teacher_email, teacher_name, observer_name, observation_type, observed_at, rubric_form, school_when_observed
+            ORDER BY observed_at DESC
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", email)
+            ]
+        )
+
+        logger.info(f"Fetching observations for: {email}")
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        # Build list of observations (already deduplicated by SQL GROUP BY)
+        observations = []
+        for row in results:
+            # Fix the observation link domain (schoolmint -> leveldata)
+            link = row.observation_link
+            if link:
+                link = link.replace('schoolmint', 'leveldata')
+
+            observations.append({
+                'teacher_name': row.teacher_name,
+                'observer_name': row.observer_name,
+                'observation_type': row.observation_type,
+                'observed_at': row.observed_at.isoformat() if row.observed_at else None,
+                'rubric_form': row.rubric_form,
+                'school': row.school_when_observed,
+                'link': link
+            })
+
+        logger.info(f"Found {len(observations)} observations for {email}")
+        return jsonify(observations)
+
+    except Exception as e:
+        logger.error(f"Error fetching observations for {email}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/meetings/<supervisor_name>', methods=['GET'])
+@login_required
+def get_meetings(supervisor_name):
+    """
+    Get the most recent meetings for each staff member under a supervisor.
+    Returns a dict of email -> list of meetings.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    # Verify access
+    user = session.get('user', {})
+    accessible_supervisors = user.get('accessible_supervisors', [])
+
+    if not is_admin(user.get('email', '')) and supervisor_name not in accessible_supervisors:
+        logger.warning(f"Access denied: {user.get('email')} tried to access {supervisor_name}'s meetings")
+        return jsonify({'error': 'Access denied'}), 403
+
+    try:
+        # Get meetings where the staff member was a participant (current school year)
+        query = """
+            WITH staff_emails AS (
+                SELECT LOWER(Email_Address) as email
+                FROM `talent-demo-482004.talent_grow_observations.staff_master_list_with_function`
+                WHERE Supervisor_Name__Unsecured_ = @supervisor_name
+                AND Employment_Status IN ('Active', 'Leave of absence')
+            ),
+            meetings_with_staff AS (
+                SELECT
+                    m._id,
+                    m.title,
+                    m.date,
+                    m.creator_name,
+                    m.creator_email,
+                    m.participant_names,
+                    m.participant_emails,
+                    m.type_name,
+                    m.what_was_discussed,
+                    m.next_steps,
+                    m.created,
+                    LOWER(TRIM(pe)) as staff_email
+                FROM `talent-demo-482004.talent_grow_observations.ldg_meetings` m,
+                UNNEST(SPLIT(m.participant_emails, ', ')) as pe
+                WHERE m.created >= '2025-07-01'
+                AND m.archivedAt IS NULL
+            )
+            SELECT
+                mws.*
+            FROM meetings_with_staff mws
+            INNER JOIN staff_emails se ON mws.staff_email = se.email
+            ORDER BY mws.staff_email, mws.date DESC
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("supervisor_name", "STRING", supervisor_name)
+            ]
+        )
+
+        logger.info(f"Fetching meetings for supervisor: {supervisor_name}")
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        # Build dict of email -> list of meetings
+        meetings = {}
+        for row in results:
+            email = row.staff_email if row.staff_email else ''
+            meeting = {
+                'id': row._id,
+                'title': row.title,
+                'date': row.date.isoformat() if row.date else None,
+                'creator_name': row.creator_name,
+                'creator_email': row.creator_email,
+                'participant_names': row.participant_names,
+                'type_name': row.type_name,
+                'what_was_discussed': row.what_was_discussed[:500] if row.what_was_discussed else None,  # Truncate for list
+                'next_steps': row.next_steps[:500] if row.next_steps else None,
+                'created': row.created.isoformat() if row.created else None
+            }
+            if email not in meetings:
+                meetings[email] = []
+            meetings[email].append(meeting)
+
+        logger.info(f"Found meetings for {len(meetings)} staff members for {supervisor_name}")
+        return jsonify(meetings)
+
+    except Exception as e:
+        logger.error(f"Error fetching meetings for {supervisor_name}: {e}")
         return jsonify({'error': str(e)}), 500
 
 

@@ -411,7 +411,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Birthday</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Total Obs</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs/Mtg</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Action Step</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">PMAPS</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Intent to Return</th>
@@ -877,6 +877,99 @@
         </div>
     </div>
 
+    <!-- Observations Detail Modal -->
+    <div id="observationsModal" class="fixed inset-0 z-50 hidden animate-fade-in">
+        <div class="modal-backdrop absolute inset-0" onclick="closeObservationsModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up max-h-[85vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="bg-blue-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold" id="observationsModalTitle">Observations</h2>
+                            <p class="text-sm text-white/70" id="observationsModalSubtitle"></p>
+                        </div>
+                    </div>
+                    <button onclick="closeObservationsModal()" class="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body - Scrollable List -->
+                <div class="p-4 space-y-3 overflow-y-auto flex-1" id="observationsList">
+                    <!-- Observations will be populated here -->
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-white border-t border-slate-200 px-6 py-4 flex-shrink-0">
+                    <button onclick="closeObservationsModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observation/Meeting Modal -->
+    <div id="obsMeetingModal" class="fixed inset-0 z-50 hidden animate-fade-in">
+        <div class="modal-backdrop absolute inset-0" onclick="closeObsMeetingModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up max-h-[85vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="bg-purple-700 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold" id="obsMeetingModalTitle">Observations & Meetings</h2>
+                            <p class="text-sm text-white/70" id="obsMeetingModalSubtitle"></p>
+                        </div>
+                    </div>
+                    <button onclick="closeObsMeetingModal()" class="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="bg-slate-50 px-6 py-3 flex gap-4 border-b border-slate-200 flex-shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                        <span class="text-xs text-slate-600"><span id="obsMeetingObsCount">0</span> Observations</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                        <span class="text-xs text-slate-600"><span id="obsMeetingMtgCount">0</span> Meetings</span>
+                    </div>
+                </div>
+
+                <!-- Modal Body - Scrollable List -->
+                <div class="p-4 space-y-3 overflow-y-auto flex-1" id="obsMeetingList">
+                    <!-- Observations and meetings will be populated here -->
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-white border-t border-slate-200 px-6 py-4 flex-shrink-0">
+                    <button onclick="closeObsMeetingModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global state
         let currentSupervisor = '';
@@ -887,6 +980,7 @@
         let currentDetailEmail = '';
         let certificationStatus = {}; // email -> cert info for teachers/leaders
         let actionStepsData = {}; // email -> most recent action step
+        let meetingsData = {}; // email -> list of meetings
 
         // API base URL
         const API_BASE = window.location.origin;
@@ -1187,8 +1281,8 @@
                 document.getElementById('staffTableContainer').classList.add('hidden');
                 document.getElementById('noDataMessage').classList.add('hidden');
 
-                // Load staff data, certification status, and action steps in parallel
-                const [staffResponse, certResponse, actionStepsResponse] = await Promise.all([
+                // Load staff data, certification status, action steps, and meetings in parallel
+                const [staffResponse, certResponse, actionStepsResponse, meetingsResponse] = await Promise.all([
                     fetch(`${API_BASE}/api/staff/${encodeURIComponent(supervisor)}`, {
                         credentials: 'include'
                     }),
@@ -1196,6 +1290,9 @@
                         credentials: 'include'
                     }),
                     fetch(`${API_BASE}/api/action-steps/${encodeURIComponent(supervisor)}`, {
+                        credentials: 'include'
+                    }),
+                    fetch(`${API_BASE}/api/meetings/${encodeURIComponent(supervisor)}`, {
                         credentials: 'include'
                     })
                 ]);
@@ -1231,6 +1328,13 @@
                     actionStepsData = await actionStepsResponse.json();
                 } else {
                     actionStepsData = {};
+                }
+
+                // Load meetings (non-blocking if fails)
+                if (meetingsResponse.ok) {
+                    meetingsData = await meetingsResponse.json();
+                } else {
+                    meetingsData = {};
                 }
 
                 document.getElementById('loadingIndicator').classList.add('hidden');
@@ -1398,10 +1502,10 @@
                         </div>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap text-center">
-                        <span class="text-sm text-slate-600">${staff.total_observations || 0}</span>
+                        ${getTotalObsCell(staff.Email_Address, staff.total_observations)}
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-sm text-slate-500">${formatShortDate(staff.last_observation_date)}</span>
+                        ${getLastObsMeetingCell(staff.Email_Address, staff.last_observation_date, staff.last_observation_type)}
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         ${getActionStepCell(staff.Email_Address)}
@@ -1650,6 +1754,250 @@
         // Close action step modal
         function closeActionStepModal() {
             document.getElementById('actionStepModal').classList.add('hidden');
+        }
+
+        // Get last observation/meeting cell HTML
+        function getLastObsMeetingCell(email, lastObsDate, lastObsType) {
+            const meetings = meetingsData[email.toLowerCase()] || [];
+            const lastMeeting = meetings.length > 0 ? meetings[0] : null;
+
+            // Parse dates for comparison
+            const obsDate = lastObsDate ? new Date(lastObsDate) : null;
+            const mtgDate = lastMeeting && lastMeeting.date ? new Date(lastMeeting.date) : null;
+
+            // Determine which is more recent
+            let displayDate = null;
+            let displayType = null;
+            let isMeeting = false;
+
+            if (obsDate && mtgDate) {
+                if (mtgDate > obsDate) {
+                    displayDate = mtgDate;
+                    displayType = 'Meeting';
+                    isMeeting = true;
+                } else {
+                    displayDate = obsDate;
+                    displayType = lastObsType || 'Obs';
+                    isMeeting = false;
+                }
+            } else if (mtgDate) {
+                displayDate = mtgDate;
+                displayType = 'Meeting';
+                isMeeting = true;
+            } else if (obsDate) {
+                displayDate = obsDate;
+                displayType = lastObsType || 'Obs';
+                isMeeting = false;
+            }
+
+            if (!displayDate) {
+                return `<span class="text-xs text-slate-400">—</span>`;
+            }
+
+            // Count totals for display
+            const obsCount = 0; // We don't have individual obs data yet
+            const mtgCount = meetings.length;
+            const hasMeetings = mtgCount > 0;
+
+            const dateStr = formatShortDate(displayDate.toISOString());
+            const typeIcon = isMeeting ? '💬' : '👁';
+            const bgColor = isMeeting ? 'bg-purple-50 hover:bg-purple-100' : 'bg-slate-50 hover:bg-slate-100';
+
+            return `
+                <button onclick="event.stopPropagation(); showObsMeetingModal('${email}')"
+                    class="text-left ${bgColor} rounded-lg p-1.5 -m-1 transition-colors">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs">${typeIcon}</span>
+                        <div>
+                            <div class="text-xs font-medium text-slate-700">${dateStr}</div>
+                            ${hasMeetings ? `<div class="text-xs text-slate-400">${mtgCount} mtg${mtgCount !== 1 ? 's' : ''}</div>` : ''}
+                        </div>
+                    </div>
+                </button>
+            `;
+        }
+
+        // Show observation/meeting modal
+        function showObsMeetingModal(email) {
+            const meetings = meetingsData[email.toLowerCase()] || [];
+            const modal = document.getElementById('obsMeetingModal');
+
+            // Get staff info from staffData
+            const staffMember = staffData.find(s => s.Email_Address && s.Email_Address.toLowerCase() === email.toLowerCase());
+            const staffName = staffMember ? staffMember.Staff_Name : 'Staff Member';
+            const lastObsDate = staffMember ? staffMember.last_observation_date : null;
+            const lastObsType = staffMember ? staffMember.last_observation_type : null;
+
+            document.getElementById('obsMeetingModalTitle').textContent = staffName;
+            document.getElementById('obsMeetingModalSubtitle').textContent = `Observations & Meetings`;
+
+            // Update counts
+            document.getElementById('obsMeetingObsCount').textContent = lastObsDate ? '1+' : '0';
+            document.getElementById('obsMeetingMtgCount').textContent = meetings.length;
+
+            // Build content
+            const listContainer = document.getElementById('obsMeetingList');
+            let html = '';
+
+            // Add last observation if exists
+            if (lastObsDate) {
+                html += `
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">👁 Observation</span>
+                            <span class="text-xs text-slate-400">${formatShortDate(lastObsDate)}</span>
+                        </div>
+                        <p class="text-sm text-slate-700 font-medium">${lastObsType || 'Observation'}</p>
+                        <p class="text-xs text-slate-500 mt-1">Most recent observation on record</p>
+                    </div>
+                `;
+            }
+
+            // Add meetings
+            meetings.forEach(meeting => {
+                const discussedText = meeting.what_was_discussed
+                    ? (meeting.what_was_discussed.length > 200
+                        ? meeting.what_was_discussed.substring(0, 200) + '...'
+                        : meeting.what_was_discussed)
+                    : 'No notes recorded';
+
+                html += `
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500 text-white">💬 ${meeting.type_name || 'Meeting'}</span>
+                            <span class="text-xs text-slate-400">${formatShortDate(meeting.date)}</span>
+                        </div>
+                        <p class="text-sm font-medium text-slate-800 mb-1">${meeting.title || 'Meeting'}</p>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-2">${discussedText}</p>
+                        <div class="flex items-center justify-between text-xs text-slate-400">
+                            <span>with ${meeting.participant_names || 'Unknown'}</span>
+                            <span>by ${meeting.creator_name || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (!lastObsDate && meetings.length === 0) {
+                html = `
+                    <div class="text-center py-8 text-slate-400">
+                        <p>No observations or meetings recorded this school year</p>
+                    </div>
+                `;
+            }
+
+            listContainer.innerHTML = html;
+            modal.classList.remove('hidden');
+        }
+
+        // Close observation/meeting modal
+        function closeObsMeetingModal() {
+            document.getElementById('obsMeetingModal').classList.add('hidden');
+        }
+
+        // Get total observations cell HTML
+        function getTotalObsCell(email, totalObs) {
+            const count = totalObs || 0;
+
+            if (count === 0) {
+                return `<span class="text-sm text-slate-400">0</span>`;
+            }
+
+            return `
+                <button onclick="event.stopPropagation(); showObservationsModal('${email}')"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-sm transition-colors">
+                    ${count}
+                </button>
+            `;
+        }
+
+        // Show observations modal
+        async function showObservationsModal(email) {
+            const modal = document.getElementById('observationsModal');
+            const listContainer = document.getElementById('observationsList');
+
+            // Get staff info
+            const staffMember = staffData.find(s => s.Email_Address && s.Email_Address.toLowerCase() === email.toLowerCase());
+            const staffName = staffMember ? staffMember.Staff_Name : 'Staff Member';
+
+            document.getElementById('observationsModalTitle').textContent = staffName;
+            document.getElementById('observationsModalSubtitle').textContent = 'Loading observations...';
+            listContainer.innerHTML = '<div class="text-center py-8"><div class="loading mx-auto"></div></div>';
+
+            modal.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/observations/${encodeURIComponent(email)}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch observations');
+                }
+
+                const observations = await response.json();
+
+                document.getElementById('observationsModalSubtitle').textContent = `${observations.length} Observation${observations.length !== 1 ? 's' : ''} This Year`;
+
+                if (observations.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="text-center py-8 text-slate-400">
+                            <p>No observations recorded this school year</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Group by observation type
+                const byType = {};
+                observations.forEach(obs => {
+                    const type = obs.observation_type || 'Other';
+                    if (!byType[type]) byType[type] = [];
+                    byType[type].push(obs);
+                });
+
+                let html = '';
+                for (const [type, obs] of Object.entries(byType)) {
+                    const typeColor = type.includes('Self') ? 'bg-purple-500' :
+                                     type.includes('PMAP') ? 'bg-emerald-500' : 'bg-blue-500';
+
+                    obs.forEach(o => {
+                        html += `
+                            <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors">
+                                <div class="flex items-start justify-between gap-3 mb-2">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeColor} text-white">${o.observation_type || 'Observation'}</span>
+                                    <span class="text-xs text-slate-400">${formatShortDate(o.observed_at)}</span>
+                                </div>
+                                <p class="text-sm text-slate-700 mb-1">${o.rubric_form || 'Standard Observation'}</p>
+                                <div class="flex items-center justify-between text-xs text-slate-400">
+                                    <span>${o.school || ''}</span>
+                                    <span>by ${o.observer_name || 'Unknown'}</span>
+                                </div>
+                                ${o.link ? `<a href="${o.link}" target="_blank" class="inline-flex items-center gap-1 mt-2 text-xs text-fls-blue hover:underline">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                    View in Grow
+                                </a>` : ''}
+                            </div>
+                        `;
+                    });
+                }
+
+                listContainer.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading observations:', error);
+                listContainer.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <p>Failed to load observations</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Close observations modal
+        function closeObservationsModal() {
+            document.getElementById('observationsModal').classList.add('hidden');
         }
 
         // Format birthday as month/day only
