@@ -240,7 +240,15 @@
                                 </svg>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-2">You have access to <span id="accessibleCount">0</span> supervisors</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <p class="text-xs text-slate-400">You have access to <span id="accessibleCount">0</span> supervisors</p>
+                            <button id="refreshSupervisorsBtn" onclick="refreshSupervisorList()" class="text-xs text-slate-400 hover:text-fls-orange flex items-center gap-1 transition-colors" title="Refresh supervisor list">
+                                <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span id="refreshText">Refresh</span>
+                            </button>
+                        </div>
                     </div>
 
                     <button id="viewDashboardBtn" class="w-full bg-fls-orange hover:bg-fls-orange-dark text-white font-semibold py-3 px-4 rounded-full transition-all shadow-lg shadow-fls-orange/30 hover:shadow-fls-orange/40 mb-3">
@@ -1139,6 +1147,69 @@
 
             // Show the selection UI
             supervisorSelection.classList.remove('hidden');
+        }
+
+        // Refresh supervisor list by recalculating from current data
+        async function refreshSupervisorList() {
+            const refreshBtn = document.getElementById('refreshSupervisorsBtn');
+            const refreshIcon = document.getElementById('refreshIcon');
+            const refreshText = document.getElementById('refreshText');
+
+            // Show loading state
+            refreshBtn.disabled = true;
+            refreshIcon.classList.add('animate-spin');
+            refreshText.textContent = 'Refreshing...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/refresh-session`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to refresh session');
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update the supervisor dropdown
+                    const supervisorSelect = document.getElementById('supervisorSelect');
+                    const accessibleCount = document.getElementById('accessibleCount');
+                    const supervisors = data.accessible_supervisors || [];
+
+                    accessibleCount.textContent = supervisors.length;
+
+                    // Preserve current selection if still valid
+                    const currentSelection = supervisorSelect.value;
+
+                    supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
+                    supervisors.forEach(supervisor => {
+                        const option = document.createElement('option');
+                        option.value = supervisor;
+                        option.textContent = supervisor;
+                        if (supervisor === currentSelection || supervisor === data.supervisor_name) {
+                            option.selected = true;
+                        }
+                        supervisorSelect.appendChild(option);
+                    });
+
+                    // Show success feedback
+                    refreshText.textContent = 'Updated!';
+                    setTimeout(() => {
+                        refreshText.textContent = 'Refresh';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error refreshing supervisor list:', error);
+                refreshText.textContent = 'Error';
+                setTimeout(() => {
+                    refreshText.textContent = 'Refresh';
+                }, 2000);
+            } finally {
+                refreshBtn.disabled = false;
+                refreshIcon.classList.remove('animate-spin');
+            }
         }
 
         // Handle view dashboard button click

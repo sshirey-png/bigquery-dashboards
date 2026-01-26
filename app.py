@@ -363,6 +363,46 @@ def get_supervisors():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/refresh-session', methods=['POST'])
+@login_required
+def refresh_session():
+    """
+    Refresh the user's session data by recalculating accessible supervisors.
+    This is useful when supervisor hierarchy data changes without requiring re-login.
+    """
+    try:
+        user = session.get('user', {})
+        email = user.get('email')
+
+        if not email:
+            return jsonify({'error': 'No user email in session'}), 400
+
+        # Recalculate supervisor name and accessible supervisors
+        supervisor_name = get_supervisor_name_for_email(email)
+        accessible_supervisors = get_accessible_supervisors(email, supervisor_name)
+
+        # Update session
+        session['user'] = {
+            'email': email,
+            'supervisor_name': supervisor_name,
+            'is_admin': is_admin(email),
+            'accessible_supervisors': accessible_supervisors
+        }
+
+        logger.info(f"Session refreshed for {email}: {len(accessible_supervisors)} accessible supervisors")
+
+        return jsonify({
+            'success': True,
+            'supervisor_name': supervisor_name,
+            'accessible_supervisors': accessible_supervisors,
+            'count': len(accessible_supervisors)
+        })
+
+    except Exception as e:
+        logger.error(f"Error refreshing session: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/staff/<supervisor_name>', methods=['GET'])
 @login_required
 def get_staff(supervisor_name):
