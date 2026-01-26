@@ -516,7 +516,7 @@
                         <div class="bg-slate-50 rounded-xl p-4">
                             <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Time Off Balances</h3>
                             <div class="space-y-4">
-                                <div>
+                                <div id="detailPTORow">
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="text-slate-600">PTO Hours</span>
                                         <span class="font-medium text-slate-900" id="detailPTOHours"></span>
@@ -525,7 +525,7 @@
                                         <div class="progress-bar-fill bg-fls-orange" id="detailPTOBar" style="width: 0%"></div>
                                     </div>
                                 </div>
-                                <div>
+                                <div id="detailVacationRow">
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="text-slate-600">Vacation Hours</span>
                                         <span class="font-medium text-slate-900" id="detailVacationHours"></span>
@@ -534,7 +534,7 @@
                                         <div class="progress-bar-fill bg-emerald-500" id="detailVacationBar" style="width: 0%"></div>
                                     </div>
                                 </div>
-                                <div>
+                                <div id="detailPersonalRow">
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="text-slate-600">Personal Hours</span>
                                         <span class="font-medium text-slate-900" id="detailPersonalHours"></span>
@@ -543,7 +543,7 @@
                                         <div class="progress-bar-fill bg-violet-500" id="detailPersonalBar" style="width: 0%"></div>
                                     </div>
                                 </div>
-                                <div>
+                                <div id="detailSickRow">
                                     <div class="flex justify-between text-sm mb-1">
                                         <span class="text-slate-600">Sick Hours</span>
                                         <span class="font-medium text-slate-900" id="detailSickHours"></span>
@@ -1433,7 +1433,40 @@
             return parts[0] ? parts[0][0].toUpperCase() : '?';
         }
 
-        // Get time off progress percentage (max 80 hours assumed)
+        // Get time off data (available hours and max hours) from accrual fields
+        function getTimeOffData(staff) {
+            // Use new accrual columns: pto_available/pto_max or vacation_available/vacation_max
+            // Fall back to old columns if new ones not available
+            let available = 0;
+            let max = 0;
+
+            // Check for PTO data first
+            if (staff.pto_available !== null && staff.pto_available !== undefined) {
+                available = parseFloat(staff.pto_available) || 0;
+                max = parseFloat(staff.pto_max) || 0;
+            }
+            // Then check for Vacation data (salaried employees)
+            else if (staff.vacation_available !== null && staff.vacation_available !== undefined) {
+                available = parseFloat(staff.vacation_available) || 0;
+                max = parseFloat(staff.vacation_max) || 0;
+            }
+            // Fall back to old columns for backwards compatibility
+            else if (staff.pto_hours_left !== null && staff.pto_hours_left !== undefined) {
+                available = parseFloat(staff.pto_hours_left) || 0;
+                max = 40; // Default max for old data
+            }
+            else if (staff.vacation_hours_left !== null && staff.vacation_hours_left !== undefined) {
+                available = parseFloat(staff.vacation_hours_left) || 0;
+                max = 80; // Default max for old data
+            }
+
+            // Handle negative balances (overdrawn)
+            if (available < 0) available = 0;
+
+            return { available, max };
+        }
+
+        // Get time off progress percentage
         function getTimeOffProgress(hours, maxHours = 80) {
             const num = parseFloat(hours) || 0;
             return Math.min(100, (num / maxHours) * 100);
@@ -1472,9 +1505,14 @@
                 const alerts = calculateAlerts(staff);
                 const yearsOfService = staff.years_of_service ? `${staff.years_of_service}` : '—';
                 const initials = getInitials(staff.Staff_Name);
-                const timeOffHours = parseFloat(staff.pto_hours_left) || parseFloat(staff.vacation_hours_left) || 0;
-                const timeOffProgress = getTimeOffProgress(timeOffHours);
-                const timeOffColor = timeOffHours < 20 ? 'bg-red-500' : timeOffHours < 40 ? 'bg-amber-500' : 'bg-emerald-500';
+
+                // Calculate time off using new accrual data (available and max)
+                const timeOffData = getTimeOffData(staff);
+                const timeOffHours = timeOffData.available;
+                const timeOffMax = timeOffData.max;
+                const timeOffProgress = timeOffMax > 0 ? Math.min(100, Math.max(0, (timeOffHours / timeOffMax) * 100)) : 0;
+                const timeOffPercent = timeOffMax > 0 ? (timeOffHours / timeOffMax) : 0;
+                const timeOffColor = timeOffPercent < 0.25 ? 'bg-red-500' : timeOffPercent < 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
 
                 // Desktop table row
                 const row = document.createElement('tr');
@@ -1500,9 +1538,9 @@
                         <span class="text-sm text-slate-600">${formatBirthday(staff.Date_of_Birth)}</span>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="w-20">
+                        <div class="w-24">
                             <div class="flex justify-between text-xs mb-1">
-                                <span class="text-slate-600">${timeOffHours.toFixed(0)}h</span>
+                                <span class="text-slate-600">${timeOffHours.toFixed(0)}h / ${timeOffMax.toFixed(0)}h</span>
                             </div>
                             <div class="progress-bar">
                                 <div class="progress-bar-fill ${timeOffColor}" style="width: ${timeOffProgress}%"></div>
@@ -1922,21 +1960,42 @@
             document.getElementById('detailYearsOfService').textContent = staff.years_of_service ? `${staff.years_of_service} years` : 'N/A';
             document.getElementById('detailJobFunction').textContent = staff.Job_Function || 'N/A';
 
-            // Time off with progress bars
-            const ptoHours = parseFloat(staff.pto_hours_left) || 0;
-            const vacationHours = parseFloat(staff.vacation_hours_left) || 0;
-            const personalHours = parseFloat(staff.personal_hours_left) || 0;
-            const sickHours = parseFloat(staff.sick_hours_left) || 0;
+            // Time off with progress bars - use new accrual data
+            const ptoMax = parseFloat(staff.pto_max) || 0;
+            const ptoAvailable = parseFloat(staff.pto_available) || 0;
+            const vacationMax = parseFloat(staff.vacation_max) || 0;
+            const vacationAvailable = parseFloat(staff.vacation_available) || 0;
+            const personalMax = parseFloat(staff.personal_max) || 0;
+            const personalAvailable = parseFloat(staff.personal_available) || 0;
+            const sickMax = parseFloat(staff.sick_max) || 0;
+            const sickAvailable = parseFloat(staff.sick_available) || 0;
 
-            document.getElementById('detailPTOHours').textContent = formatHours(staff.pto_hours_left);
-            document.getElementById('detailVacationHours').textContent = formatHours(staff.vacation_hours_left);
-            document.getElementById('detailPersonalHours').textContent = formatHours(staff.personal_hours_left);
-            document.getElementById('detailSickHours').textContent = formatHours(staff.sick_hours_left);
+            // Format as "available / max"
+            const formatTimeOff = (avail, max) => {
+                if (max > 0) return `${Math.max(0, avail).toFixed(1)} / ${max.toFixed(0)}h`;
+                return '—';
+            };
 
-            document.getElementById('detailPTOBar').style.width = `${getTimeOffProgress(ptoHours)}%`;
-            document.getElementById('detailVacationBar').style.width = `${getTimeOffProgress(vacationHours)}%`;
-            document.getElementById('detailPersonalBar').style.width = `${getTimeOffProgress(personalHours, 24)}%`;
-            document.getElementById('detailSickBar').style.width = `${getTimeOffProgress(sickHours, 40)}%`;
+            // Show/hide rows based on whether employee has that time-off type
+            const hasPTO = ptoMax > 0;
+            const hasVacation = vacationMax > 0;
+            const hasPersonal = personalMax > 0;
+            const hasSick = sickMax > 0;
+
+            document.getElementById('detailPTORow').style.display = hasPTO ? 'block' : 'none';
+            document.getElementById('detailVacationRow').style.display = hasVacation ? 'block' : 'none';
+            document.getElementById('detailPersonalRow').style.display = hasPersonal ? 'block' : 'none';
+            document.getElementById('detailSickRow').style.display = hasSick ? 'block' : 'none';
+
+            document.getElementById('detailPTOHours').textContent = formatTimeOff(ptoAvailable, ptoMax);
+            document.getElementById('detailVacationHours').textContent = formatTimeOff(vacationAvailable, vacationMax);
+            document.getElementById('detailPersonalHours').textContent = formatTimeOff(personalAvailable, personalMax);
+            document.getElementById('detailSickHours').textContent = formatTimeOff(sickAvailable, sickMax);
+
+            document.getElementById('detailPTOBar').style.width = `${ptoMax > 0 ? Math.min(100, (Math.max(0, ptoAvailable) / ptoMax) * 100) : 0}%`;
+            document.getElementById('detailVacationBar').style.width = `${vacationMax > 0 ? Math.min(100, (Math.max(0, vacationAvailable) / vacationMax) * 100) : 0}%`;
+            document.getElementById('detailPersonalBar').style.width = `${personalMax > 0 ? Math.min(100, (Math.max(0, personalAvailable) / personalMax) * 100) : 0}%`;
+            document.getElementById('detailSickBar').style.width = `${sickMax > 0 ? Math.min(100, (Math.max(0, sickAvailable) / sickMax) * 100) : 0}%`;
 
             document.getElementById('detailTotalObs').textContent = staff.total_observations || '0';
             document.getElementById('detailLastObsType').textContent = staff.last_observation_type || 'N/A';
@@ -2409,12 +2468,13 @@
                 alerts.push({ level: 'yellow', message: 'Intent to return status pending' });
             }
 
-            // Check PTO balance
-            const ptoHours = parseFloat(staff.pto_hours_left) || parseFloat(staff.vacation_hours_left) || 0;
-            if (ptoHours < 20) {
-                alerts.push({ level: 'red', message: `Low time off balance (${ptoHours.toFixed(1)} hours)` });
-            } else if (ptoHours < 40) {
-                alerts.push({ level: 'yellow', message: `Medium time off balance (${ptoHours.toFixed(1)} hours)` });
+            // Check PTO balance using new accrual data
+            const timeOffData = getTimeOffData(staff);
+            const timeOffPercent = timeOffData.max > 0 ? (timeOffData.available / timeOffData.max) : 1;
+            if (timeOffPercent < 0.25) {
+                alerts.push({ level: 'red', message: `Low time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
+            } else if (timeOffPercent < 0.5) {
+                alerts.push({ level: 'yellow', message: `Medium time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
             }
 
             // Check disciplinary actions

@@ -430,12 +430,47 @@ def get_staff(supervisor_name):
 
     try:
         query = f"""
+            WITH latest_accruals AS (
+                SELECT
+                    Person_Number,
+                    Accrual_Code_Name,
+                    (Earned_to_Date__Hours_ + Pending_Grants__Hours_) as max_hours,
+                    (Earned_to_Date__Hours_ + Pending_Grants__Hours_ - COALESCE(Taken_to_Date__Hours_, 0)) as remaining_hours
+                FROM `{PROJECT_ID}.payroll_validation.accrual_balance_native`
+                WHERE Date_Balance_as_of_Date = (
+                    SELECT MAX(Date_Balance_as_of_Date)
+                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance_native`
+                )
+            ),
+            accrual_pivoted AS (
+                SELECT
+                    Person_Number,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN remaining_hours END) as pto_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN max_hours END) as pto_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN remaining_hours END) as vacation_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN max_hours END) as vacation_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN remaining_hours END) as personal_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN max_hours END) as personal_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN remaining_hours END) as sick_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN max_hours END) as sick_max
+                FROM latest_accruals
+                GROUP BY Person_Number
+            )
             SELECT
-                *,
-                CONCAT(first_name, ' ', last_name) AS Staff_Name
-            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
-            WHERE Supervisor_Name__Unsecured_ = @supervisor
-            ORDER BY last_name, first_name
+                s.*,
+                CONCAT(s.first_name, ' ', s.last_name) AS Staff_Name,
+                a.pto_available,
+                a.pto_max,
+                a.vacation_available,
+                a.vacation_max,
+                a.personal_available,
+                a.personal_max,
+                a.sick_available,
+                a.sick_max
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
+            WHERE s.Supervisor_Name__Unsecured_ = @supervisor
+            ORDER BY s.last_name, s.first_name
         """
 
         job_config = bigquery.QueryJobConfig(
