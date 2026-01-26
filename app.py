@@ -794,6 +794,7 @@ def get_orgchart_data():
                 FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
                 WHERE Employment_Status IN ('Active', 'Leave of absence')
                 AND Supervisor_Name__Unsecured_ IS NOT NULL
+                AND Salary_or_Hourly = 'Salaried'
             ),
             -- Get names of C-level executives (Chiefs)
             c_level_names AS (
@@ -804,6 +805,7 @@ def get_orgchart_data():
                     ON LOWER(sn.supervisor_key) LIKE CONCAT(LOWER(s.Last_Name), ', ', LOWER(s.First_Name), '%')
                 WHERE s.Employment_Status IN ('Active', 'Leave of absence')
                 AND s.Job_Title LIKE '%Chief%'
+                AND s.Salary_or_Hourly = 'Salaried'
             ),
             -- Get staff with their supervisor name format using LEFT JOIN
             all_staff AS (
@@ -836,8 +838,9 @@ def get_orgchart_data():
                 LEFT JOIN supervisor_names sn
                     ON LOWER(sn.supervisor_key) LIKE CONCAT(LOWER(s.Last_Name), ', ', LOWER(s.First_Name), '%')
                 WHERE s.Employment_Status IN ('Active', 'Leave of absence')
+                AND s.Salary_or_Hourly = 'Salaried'
             ),
-            -- Count direct reports per supervisor
+            -- Count direct reports per supervisor (salaried only)
             report_counts AS (
                 SELECT
                     Supervisor_Name__Unsecured_ as supervisor_key,
@@ -845,6 +848,7 @@ def get_orgchart_data():
                 FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
                 WHERE Employment_Status IN ('Active', 'Leave of absence')
                 AND Supervisor_Name__Unsecured_ IS NOT NULL
+                AND Salary_or_Hourly = 'Salaried'
                 GROUP BY Supervisor_Name__Unsecured_
             ),
             -- Get manager name keys (people with Manager in title)
