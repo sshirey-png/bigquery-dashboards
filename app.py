@@ -853,7 +853,13 @@ def get_orgchart_data():
                 FROM all_staff
                 WHERE job_title LIKE '%Manager%'
             ),
-            -- Select managers (supervisors, leadership, OR direct reports of C-level/Managers)
+            -- Get director name keys (people with Director/Dir in title)
+            director_names AS (
+                SELECT DISTINCT name_key
+                FROM all_staff
+                WHERE job_title LIKE '%Director%' OR job_title LIKE '%Dir %' OR job_title LIKE 'Dir of%'
+            ),
+            -- Select managers (supervisors, leadership, OR direct reports of C-level/Managers/Directors)
             managers AS (
                 SELECT DISTINCT
                     s.name_key,
@@ -876,6 +882,7 @@ def get_orgchart_data():
                    OR s.job_title LIKE '%Manager%'
                    OR s.reports_to IN (SELECT chief_name FROM c_level_names)
                    OR s.reports_to IN (SELECT name_key FROM manager_names)
+                   OR s.reports_to IN (SELECT name_key FROM director_names)
             )
             SELECT * FROM managers
             ORDER BY
