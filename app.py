@@ -1009,6 +1009,7 @@ def get_observations(email):
             FROM `talent-demo-482004.talent_grow_observations.observations_raw_native`
             WHERE LOWER(teacher_email) = LOWER(@email)
             AND observed_at >= '2025-07-01'
+            AND is_published = 1
             GROUP BY teacher_email, teacher_name, observer_name, observation_type, observed_at, rubric_form, school_when_observed
             ORDER BY observed_at DESC
         """
