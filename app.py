@@ -772,7 +772,7 @@ def get_cert_detail(email):
 
 @app.route('/orgchart')
 def orgchart():
-    """Serve the organization chart HTML file"""
+    """Serve the organization chart HTML file (Google Charts version)"""
     return send_from_directory('.', 'orgchart.html')
 
 

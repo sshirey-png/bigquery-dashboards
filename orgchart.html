@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization Chart | FirstLine Schools</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -42,147 +43,6 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-
-        /* Org Chart Styles */
-        .org-tree {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 20px;
-        }
-
-        .org-card {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px 28px;
-            min-width: 220px;
-            max-width: 280px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-        }
-
-        .org-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-
-        .org-card.ceo {
-            background: linear-gradient(135deg, #002f60 0%, #094aad 100%);
-            border-color: #002f60;
-            color: white;
-            min-width: 260px;
-        }
-
-        .org-card.chief {
-            background: linear-gradient(135deg, #e47727 0%, #f59e0b 100%);
-            border-color: #e47727;
-            color: white;
-        }
-
-        .org-card.director {
-            background: #f8fafc;
-            border-color: #002f60;
-            border-width: 2px;
-        }
-
-        .org-card.manager {
-            background: #fff7ed;
-            border-color: #e47727;
-        }
-
-        .org-card .name {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        .org-card .title {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-
-        .org-card .dept {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-top: 6px;
-        }
-
-        .org-card .reports-badge {
-            display: inline-block;
-            background: rgba(0,0,0,0.1);
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-top: 10px;
-        }
-
-        .org-card.ceo .reports-badge,
-        .org-card.chief .reports-badge {
-            background: rgba(255,255,255,0.2);
-        }
-
-        /* Connector lines */
-        .connector-down {
-            width: 2px;
-            height: 40px;
-            background: #cbd5e1;
-            margin: 0 auto;
-        }
-
-        .connector-horizontal {
-            height: 2px;
-            background: #cbd5e1;
-        }
-
-        /* Children row */
-        .children-row {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            flex-wrap: wrap;
-            position: relative;
-            padding-top: 40px;
-        }
-
-        .children-row::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 2px;
-            height: 40px;
-            background: #cbd5e1;
-        }
-
-        .child-node {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .child-node::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            width: 2px;
-            height: 40px;
-            background: #cbd5e1;
-        }
-
-        /* Horizontal line connecting siblings */
-        .children-row.multi::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: calc(50% - var(--line-width) / 2);
-            width: var(--line-width);
-            height: 2px;
-            background: #cbd5e1;
         }
 
         /* Tab navigation */
@@ -227,6 +87,20 @@
             display: block;
         }
 
+        /* Google Charts styling overrides */
+        .google-visualization-orgchart-node {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid #002f60;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: 'Open Sans', sans-serif;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .google-visualization-orgchart-node-medium {
+            font-size: 13px;
+        }
+
         /* Page title */
         .page-title {
             text-align: center;
@@ -244,145 +118,17 @@
             font-size: 14px;
         }
 
+        .chart-container {
+            width: 100%;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+
         /* Print styles */
         @media print {
             .no-print {
                 display: none !important;
             }
-            .tab-content {
-                display: block !important;
-                page-break-after: always;
-            }
-            .tab-content:last-child {
-                page-break-after: avoid;
-            }
-            body {
-                background: white;
-            }
-            .org-card {
-                break-inside: avoid;
-            }
-        }
-
-        /* Modal styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            transform: translateY(20px);
-            transition: transform 0.2s ease;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .modal-close {
-            background: #f1f5f9;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 18px;
-            color: #64748b;
-            transition: all 0.2s ease;
-        }
-
-        .modal-close:hover {
-            background: #e2e8f0;
-            color: #1e293b;
-        }
-
-        .report-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-        }
-
-        .report-item:hover {
-            background: #f1f5f9;
-        }
-
-        .report-item .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #e47727 0%, #f59e0b 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            margin-right: 12px;
-        }
-
-        .report-item .info {
-            flex: 1;
-        }
-
-        .report-item .name {
-            font-weight: 600;
-            color: #1e293b;
-            font-size: 14px;
-        }
-
-        .report-item .title {
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .report-item .loa-badge {
-            background: #fef3c7;
-            color: #92400e;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-        }
-
-        .org-card.clickable {
-            cursor: pointer;
         }
     </style>
 </head>
@@ -404,7 +150,7 @@
                         Back to Dashboard
                     </a>
                     <button onclick="window.print()" class="px-4 py-2 bg-fls-orange hover:bg-fls-orange-dark rounded-lg text-sm transition-colors">
-                        Print All
+                        Print
                     </button>
                 </div>
             </div>
@@ -419,8 +165,8 @@
                 <button class="tab-btn" data-tab="operations">Operations Team</button>
                 <button class="tab-btn" data-tab="devcomm">Dev/Comm Team</button>
                 <button class="tab-btn" data-tab="hr-talent">HR/Talent Team</button>
-                <button class="tab-btn" data-tab="academics">Academics Team</button>
-                <button class="tab-btn" data-tab="schools">School Directors</button>
+                <button class="tab-btn" data-tab="schools">Schools Team</button>
+                <button class="tab-btn" data-tab="directors">School Directors</button>
             </nav>
         </div>
     </div>
@@ -450,7 +196,7 @@
                 <h2>C-Team</h2>
                 <p>Executive Leadership</p>
             </div>
-            <div class="org-tree" id="org-c-team"></div>
+            <div class="chart-container" id="chart-c-team"></div>
         </div>
 
         <!-- Operations Team -->
@@ -459,7 +205,7 @@
                 <h2>Operations Team</h2>
                 <p>Operations, Finance & Technology</p>
             </div>
-            <div class="org-tree" id="org-operations"></div>
+            <div class="chart-container" id="chart-operations"></div>
         </div>
 
         <!-- Dev/Comm Team -->
@@ -468,7 +214,7 @@
                 <h2>Dev/Comm Team</h2>
                 <p>Development & Communications</p>
             </div>
-            <div class="org-tree" id="org-devcomm"></div>
+            <div class="chart-container" id="chart-devcomm"></div>
         </div>
 
         <!-- HR/Talent Team -->
@@ -477,31 +223,41 @@
                 <h2>HR/Talent Team</h2>
                 <p>Human Resources & Talent Management</p>
             </div>
-            <div class="org-tree" id="org-hr-talent"></div>
+            <div class="chart-container" id="chart-hr-talent"></div>
         </div>
 
-        <!-- Academics Team -->
-        <div class="tab-content" id="tab-academics">
+        <!-- Schools Team -->
+        <div class="tab-content" id="tab-schools">
             <div class="page-title">
-                <h2>Academics Team</h2>
-                <p>Teaching, Learning & Student Support</p>
+                <h2>Schools Team</h2>
+                <p>School Leadership & Academics</p>
             </div>
-            <div class="org-tree" id="org-academics"></div>
+            <div class="chart-container" id="chart-schools"></div>
         </div>
 
         <!-- School Directors -->
-        <div class="tab-content" id="tab-schools">
+        <div class="tab-content" id="tab-directors">
             <div class="page-title">
                 <h2>School Directors</h2>
                 <p>School Leadership</p>
             </div>
-            <div class="org-tree" id="org-schools"></div>
+            <div class="chart-container" id="chart-directors"></div>
         </div>
 
     </div>
 
     <script>
         let orgData = [];
+        let chartsLoaded = false;
+
+        // Load Google Charts
+        google.charts.load('current', {packages: ['orgchart']});
+        google.charts.setOnLoadCallback(() => {
+            chartsLoaded = true;
+            if (orgData.length > 0) {
+                renderAllCharts();
+            }
+        });
 
         // Load org data from API
         async function loadOrgData() {
@@ -515,7 +271,9 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 orgData = await response.json();
-                renderAllCharts();
+                if (chartsLoaded) {
+                    renderAllCharts();
+                }
             } catch (error) {
                 console.error('Error loading org data:', error);
                 document.getElementById('loadingState').classList.add('hidden');
@@ -524,393 +282,196 @@
             }
         }
 
-        // Find a person by name (partial match on full name, last name, or name_key)
+        // Find a person by name
         function findPerson(searchName) {
             const search = searchName.toLowerCase();
-            // First try exact-ish match on name_key (Last, First format)
-            let found = orgData.find(p => p.name_key.toLowerCase().includes(search));
-            if (found) return found;
-            // Then try full name
-            found = orgData.find(p => p.full_name.toLowerCase().includes(search));
-            if (found) return found;
-            // Finally try just last name for flexibility with preferred names
-            const lastName = search.split(' ').pop();
-            return orgData.find(p => p.last_name.toLowerCase() === lastName);
+            return orgData.find(p =>
+                p.name_key.toLowerCase().includes(search) ||
+                p.full_name.toLowerCase().includes(search) ||
+                p.last_name.toLowerCase() === search
+            );
         }
 
-        // Find direct reports of a person
+        // Get direct reports
         function getDirectReports(nameKey) {
             return orgData.filter(p => p.reports_to === nameKey);
         }
 
-        // Get card class based on job title
-        function getCardClass(title) {
-            if (title.includes('CEO') || title.includes('Executive')) return 'ceo';
-            if (title.includes('Chief')) return 'chief';
-            if (title.includes('Director') || title.includes('ExDir')) return 'director';
-            return 'manager';
-        }
+        // Build data table for a team starting from a leader
+        function buildTeamData(leader, maxDepth = 3) {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Name');
+            data.addColumn('string', 'Manager');
+            data.addColumn('string', 'Tooltip');
 
-        // Render a single org card (clickable if has direct reports)
-        function renderCard(person, overrideClass = null) {
-            const cardClass = overrideClass || getCardClass(person.job_title);
-            const isLOA = person.employment_status === 'Leave of absence';
-            const hasReports = person.direct_reports > 0;
-            // Use data attribute instead of inline onclick to handle special characters
-            const dataAttr = hasReports ? `data-namekey="${encodeURIComponent(person.name_key)}"` : '';
-            return `
-                <div class="org-card ${cardClass} ${hasReports ? 'clickable' : ''}" ${isLOA ? 'style="opacity: 0.7;"' : ''} ${dataAttr}>
-                    <div class="name">${person.full_name}</div>
-                    <div class="title">${person.job_title}</div>
-                    <div class="dept">${person.dept}</div>
-                    ${isLOA ? '<div class="reports-badge" style="background: #fef3c7; color: #92400e;">On Leave</div>' : ''}
-                    ${!isLOA && hasReports ? `<div class="reports-badge">${person.direct_reports} direct reports - click to view</div>` : ''}
-                </div>
-            `;
-        }
+            const visited = new Set();
 
-        // Attach click handlers after rendering
-        function attachClickHandlers() {
-            document.querySelectorAll('.org-card[data-namekey]').forEach(card => {
-                card.addEventListener('click', () => {
-                    const nameKey = decodeURIComponent(card.dataset.namekey);
-                    showDirectReports(nameKey);
-                });
-            });
-        }
+            function addPerson(person, depth = 0) {
+                if (!person || visited.has(person.name_key) || depth > maxDepth) return;
+                visited.add(person.name_key);
 
-        // Show modal with direct reports
-        async function showDirectReports(nameKey) {
-            const person = orgData.find(p => p.name_key === nameKey);
-            if (!person) return;
+                const nodeContent = `<div style="padding:4px;"><b>${person.full_name}</b><br><span style="font-size:11px;color:#666;">${person.job_title}</span></div>`;
+                const parent = depth === 0 ? '' : person.reports_to;
+                data.addRow([{v: person.name_key, f: nodeContent}, parent, person.job_title]);
 
-            // Always fetch from API to get complete list of direct reports
-            let reports = [];
-            try {
-                const response = await fetch(`/api/staff-reports/${encodeURIComponent(nameKey)}`);
-                if (response.ok) {
-                    reports = await response.json();
-                }
-            } catch (e) {
-                console.log('Could not fetch reports from API, falling back to orgData');
-                reports = getDirectReports(nameKey);
+                const reports = getDirectReports(person.name_key);
+                reports.forEach(report => addPerson(report, depth + 1));
             }
 
-            let reportsHtml = '';
-            if (reports.length === 0) {
-                reportsHtml = '<p class="text-gray-500 text-sm">Direct reports not available in org chart data.</p>';
-            } else {
-                reports.forEach(report => {
-                    const firstName = report.first_name || report.First_Name || '';
-                    const lastName = report.last_name || report.Last_Name || '';
-                    const fullName = report.full_name || `${firstName} ${lastName}`;
-                    const jobTitle = report.job_title || report.Job_Title || '';
-                    const initials = (firstName[0] + lastName[0]).toUpperCase();
-                    const isLOA = (report.employment_status || report.Employment_Status) === 'Leave of absence';
-                    reportsHtml += `
-                        <div class="report-item">
-                            <div class="avatar">${initials}</div>
-                            <div class="info">
-                                <div class="name">${fullName}${isLOA ? '<span class="loa-badge">On Leave</span>' : ''}</div>
-                                <div class="title">${jobTitle}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            document.getElementById('modalPersonName').textContent = person.full_name;
-            document.getElementById('modalPersonTitle').textContent = person.job_title;
-            document.getElementById('modalReportsList').innerHTML = reportsHtml;
-            document.getElementById('modalOverlay').classList.add('active');
+            addPerson(leader, 0);
+            return data;
         }
 
-        // Close modal
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.remove('active');
-        }
+        // Build C-Team data (CEO + Chiefs only, plus Kirsten Feil separately)
+        function buildCTeamData() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Name');
+            data.addColumn('string', 'Manager');
+            data.addColumn('string', 'Tooltip');
 
-        // Render a leader with their direct reports
-        function renderLeaderWithReports(leader, reports) {
-            if (!leader) return '<p class="text-gray-500">Person not found</p>';
-
-            let html = renderCard(leader);
-
-            if (reports && reports.length > 0) {
-                const lineWidth = Math.min(reports.length * 250, 800);
-                html += `<div class="children-row ${reports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                reports.forEach(report => {
-                    html += `<div class="child-node">${renderCard(report)}</div>`;
-                });
-                html += '</div>';
-            }
-
-            return html;
-        }
-
-        // Render C-Team: Sabrina and direct reports, with Kirsten/Brittney/Scott at second level
-        function renderCTeam() {
             const sabrina = findPerson('Pence');
-            const lashanda = findPerson('Gentry');
-            const kirsten = findPerson('Feil');
-            const donna = findPerson('Cavato');
-            const sivi = findPerson('Domango');
-            const brittney = findPerson('Richardson');
-            const scott = findPerson('Shirey');
-            const rebekah = findPerson('Straub');
+            if (!sabrina) return data;
 
-            let html = '';
+            const nodeContent = `<div style="padding:4px;"><b>${sabrina.full_name}</b><br><span style="font-size:11px;color:#666;">${sabrina.job_title}</span></div>`;
+            data.addRow([{v: sabrina.name_key, f: nodeContent}, '', sabrina.job_title]);
 
-            // Sabrina at top
-            if (sabrina) {
-                html += renderCard(sabrina);
-            }
-
-            // Get direct reports and filter out Brittney and Scott (they'll be shown at 2nd level)
-            let directReports = sabrina ? getDirectReports(sabrina.name_key) : [];
-            directReports = directReports.filter(p =>
-                p.name_key !== brittney?.name_key && p.name_key !== scott?.name_key
-            );
-
-            // Sort chiefs: Rebekah, Brittney, Donna, Scott, Sivi, Lashanda+Kirsten
-            // This positions Brittney between Rebekah/Donna and Scott between Donna/Sivi
-            const orderedChiefs = [];
-            if (rebekah && directReports.find(p => p.name_key === rebekah.name_key)) orderedChiefs.push(rebekah);
-            if (brittney) orderedChiefs.push({...brittney, _isSecondLevel: true, _reportsTo: donna});
-            if (donna && directReports.find(p => p.name_key === donna.name_key)) orderedChiefs.push(donna);
-            if (scott) orderedChiefs.push({...scott, _isSecondLevel: true, _reportsTo: sivi});
-            if (sivi && directReports.find(p => p.name_key === sivi.name_key)) orderedChiefs.push(sivi);
-            if (lashanda && directReports.find(p => p.name_key === lashanda.name_key)) orderedChiefs.push(lashanda);
-            if (kirsten) orderedChiefs.push({...kirsten, _isSecondLevel: true, _reportsTo: lashanda});
-
-            // Add any other chiefs not in our list
-            directReports.forEach(p => {
-                if (!orderedChiefs.find(c => c.name_key === p.name_key)) {
-                    orderedChiefs.push(p);
-                }
+            // Add direct reports (Chiefs)
+            const chiefs = getDirectReports(sabrina.name_key);
+            chiefs.forEach(chief => {
+                const chiefContent = `<div style="padding:4px;"><b>${chief.full_name}</b><br><span style="font-size:11px;color:#666;">${chief.job_title}</span></div>`;
+                data.addRow([{v: chief.name_key, f: chiefContent}, sabrina.name_key, chief.job_title]);
             });
 
-            // Render all in one row
-            if (orderedChiefs.length > 0) {
-                const lineWidth = Math.min(orderedChiefs.length * 220, 1400);
-                html += `<div class="children-row multi" style="--line-width: ${lineWidth}px;">`;
-                orderedChiefs.forEach(person => {
-                    html += '<div class="child-node">';
-                    html += renderCard(person, 'chief');
-                    html += '</div>';
-                });
-                html += '</div>';
-            }
-
-            document.getElementById('org-c-team').innerHTML = html;
-        }
-
-        // Render Operations Team: Rebekah and her team (with extra layer for Michael Burbano)
-        function renderOperations() {
-            const rebekah = findPerson('Straub');
-            const directReports = rebekah ? getDirectReports(rebekah.name_key) : [];
-
-            let html = '';
-            if (rebekah) {
-                html += renderCard(rebekah);
-            }
-
-            if (directReports.length > 0) {
-                const lineWidth = Math.min(directReports.length * 250, 800);
-                html += `<div class="children-row ${directReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                directReports.forEach(report => {
-                    html += '<div class="child-node">';
-                    html += renderCard(report);
-
-                    // Check for Neil Williams -> Michael Burbano chain
-                    if (report.last_name === 'Williams') {
-                        const neilReports = getDirectReports(report.name_key);
-                        const michael = neilReports.find(p => p.last_name === 'Burbano');
-                        if (michael) {
-                            html += `<div class="children-row" style="--line-width: 250px;">`;
-                            html += '<div class="child-node">';
-                            html += renderCard(michael);
-                            // Show Michael's direct reports
-                            const michaelReports = getDirectReports(michael.name_key);
-                            if (michaelReports.length > 0) {
-                                const mLineWidth = Math.min(michaelReports.length * 200, 500);
-                                html += `<div class="children-row ${michaelReports.length > 1 ? 'multi' : ''}" style="--line-width: ${mLineWidth}px;">`;
-                                michaelReports.forEach(mr => {
-                                    html += `<div class="child-node">${renderCard(mr)}</div>`;
-                                });
-                                html += '</div>';
-                            }
-                            html += '</div></div>';
-                        }
-                    }
-                    html += '</div>';
-                });
-                html += '</div>';
-            }
-
-            document.getElementById('org-operations').innerHTML = html;
-        }
-
-        // Render Dev/Comm Team: Donna and her team
-        function renderDevComm() {
-            const donna = findPerson('Cavato');
-            const directReports = donna ? getDirectReports(donna.name_key) : [];
-
-            document.getElementById('org-devcomm').innerHTML = renderLeaderWithReports(donna, directReports);
-        }
-
-        // Render HR/Talent Team: Brittney and Scott side by side
-        function renderHRTalent() {
-            const brittney = findPerson('Richardson');
-            const scott = findPerson('Shirey');
-
-            let html = '';
-
-            // Show Brittney and Scott side by side at the top
-            html += '<div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">';
-            if (brittney) {
-                html += `<div style="display: flex; flex-direction: column; align-items: center;">`;
-                html += renderCard(brittney);
-                // Brittney's direct reports
-                const brittneyReports = getDirectReports(brittney.name_key);
-                if (brittneyReports.length > 0) {
-                    const lineWidth = Math.min(brittneyReports.length * 250, 600);
-                    html += `<div class="children-row ${brittneyReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                    brittneyReports.forEach(report => {
-                        html += `<div class="child-node">${renderCard(report)}</div>`;
-                    });
-                    html += '</div>';
-                }
-                html += '</div>';
-            }
-            if (scott) {
-                html += `<div style="display: flex; flex-direction: column; align-items: center;">`;
-                html += renderCard(scott);
-                // Scott's direct reports
-                const scottReports = getDirectReports(scott.name_key);
-                if (scottReports.length > 0) {
-                    const lineWidth = Math.min(scottReports.length * 250, 600);
-                    html += `<div class="children-row ${scottReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                    scottReports.forEach(report => {
-                        html += `<div class="child-node">${renderCard(report)}</div>`;
-                    });
-                    html += '</div>';
-                }
-                html += '</div>';
-            }
-            html += '</div>';
-
-            document.getElementById('org-hr-talent').innerHTML = html;
-        }
-
-        // Render Academics Team: Shanda, Kirsten, and Charlotte/Zach chain
-        function renderAcademics() {
-            const lashanda = findPerson('Gentry');
+            // Add Kirsten Feil at Chiefs level (reports to Sabrina for positioning)
             const kirsten = findPerson('Feil');
-
-            let html = '';
-
-            // Lashanda at top
-            if (lashanda) {
-                html += renderCard(lashanda);
-                html += '<div class="connector-down"></div>';
-            }
-
-            // Kirsten and other academic leaders (excluding school directors)
-            const academicLeaders = lashanda ? getDirectReports(lashanda.name_key).filter(p =>
-                !p.job_title.includes('School Director') &&
-                (p.job_title.includes('ExDir') || p.job_title.includes('Dir') || p.last_name === 'Feil')
-            ) : [];
-
-            if (academicLeaders.length > 0) {
-                const lineWidth = Math.min(academicLeaders.length * 250, 1000);
-                html += `<div class="children-row ${academicLeaders.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                academicLeaders.forEach(leader => {
-                    html += '<div class="child-node">';
-                    html += renderCard(leader);
-
-                    // Check for Charlotte Steele -> Zach O'Donnell chain
-                    if (leader.last_name === 'Steele') {
-                        const charlotteReports = getDirectReports(leader.name_key);
-                        const zach = charlotteReports.find(p => p.last_name === "O'Donnell");
-                        if (zach) {
-                            html += `<div class="children-row" style="--line-width: 250px;">`;
-                            html += '<div class="child-node">';
-                            html += renderCard(zach);
-                            // Show Zach's direct reports
-                            const zachReports = getDirectReports(zach.name_key);
-                            if (zachReports.length > 0) {
-                                const zLineWidth = Math.min(zachReports.length * 200, 500);
-                                html += `<div class="children-row ${zachReports.length > 1 ? 'multi' : ''}" style="--line-width: ${zLineWidth}px;">`;
-                                zachReports.forEach(zr => {
-                                    html += `<div class="child-node">${renderCard(zr)}</div>`;
-                                });
-                                html += '</div>';
-                            }
-                            html += '</div></div>';
-                        }
-                    }
-                    html += '</div>';
-                });
-                html += '</div>';
-            }
-
-            // Show Kirsten's direct reports if any
             if (kirsten) {
-                const kirstenReports = getDirectReports(kirsten.name_key);
-                if (kirstenReports.length > 0) {
-                    html += '<div style="margin-top: 40px;"><h3 class="text-center text-gray-600 mb-4">Teaching & Learning Team</h3>';
-                    const lineWidth = Math.min(kirstenReports.length * 250, 800);
-                    html += `<div class="children-row ${kirstenReports.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                    kirstenReports.forEach(report => {
-                        html += `<div class="child-node">${renderCard(report)}</div>`;
-                    });
-                    html += '</div></div>';
-                }
+                const kirstenContent = `<div style="padding:4px;"><b>${kirsten.full_name}</b><br><span style="font-size:11px;color:#666;">${kirsten.job_title}</span></div>`;
+                data.addRow([{v: kirsten.name_key, f: kirstenContent}, sabrina.name_key, kirsten.job_title]);
             }
 
-            document.getElementById('org-academics').innerHTML = html;
+            return data;
         }
 
-        // Render School Directors: Shanda and School Directors
-        function renderSchools() {
+        // Build School Directors data (Lashanda + Directors only)
+        function buildDirectorsData() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Name');
+            data.addColumn('string', 'Manager');
+            data.addColumn('string', 'Tooltip');
+
             const lashanda = findPerson('Gentry');
+            if (!lashanda) return data;
 
-            let html = '';
+            const nodeContent = `<div style="padding:4px;"><b>${lashanda.full_name}</b><br><span style="font-size:11px;color:#666;">${lashanda.job_title}</span></div>`;
+            data.addRow([{v: lashanda.name_key, f: nodeContent}, '', lashanda.job_title]);
 
-            // Lashanda at top
+            // Add school directors only
+            const reports = getDirectReports(lashanda.name_key);
+            reports.filter(p => p.job_title.includes('School Director')).forEach(director => {
+                const dirContent = `<div style="padding:4px;"><b>${director.full_name}</b><br><span style="font-size:11px;color:#666;">${director.job_title}</span></div>`;
+                data.addRow([{v: director.name_key, f: dirContent}, lashanda.name_key, director.job_title]);
+            });
+
+            return data;
+        }
+
+        // Build Schools Team data (Lashanda + Sivi side by side, excluding School Directors)
+        function buildSchoolsTeamData() {
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'Name');
+            data.addColumn('string', 'Manager');
+            data.addColumn('string', 'Tooltip');
+
+            const lashanda = findPerson('Gentry');
+            const sivi = findPerson('Domango');
+            const visited = new Set();
+
+            function addPersonWithReports(person, parent, maxDepth, depth = 0) {
+                if (!person || visited.has(person.name_key) || depth > maxDepth) return;
+                // Skip School Directors (they have their own tab)
+                if (person.job_title.includes('School Director')) return;
+                visited.add(person.name_key);
+
+                const nodeContent = `<div style="padding:4px;"><b>${person.full_name}</b><br><span style="font-size:11px;color:#666;">${person.job_title}</span></div>`;
+                data.addRow([{v: person.name_key, f: nodeContent}, parent, person.job_title]);
+
+                const reports = getDirectReports(person.name_key);
+                reports.forEach(report => addPersonWithReports(report, person.name_key, maxDepth, depth + 1));
+            }
+
+            // Add Lashanda and her reports (excluding School Directors)
             if (lashanda) {
-                html += renderCard(lashanda);
+                addPersonWithReports(lashanda, '', 3, 0);
             }
 
-            // School Directors only
-            const schoolDirectors = lashanda ? getDirectReports(lashanda.name_key).filter(p =>
-                p.job_title.includes('School Director')
-            ) : [];
-
-            if (schoolDirectors.length > 0) {
-                const lineWidth = Math.min(schoolDirectors.length * 280, 1000);
-                html += `<div class="children-row ${schoolDirectors.length > 1 ? 'multi' : ''}" style="--line-width: ${lineWidth}px;">`;
-                schoolDirectors.forEach(director => {
-                    html += `<div class="child-node">${renderCard(director)}</div>`;
-                });
-                html += '</div>';
+            // Add Sivi and her reports (separate tree)
+            if (sivi) {
+                addPersonWithReports(sivi, '', 3, 0);
             }
 
-            document.getElementById('org-schools').innerHTML = html;
+            return data;
+        }
+
+        // Render a chart
+        function renderChart(containerId, data, allowCollapse = true) {
+            const container = document.getElementById(containerId);
+            if (!container || data.getNumberOfRows() === 0) return;
+
+            const chart = new google.visualization.OrgChart(container);
+            chart.draw(data, {
+                allowHtml: true,
+                allowCollapse: allowCollapse,
+                nodeClass: 'google-visualization-orgchart-node',
+                selectedNodeClass: 'google-visualization-orgchart-node-selected',
+                size: 'medium'
+            });
         }
 
         // Render all charts
         function renderAllCharts() {
-            renderCTeam();
-            renderOperations();
-            renderDevComm();
-            renderHRTalent();
-            renderAcademics();
-            renderSchools();
+            // C-Team (CEO + Chiefs only)
+            renderChart('chart-c-team', buildCTeamData(), false);
 
-            // Attach click handlers for popup
-            attachClickHandlers();
+            // Operations Team
+            const rebekah = findPerson('Straub');
+            if (rebekah) {
+                renderChart('chart-operations', buildTeamData(rebekah, 3));
+            }
+
+            // Dev/Comm Team
+            const donna = findPerson('Cavato');
+            if (donna) {
+                renderChart('chart-devcomm', buildTeamData(donna, 3));
+            }
+
+            // HR/Talent Team (Brittney + Scott)
+            const brittney = findPerson('Richardson');
+            const scott = findPerson('Shirey');
+
+            // Build combined HR/Talent data
+            const hrData = new google.visualization.DataTable();
+            hrData.addColumn('string', 'Name');
+            hrData.addColumn('string', 'Manager');
+            hrData.addColumn('string', 'Tooltip');
+
+            const visited = new Set();
+            function addPersonHR(person, parent, maxDepth, depth = 0) {
+                if (!person || visited.has(person.name_key) || depth > maxDepth) return;
+                visited.add(person.name_key);
+                const nodeContent = `<div style="padding:4px;"><b>${person.full_name}</b><br><span style="font-size:11px;color:#666;">${person.job_title}</span></div>`;
+                hrData.addRow([{v: person.name_key, f: nodeContent}, parent, person.job_title]);
+                const reports = getDirectReports(person.name_key);
+                reports.forEach(report => addPersonHR(report, person.name_key, maxDepth, depth + 1));
+            }
+            if (brittney) addPersonHR(brittney, '', 3, 0);
+            if (scott) addPersonHR(scott, '', 3, 0);
+            renderChart('chart-hr-talent', hrData);
+
+            // Schools Team (Lashanda + Sivi)
+            renderChart('chart-schools', buildSchoolsTeamData());
+
+            // School Directors (flat)
+            renderChart('chart-directors', buildDirectorsData(), false);
 
             document.getElementById('loadingState').classList.add('hidden');
             document.getElementById('tabContent').classList.remove('hidden');
@@ -919,11 +480,9 @@
         // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                // Update active tab button
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                // Show corresponding content
                 const tabId = btn.dataset.tab;
                 document.querySelectorAll('.tab-content').forEach(content => {
                     content.classList.remove('active');
@@ -934,31 +493,6 @@
 
         // Initialize
         loadOrgData();
-
-        // Close modal when clicking outside
-        document.getElementById('modalOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeModal();
-        });
     </script>
-
-    <!-- Direct Reports Modal -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h3 id="modalPersonName" class="text-lg font-bold text-gray-900"></h3>
-                    <p id="modalPersonTitle" class="text-sm text-gray-500"></p>
-                </div>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <h4 class="text-sm font-semibold text-gray-700 mb-3">Direct Reports</h4>
-            <div id="modalReportsList"></div>
-        </div>
-    </div>
 </body>
 </html>
