@@ -466,9 +466,12 @@ def get_staff(supervisor_name):
                 a.personal_available,
                 a.personal_max,
                 a.sick_available,
-                a.sick_max
+                a.sick_max,
+                sml.Salary_or_Hourly
             FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
             LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor
             ORDER BY s.last_name, s.first_name
         """

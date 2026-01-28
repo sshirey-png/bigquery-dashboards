@@ -1436,19 +1436,23 @@
         // Get time off data (available hours and max hours) from accrual fields
         function getTimeOffData(staff) {
             // Use new accrual columns: pto_available/pto_max or vacation_available/vacation_max
-            // Fall back to old columns if new ones not available
+            // Pick the type that has a max balance (their primary time-off type)
             let available = 0;
             let max = 0;
 
-            // Check for PTO data first
-            if (staff.pto_available !== null && staff.pto_available !== undefined) {
-                available = parseFloat(staff.pto_available) || 0;
-                max = parseFloat(staff.pto_max) || 0;
+            const ptoMax = parseFloat(staff.pto_max) || 0;
+            const ptoAvailable = parseFloat(staff.pto_available);
+            const vacationMax = parseFloat(staff.vacation_max) || 0;
+            const vacationAvailable = parseFloat(staff.vacation_available);
+
+            // Use whichever type has a max balance configured (their primary type)
+            if (ptoMax > 0) {
+                available = isNaN(ptoAvailable) ? 0 : ptoAvailable;
+                max = ptoMax;
             }
-            // Then check for Vacation data (salaried employees)
-            else if (staff.vacation_available !== null && staff.vacation_available !== undefined) {
-                available = parseFloat(staff.vacation_available) || 0;
-                max = parseFloat(staff.vacation_max) || 0;
+            else if (vacationMax > 0) {
+                available = isNaN(vacationAvailable) ? 0 : vacationAvailable;
+                max = vacationMax;
             }
             // Fall back to old columns for backwards compatibility
             else if (staff.pto_hours_left !== null && staff.pto_hours_left !== undefined) {
@@ -1459,9 +1463,6 @@
                 available = parseFloat(staff.vacation_hours_left) || 0;
                 max = 80; // Default max for old data
             }
-
-            // Handle negative balances (overdrawn)
-            if (available < 0) available = 0;
 
             return { available, max };
         }
@@ -1512,7 +1513,9 @@
                 const timeOffMax = timeOffData.max;
                 const timeOffProgress = timeOffMax > 0 ? Math.min(100, Math.max(0, (timeOffHours / timeOffMax) * 100)) : 0;
                 const timeOffPercent = timeOffMax > 0 ? (timeOffHours / timeOffMax) : 0;
-                const timeOffColor = timeOffPercent < 0.25 ? 'bg-red-500' : timeOffPercent < 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
+                const isNegative = timeOffHours < 0;
+                const timeOffColor = isNegative ? 'bg-red-600' : timeOffPercent < 0.25 ? 'bg-red-500' : timeOffPercent < 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
+                const timeOffTextColor = isNegative ? 'text-red-600 font-semibold' : 'text-slate-600';
 
                 // Desktop table row
                 const row = document.createElement('tr');
@@ -1540,7 +1543,7 @@
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="w-24">
                             <div class="flex justify-between text-xs mb-1">
-                                <span class="text-slate-600">${timeOffHours.toFixed(0)}h / ${timeOffMax.toFixed(0)}h</span>
+                                <span class="${timeOffTextColor}">${timeOffHours.toFixed(0)}h / ${timeOffMax.toFixed(0)}h</span>
                             </div>
                             <div class="progress-bar">
                                 <div class="progress-bar-fill ${timeOffColor}" style="width: ${timeOffProgress}%"></div>
@@ -1650,6 +1653,11 @@
 
         // Get PMAP icons for a staff member based on their user type
         function getPmapIconsForStaff(staff) {
+            // Hourly employees don't receive PMAPs
+            if (staff.Salary_or_Hourly === 'Hourly') {
+                return '';
+            }
+
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
 
@@ -1970,9 +1978,9 @@
             const sickMax = parseFloat(staff.sick_max) || 0;
             const sickAvailable = parseFloat(staff.sick_available) || 0;
 
-            // Format as "available / max"
+            // Format as "available / max" (show actual value including negatives)
             const formatTimeOff = (avail, max) => {
-                if (max > 0) return `${Math.max(0, avail).toFixed(1)} / ${max.toFixed(0)}h`;
+                if (max > 0) return `${avail.toFixed(1)} / ${max.toFixed(0)}h`;
                 return '—';
             };
 
@@ -1987,15 +1995,53 @@
             document.getElementById('detailPersonalRow').style.display = hasPersonal ? 'block' : 'none';
             document.getElementById('detailSickRow').style.display = hasSick ? 'block' : 'none';
 
-            document.getElementById('detailPTOHours').textContent = formatTimeOff(ptoAvailable, ptoMax);
-            document.getElementById('detailVacationHours').textContent = formatTimeOff(vacationAvailable, vacationMax);
-            document.getElementById('detailPersonalHours').textContent = formatTimeOff(personalAvailable, personalMax);
-            document.getElementById('detailSickHours').textContent = formatTimeOff(sickAvailable, sickMax);
+            const ptoHoursEl = document.getElementById('detailPTOHours');
+            const vacationHoursEl = document.getElementById('detailVacationHours');
+            const personalHoursEl = document.getElementById('detailPersonalHours');
+            const sickHoursEl = document.getElementById('detailSickHours');
 
-            document.getElementById('detailPTOBar').style.width = `${ptoMax > 0 ? Math.min(100, (Math.max(0, ptoAvailable) / ptoMax) * 100) : 0}%`;
-            document.getElementById('detailVacationBar').style.width = `${vacationMax > 0 ? Math.min(100, (Math.max(0, vacationAvailable) / vacationMax) * 100) : 0}%`;
-            document.getElementById('detailPersonalBar').style.width = `${personalMax > 0 ? Math.min(100, (Math.max(0, personalAvailable) / personalMax) * 100) : 0}%`;
-            document.getElementById('detailSickBar').style.width = `${sickMax > 0 ? Math.min(100, (Math.max(0, sickAvailable) / sickMax) * 100) : 0}%`;
+            ptoHoursEl.textContent = formatTimeOff(ptoAvailable, ptoMax);
+            ptoHoursEl.className = ptoAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
+
+            vacationHoursEl.textContent = formatTimeOff(vacationAvailable, vacationMax);
+            vacationHoursEl.className = vacationAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
+
+            personalHoursEl.textContent = formatTimeOff(personalAvailable, personalMax);
+            personalHoursEl.className = personalAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
+
+            sickHoursEl.textContent = formatTimeOff(sickAvailable, sickMax);
+            sickHoursEl.className = sickAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
+
+            // Helper to get color class based on percentage (matches main table logic)
+            const getTimeOffColorClass = (avail, max) => {
+                if (max <= 0) return 'bg-slate-300';
+                if (avail < 0) return 'bg-red-600';
+                const percent = avail / max;
+                return percent < 0.25 ? 'bg-red-500' : percent < 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
+            };
+
+            // Helper to style text for negative balances
+            const getTimeOffTextClass = (avail) => {
+                return avail < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
+            };
+
+            // Update bar widths and colors
+            const ptoBar = document.getElementById('detailPTOBar');
+            const vacationBar = document.getElementById('detailVacationBar');
+            const personalBar = document.getElementById('detailPersonalBar');
+            const sickBar = document.getElementById('detailSickBar');
+
+            ptoBar.style.width = `${ptoMax > 0 ? Math.min(100, (Math.max(0, ptoAvailable) / ptoMax) * 100) : 0}%`;
+            ptoBar.className = `progress-bar-fill ${getTimeOffColorClass(ptoAvailable, ptoMax)}`;
+
+            vacationBar.style.width = `${vacationMax > 0 ? Math.min(100, (Math.max(0, vacationAvailable) / vacationMax) * 100) : 0}%`;
+            vacationBar.className = `progress-bar-fill ${getTimeOffColorClass(vacationAvailable, vacationMax)}`;
+
+            personalBar.style.width = `${personalMax > 0 ? Math.min(100, (Math.max(0, personalAvailable) / personalMax) * 100) : 0}%`;
+            personalBar.className = `progress-bar-fill ${getTimeOffColorClass(personalAvailable, personalMax)}`;
+
+            sickBar.style.width = `${sickMax > 0 ? Math.min(100, (Math.max(0, sickAvailable) / sickMax) * 100) : 0}%`;
+            sickBar.className = `progress-bar-fill ${getTimeOffColorClass(sickAvailable, sickMax)}`;
 
             document.getElementById('detailTotalObs').textContent = staff.total_observations || '0';
             document.getElementById('detailLastObsType').textContent = staff.last_observation_type || 'N/A';
@@ -2003,24 +2049,28 @@
             document.getElementById('detailDisciplinary').textContent =
                 `${staff.iap_count || 0} IAPs, ${staff.writeup_count || 0} Write-ups`;
 
-            // PMAP chips - user type aware
+            // PMAP chips - user type aware (hourly employees don't receive PMAPs)
             const chipsContainer = document.getElementById('detailComplianceChips');
             chipsContainer.innerHTML = '';
 
+            const isHourly = staff.Salary_or_Hourly === 'Hourly';
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
 
-            const pmapItems = [
-                { label: 'SR1', complete: isComplete(staff.self_reflection_1_count), deadline: deadlines.sr1 },
-                { label: 'PMAP1', complete: isComplete(staff.pmap_1_count), deadline: deadlines.pmap1 }
-            ];
+            let pmapItems = [];
+            if (!isHourly) {
+                pmapItems = [
+                    { label: 'SR1', complete: isComplete(staff.self_reflection_1_count), deadline: deadlines.sr1 },
+                    { label: 'PMAP1', complete: isComplete(staff.pmap_1_count), deadline: deadlines.pmap1 }
+                ];
 
-            // Only add SR2/PMAP2 if this user type has them
-            if (deadlines.hasSecondRound) {
-                pmapItems.push(
-                    { label: 'SR2', complete: isComplete(staff.self_reflection_2_count), deadline: deadlines.sr2 },
-                    { label: 'PMAP2', complete: isComplete(staff.pmap_2_count), deadline: deadlines.pmap2 }
-                );
+                // Only add SR2/PMAP2 if this user type has them
+                if (deadlines.hasSecondRound) {
+                    pmapItems.push(
+                        { label: 'SR2', complete: isComplete(staff.self_reflection_2_count), deadline: deadlines.sr2 },
+                        { label: 'PMAP2', complete: isComplete(staff.pmap_2_count), deadline: deadlines.pmap2 }
+                    );
+                }
             }
 
             pmapItems.forEach(item => {
@@ -2422,40 +2472,44 @@
             const alerts = [];
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
+            const isHourly = staff.Salary_or_Hourly === 'Hourly';
 
-            // Check SR1 observation
-            if (!isComplete(staff.self_reflection_1_count)) {
-                if (isOverdue(deadlines.sr1)) {
-                    alerts.push({ level: 'red', message: `SR1 OVERDUE (was due ${formatDeadline(deadlines.sr1)})` });
-                } else {
-                    alerts.push({ level: 'yellow', message: `SR1 pending (due ${formatDeadline(deadlines.sr1)})` });
-                }
-            }
-
-            // Check PMAP1 observation
-            if (!isComplete(staff.pmap_1_count)) {
-                if (isOverdue(deadlines.pmap1)) {
-                    alerts.push({ level: 'red', message: `PMAP1 OVERDUE (was due ${formatDeadline(deadlines.pmap1)})` });
-                } else {
-                    alerts.push({ level: 'yellow', message: `PMAP1 pending (due ${formatDeadline(deadlines.pmap1)})` });
-                }
-            }
-
-            // Only check SR2/PMAP2 if this user type requires them
-            if (deadlines.hasSecondRound) {
-                if (!isComplete(staff.self_reflection_2_count)) {
-                    if (isOverdue(deadlines.sr2)) {
-                        alerts.push({ level: 'red', message: `SR2 OVERDUE (was due ${formatDeadline(deadlines.sr2)})` });
+            // Hourly employees don't receive PMAPs - skip SR/PMAP alerts
+            if (!isHourly) {
+                // Check SR1 observation
+                if (!isComplete(staff.self_reflection_1_count)) {
+                    if (isOverdue(deadlines.sr1)) {
+                        alerts.push({ level: 'red', message: `SR1 OVERDUE (was due ${formatDeadline(deadlines.sr1)})` });
                     } else {
-                        alerts.push({ level: 'yellow', message: `SR2 pending (due ${formatDeadline(deadlines.sr2)})` });
+                        alerts.push({ level: 'yellow', message: `SR1 pending (due ${formatDeadline(deadlines.sr1)})` });
                     }
                 }
 
-                if (!isComplete(staff.pmap_2_count)) {
-                    if (isOverdue(deadlines.pmap2)) {
-                        alerts.push({ level: 'red', message: `PMAP2 OVERDUE (was due ${formatDeadline(deadlines.pmap2)})` });
+                // Check PMAP1 observation
+                if (!isComplete(staff.pmap_1_count)) {
+                    if (isOverdue(deadlines.pmap1)) {
+                        alerts.push({ level: 'red', message: `PMAP1 OVERDUE (was due ${formatDeadline(deadlines.pmap1)})` });
                     } else {
-                        alerts.push({ level: 'yellow', message: `PMAP2 pending (due ${formatDeadline(deadlines.pmap2)})` });
+                        alerts.push({ level: 'yellow', message: `PMAP1 pending (due ${formatDeadline(deadlines.pmap1)})` });
+                    }
+                }
+
+                // Only check SR2/PMAP2 if this user type requires them
+                if (deadlines.hasSecondRound) {
+                    if (!isComplete(staff.self_reflection_2_count)) {
+                        if (isOverdue(deadlines.sr2)) {
+                            alerts.push({ level: 'red', message: `SR2 OVERDUE (was due ${formatDeadline(deadlines.sr2)})` });
+                        } else {
+                            alerts.push({ level: 'yellow', message: `SR2 pending (due ${formatDeadline(deadlines.sr2)})` });
+                        }
+                    }
+
+                    if (!isComplete(staff.pmap_2_count)) {
+                        if (isOverdue(deadlines.pmap2)) {
+                            alerts.push({ level: 'red', message: `PMAP2 OVERDUE (was due ${formatDeadline(deadlines.pmap2)})` });
+                        } else {
+                            alerts.push({ level: 'yellow', message: `PMAP2 pending (due ${formatDeadline(deadlines.pmap2)})` });
+                        }
                     }
                 }
             }
@@ -2471,7 +2525,9 @@
             // Check PTO balance using new accrual data
             const timeOffData = getTimeOffData(staff);
             const timeOffPercent = timeOffData.max > 0 ? (timeOffData.available / timeOffData.max) : 1;
-            if (timeOffPercent < 0.25) {
+            if (timeOffData.available < 0) {
+                alerts.push({ level: 'red', message: `NEGATIVE time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
+            } else if (timeOffPercent < 0.25) {
                 alerts.push({ level: 'red', message: `Low time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
             } else if (timeOffPercent < 0.5) {
                 alerts.push({ level: 'yellow', message: `Medium time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
