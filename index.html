@@ -1016,6 +1016,14 @@
             return today >= twoWeeksBefore && today <= deadline;
         }
 
+        // Check if employee was hired after a deadline (not applicable for that item)
+        function wasHiredAfterDeadline(hireDate, deadline) {
+            if (!hireDate || !deadline) return false;
+            const hire = new Date(hireDate);
+            hire.setHours(0, 0, 0, 0);
+            return hire > deadline;
+        }
+
         // Format deadline for display
         function formatDeadline(deadline) {
             if (!deadline) return 'N/A';
@@ -1631,9 +1639,19 @@
             });
         }
 
-        // Get PMAP icon HTML with deadline awareness
-        function getPmapIcon(status, label, deadline = null) {
+        // Get PMAP icon HTML with deadline and hire date awareness
+        function getPmapIcon(status, label, deadline = null, hireDate = null) {
             const complete = isComplete(status);
+
+            // If hired after deadline, this item is N/A for this employee
+            if (!complete && wasHiredAfterDeadline(hireDate, deadline)) {
+                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-50 text-slate-300" title="${label}: N/A (hired after deadline)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                    </svg>
+                </span>`;
+            }
+
             const overdue = !complete && isOverdue(deadline);
             const dueSoon = !complete && !overdue && isWithinTwoWeeks(deadline);
 
@@ -1680,15 +1698,16 @@
 
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
+            const hireDate = staff.Last_Hire_Date;
 
             let icons = '';
-            icons += getPmapIcon(staff.self_reflection_1_count, 'SR1', deadlines.sr1);
-            icons += getPmapIcon(staff.pmap_1_count, 'PMAP1', deadlines.pmap1);
+            icons += getPmapIcon(staff.self_reflection_1_count, 'SR1', deadlines.sr1, hireDate);
+            icons += getPmapIcon(staff.pmap_1_count, 'PMAP1', deadlines.pmap1, hireDate);
 
             // Only show SR2/PMAP2 if this user type has them
             if (deadlines.hasSecondRound) {
-                icons += getPmapIcon(staff.self_reflection_2_count, 'SR2', deadlines.sr2);
-                icons += getPmapIcon(staff.pmap_2_count, 'PMAP2', deadlines.pmap2);
+                icons += getPmapIcon(staff.self_reflection_2_count, 'SR2', deadlines.sr2, hireDate);
+                icons += getPmapIcon(staff.pmap_2_count, 'PMAP2', deadlines.pmap2, hireDate);
             }
 
             return icons;
@@ -2076,6 +2095,7 @@
             const isHourly = staff.Salary_or_Hourly === 'Hourly';
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
+            const hireDate = staff.Last_Hire_Date;
 
             let pmapItems = [];
             if (!isHourly) {
@@ -2094,14 +2114,20 @@
             }
 
             pmapItems.forEach(item => {
-                const overdue = !item.complete && isOverdue(item.deadline);
-                const dueSoon = !item.complete && !overdue && isWithinTwoWeeks(item.deadline);
+                const hiredAfter = !item.complete && wasHiredAfterDeadline(hireDate, item.deadline);
+                const overdue = !item.complete && !hiredAfter && isOverdue(item.deadline);
+                const dueSoon = !item.complete && !hiredAfter && !overdue && isWithinTwoWeeks(item.deadline);
                 let chipClass, icon, statusText;
 
                 if (item.complete) {
                     chipClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                     icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
                     statusText = 'Complete';
+                } else if (hiredAfter) {
+                    // Hired after deadline - N/A
+                    chipClass = 'bg-slate-50 text-slate-300 border-slate-200';
+                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>';
+                    statusText = 'N/A';
                 } else if (overdue) {
                     chipClass = 'bg-red-100 text-red-700 border-red-300 ring-1 ring-red-300';
                     icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
@@ -2499,11 +2525,12 @@
             const userType = staff.Job_Function || '';
             const deadlines = getDeadlines(userType);
             const isHourly = staff.Salary_or_Hourly === 'Hourly';
+            const hireDate = staff.Last_Hire_Date;
 
             // Hourly employees don't receive PMAPs - skip SR/PMAP alerts
             if (!isHourly) {
-                // Check SR1 observation
-                if (!isComplete(staff.self_reflection_1_count)) {
+                // Check SR1 observation (skip if hired after deadline)
+                if (!isComplete(staff.self_reflection_1_count) && !wasHiredAfterDeadline(hireDate, deadlines.sr1)) {
                     if (isOverdue(deadlines.sr1)) {
                         alerts.push({ level: 'red', message: `SR1 OVERDUE (was due ${formatDeadline(deadlines.sr1)})` });
                     } else if (isWithinTwoWeeks(deadlines.sr1)) {
@@ -2511,8 +2538,8 @@
                     }
                 }
 
-                // Check PMAP1 observation
-                if (!isComplete(staff.pmap_1_count)) {
+                // Check PMAP1 observation (skip if hired after deadline)
+                if (!isComplete(staff.pmap_1_count) && !wasHiredAfterDeadline(hireDate, deadlines.pmap1)) {
                     if (isOverdue(deadlines.pmap1)) {
                         alerts.push({ level: 'red', message: `PMAP1 OVERDUE (was due ${formatDeadline(deadlines.pmap1)})` });
                     } else if (isWithinTwoWeeks(deadlines.pmap1)) {
@@ -2522,7 +2549,8 @@
 
                 // Only check SR2/PMAP2 if this user type requires them
                 if (deadlines.hasSecondRound) {
-                    if (!isComplete(staff.self_reflection_2_count)) {
+                    // Check SR2 (skip if hired after deadline)
+                    if (!isComplete(staff.self_reflection_2_count) && !wasHiredAfterDeadline(hireDate, deadlines.sr2)) {
                         if (isOverdue(deadlines.sr2)) {
                             alerts.push({ level: 'red', message: `SR2 OVERDUE (was due ${formatDeadline(deadlines.sr2)})` });
                         } else if (isWithinTwoWeeks(deadlines.sr2)) {
@@ -2530,7 +2558,8 @@
                         }
                     }
 
-                    if (!isComplete(staff.pmap_2_count)) {
+                    // Check PMAP2 (skip if hired after deadline)
+                    if (!isComplete(staff.pmap_2_count) && !wasHiredAfterDeadline(hireDate, deadlines.pmap2)) {
                         if (isOverdue(deadlines.pmap2)) {
                             alerts.push({ level: 'red', message: `PMAP2 OVERDUE (was due ${formatDeadline(deadlines.pmap2)})` });
                         } else if (isWithinTwoWeeks(deadlines.pmap2)) {

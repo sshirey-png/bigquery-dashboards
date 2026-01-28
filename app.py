@@ -455,9 +455,51 @@ def get_staff(supervisor_name):
                     MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN max_hours END) as sick_max
                 FROM latest_accruals
                 GROUP BY Person_Number
+            ),
+            -- Calculate PMAP/SR counts using only FINALIZED (published) observations
+            published_obs_counts AS (
+                SELECT
+                    teacher_internal_id,
+                    COUNTIF(observation_type = 'Self-Reflection 1' AND is_published = 1) as sr1_finalized,
+                    COUNTIF(observation_type = 'PMAP 1' AND is_published = 1) as pmap1_finalized,
+                    COUNTIF(observation_type = 'Self-Reflection 2' AND is_published = 1) as sr2_finalized,
+                    COUNTIF(observation_type = 'PMAP 2' AND is_published = 1) as pmap2_finalized
+                FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                WHERE teacher_internal_id IS NOT NULL
+                GROUP BY teacher_internal_id
             )
             SELECT
-                s.*,
+                s.Employee_Number,
+                s.first_name,
+                s.last_name,
+                s.Email_Address,
+                s.Date_of_Birth,
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                s.Supervisor_Email,
+                s.job_title,
+                s.Employment_Status,
+                s.Last_Hire_Date,
+                s.Job_Function,
+                s.years_of_service,
+                s.pto_hours_left,
+                s.vacation_hours_left,
+                s.personal_hours_left,
+                s.sick_hours_left,
+                s.total_goals,
+                s.total_observations,
+                s.last_observation_date,
+                -- Use finalized counts instead of raw counts
+                COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
+                COALESCE(poc.sr2_finalized, 0) as self_reflection_2_count,
+                COALESCE(poc.pmap1_finalized, 0) as pmap_1_count,
+                COALESCE(poc.pmap2_finalized, 0) as pmap_2_count,
+                s.iap_count,
+                s.writeup_count,
+                s.last_observation_type,
+                s.intent_to_return,
+                s.intent_response_status,
+                s.nps_score,
                 CONCAT(s.first_name, ' ', s.last_name) AS Staff_Name,
                 a.pto_available,
                 a.pto_max,
@@ -472,6 +514,8 @@ def get_staff(supervisor_name):
             LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
             LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
                 ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            LEFT JOIN published_obs_counts poc
+                ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor
             ORDER BY s.last_name, s.first_name
         """
