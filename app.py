@@ -489,10 +489,22 @@ def get_staff(supervisor_name):
                 FROM latest_accruals
                 GROUP BY Person_Number
             ),
-            -- Calculate PMAP/SR counts using only FINALIZED (published) observations
+            -- Get sabbatical application status
+            sabbatical_apps AS (
+                SELECT
+                    LOWER(employee_email) as employee_email,
+                    application_id,
+                    status,
+                    start_date,
+                    end_date
+                FROM `{PROJECT_ID}.sabbatical.applications`
+                WHERE status NOT IN ('Denied')
+            ),
+            -- Calculate PMAP/SR counts and total using only FINALIZED (published) observations
             published_obs_counts AS (
                 SELECT
                     teacher_internal_id,
+                    COUNTIF(is_published = 1 AND observed_at >= '2025-07-01') as total_published,
                     COUNTIF(observation_type = 'Self-Reflection 1' AND is_published = 1) as sr1_finalized,
                     COUNTIF(observation_type = 'PMAP 1' AND is_published = 1) as pmap1_finalized,
                     COUNTIF(observation_type = 'Self-Reflection 2' AND is_published = 1) as sr2_finalized,
@@ -520,7 +532,7 @@ def get_staff(supervisor_name):
                 s.personal_hours_left,
                 s.sick_hours_left,
                 s.total_goals,
-                s.total_observations,
+                COALESCE(poc.total_published, 0) as total_observations,
                 s.last_observation_date,
                 -- Use finalized counts instead of raw counts
                 COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
@@ -542,13 +554,19 @@ def get_staff(supervisor_name):
                 a.personal_max,
                 a.sick_available,
                 a.sick_max,
-                sml.Salary_or_Hourly
+                sml.Salary_or_Hourly,
+                sab.application_id as sabbatical_app_id,
+                sab.status as sabbatical_status,
+                sab.start_date as sabbatical_start,
+                sab.end_date as sabbatical_end
             FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
             LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
             LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
                 ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
             LEFT JOIN published_obs_counts poc
                 ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            LEFT JOIN sabbatical_apps sab
+                ON LOWER(s.Email_Address) = sab.employee_email
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor
             ORDER BY s.last_name, s.first_name
         """
