@@ -50,6 +50,12 @@ ADMIN_EMAILS = [
     'spence@firstlineschools.org',       # Sabrina Pence
 ]
 
+# Email aliases - map alternative emails to primary FirstLine emails
+# Format: 'alternate@email.com': 'primary@firstlineschools.org'
+EMAIL_ALIASES = {
+    'zach@esynola.org': 'zodonnell@firstlineschools.org',  # Zach O'Donnell
+}
+
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -89,31 +95,53 @@ def login_required(f):
     return decorated_function
 
 
+def resolve_email_alias(email):
+    """
+    Resolve an email alias to the primary FirstLine email.
+    Returns the primary email if an alias exists, otherwise returns the original email.
+    """
+    if not email:
+        return email
+    return EMAIL_ALIASES.get(email.lower(), email)
+
+
 def get_supervisor_name_for_email(email):
     """
     Look up supervisor name from BigQuery by email address.
     Returns the supervisor name if found, None otherwise.
+    Checks both the original email and any alias.
     """
     if not client or not email:
         return None
 
-    try:
-        query = f"""
-            SELECT DISTINCT Supervisor_Name__Unsecured_
-            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
-            WHERE LOWER(Supervisor_Email) = LOWER(@email)
-            LIMIT 1
-        """
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("email", "STRING", email)
-            ]
-        )
-        query_job = client.query(query, job_config=job_config)
-        results = list(query_job.result())
+    # Resolve any email alias to primary email
+    primary_email = resolve_email_alias(email)
 
-        if results:
-            return results[0].Supervisor_Name__Unsecured_
+    # Try both the original and primary email (in case they're different)
+    emails_to_try = [primary_email]
+    if email.lower() != primary_email.lower():
+        emails_to_try.append(email)
+
+    try:
+        for try_email in emails_to_try:
+            query = f"""
+                SELECT DISTINCT Supervisor_Name__Unsecured_
+                FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
+                WHERE LOWER(Supervisor_Email) = LOWER(@email)
+                LIMIT 1
+            """
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("email", "STRING", try_email)
+                ]
+            )
+            query_job = client.query(query, job_config=job_config)
+            results = list(query_job.result())
+
+            if results:
+                logger.info(f"Found supervisor for email {email} (using {try_email}): {results[0].Supervisor_Name__Unsecured_}")
+                return results[0].Supervisor_Name__Unsecured_
+
         return None
     except Exception as e:
         logger.error(f"Error looking up supervisor for email {email}: {e}")
@@ -121,8 +149,13 @@ def get_supervisor_name_for_email(email):
 
 
 def is_admin(email):
-    """Check if the user is an admin with full access."""
-    return email.lower() in [e.lower() for e in ADMIN_EMAILS]
+    """Check if the user is an admin with full access. Also checks email aliases."""
+    if not email:
+        return False
+    # Check both the original email and any alias
+    emails_to_check = [email.lower(), resolve_email_alias(email).lower()]
+    admin_emails_lower = [e.lower() for e in ADMIN_EMAILS]
+    return any(e in admin_emails_lower for e in emails_to_check)
 
 
 def get_all_supervisors():
@@ -432,14 +465,14 @@ def get_staff(supervisor_name):
         query = f"""
             WITH latest_accruals AS (
                 SELECT
-                    Person_Number,
-                    Accrual_Code_Name,
-                    (Earned_to_Date__Hours_ + Pending_Grants__Hours_) as max_hours,
-                    (Earned_to_Date__Hours_ + Pending_Grants__Hours_ - COALESCE(Taken_to_Date__Hours_, 0)) as remaining_hours
-                FROM `{PROJECT_ID}.payroll_validation.accrual_balance_native`
-                WHERE Date_Balance_as_of_Date = (
-                    SELECT MAX(Date_Balance_as_of_Date)
-                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance_native`
+                    `Person Number` as Person_Number,
+                    `Accrual Code Name` as Accrual_Code_Name,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_`) as max_hours,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_` - COALESCE(`Taken to Date _Hours_`, 0)) as remaining_hours
+                FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                WHERE `Date Balance as of Date` = (
+                    SELECT MAX(`Date Balance as of Date`)
+                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
                 )
             ),
             accrual_pivoted AS (
