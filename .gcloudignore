@@ -22,3 +22,5 @@ Thumbs.db
 *.md
 node_modules/
 .claude/
+logs/
+nul

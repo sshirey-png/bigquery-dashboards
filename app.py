@@ -306,8 +306,11 @@ def auth_callback():
         email = userinfo.get('email', '')
         domain = email.split('@')[-1] if '@' in email else ''
 
-        # Verify domain
-        if domain.lower() != ALLOWED_DOMAIN.lower():
+        # Check if this email has an alias (allow aliased emails from other domains)
+        is_aliased = email.lower() in EMAIL_ALIASES
+
+        # Verify domain - allow if it's the primary domain OR if it's an aliased email
+        if domain.lower() != ALLOWED_DOMAIN.lower() and not is_aliased:
             logger.warning(f"Unauthorized domain attempt: {email}")
             return redirect(f'/?error=unauthorized_domain&domain={domain}')
 
