@@ -504,16 +504,27 @@ def get_staff(supervisor_name):
                 WHERE status NOT IN ('Denied')
             ),
             -- Calculate PMAP/SR counts and total using only FINALIZED (published) observations
+            -- First deduplicate observations (raw table has multiple rows per observation for each indicator)
             published_obs_counts AS (
                 SELECT
                     teacher_internal_id,
-                    COUNTIF(is_published = 1 AND observed_at >= '2025-07-01') as total_published,
-                    COUNTIF(observation_type = 'Self-Reflection 1' AND is_published = 1) as sr1_finalized,
-                    COUNTIF(observation_type = 'PMAP 1' AND is_published = 1) as pmap1_finalized,
-                    COUNTIF(observation_type = 'Self-Reflection 2' AND is_published = 1) as sr2_finalized,
-                    COUNTIF(observation_type = 'PMAP 2' AND is_published = 1) as pmap2_finalized
-                FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
-                WHERE teacher_internal_id IS NOT NULL
+                    COUNT(*) as total_published,
+                    COUNTIF(observation_type = 'Self-Reflection 1') as sr1_finalized,
+                    COUNTIF(observation_type = 'PMAP 1') as pmap1_finalized,
+                    COUNTIF(observation_type = 'Self-Reflection 2') as sr2_finalized,
+                    COUNTIF(observation_type = 'PMAP 2') as pmap2_finalized
+                FROM (
+                    SELECT DISTINCT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        observer_name,
+                        rubric_form
+                    FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                    WHERE teacher_internal_id IS NOT NULL
+                    AND is_published = 1
+                    AND observed_at >= '2025-07-01'
+                )
                 GROUP BY teacher_internal_id
             )
             SELECT
