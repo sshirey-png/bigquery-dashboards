@@ -48,6 +48,9 @@ ADMIN_EMAILS = [
     'sshirey@firstlineschools.org',      # Scott Shirey - Chief People Officer
     'brichardson@firstlineschools.org',  # Brittney Richardson - Chief of Human Resources
     'spence@firstlineschools.org',       # Sabrina Pence
+    'mtoussaint@firstlineschools.org',   # M. Toussaint
+    'csmith@firstlineschools.org',       # C. Smith
+    'aleibfritz@firstlineschools.org',   # A. Leibfritz
 ]
 
 # Email aliases - map alternative emails to primary FirstLine emails
@@ -1355,6 +1358,75 @@ def get_staff_reports(supervisor_name):
 
     except Exception as e:
         logger.error(f"Error fetching staff reports for {supervisor_name}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/all-action-steps', methods=['GET'])
+@login_required
+def get_all_action_steps():
+    """
+    Get action steps for all staff members (admin only).
+    Returns a dict of email -> action step info.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    # Authorization check: only admins can access
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+
+    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
+        return jsonify({'error': 'Access denied. Admin access required.'}), 403
+
+    try:
+        query = """
+            SELECT
+                a._id,
+                a.name,
+                a.user_email,
+                a.user_name,
+                a.creator_name,
+                a.creator_email,
+                a.progress_percent,
+                a.tags,
+                a.created,
+                a.lastModified
+            FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
+            INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
+                ON LOWER(a.user_email) = LOWER(s.Email_Address)
+            WHERE s.Employment_Status IN ('Active', 'Leave of absence')
+            AND a.archivedAt IS NULL
+            AND a.created >= '2025-07-01'
+            ORDER BY a.user_email, a.created DESC
+        """
+
+        logger.info("Fetching all action steps for HR dashboard")
+        query_job = client.query(query)
+        results = query_job.result()
+
+        action_steps = {}
+        for row in results:
+            email = row.user_email.lower() if row.user_email else ''
+            step = {
+                'id': row._id,
+                'name': row.name,
+                'user_name': row.user_name,
+                'creator_name': row.creator_name,
+                'creator_email': row.creator_email,
+                'progress_percent': row.progress_percent,
+                'tags': row.tags,
+                'created': row.created.isoformat() if row.created else None,
+                'lastModified': row.lastModified.isoformat() if row.lastModified else None
+            }
+            if email not in action_steps:
+                action_steps[email] = []
+            action_steps[email].append(step)
+
+        logger.info(f"Found action steps for {len(action_steps)} staff members")
+        return jsonify(action_steps)
+
+    except Exception as e:
+        logger.error(f"Error fetching all action steps: {e}")
         return jsonify({'error': str(e)}), 500
 
 

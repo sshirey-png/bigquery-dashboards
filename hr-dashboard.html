@@ -181,8 +181,8 @@
                     <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
                 </div>
 
-                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Supervisor Dashboard</h1>
-                <p class="text-slate-500 text-center mb-8">Sign in with your FirstLine Schools account</p>
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">HR/Talent Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">Admin access required</p>
 
                 <!-- Error Messages -->
                 <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -452,13 +452,12 @@
                             <tr class="border-b border-slate-200 bg-slate-50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Staff Member</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start / Years</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Birthday</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off (1/31)</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[70px]">Total Obs</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[90px]">Action Step</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">PMAPS</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Intent to Return</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">ITR</th>
                             </tr>
                         </thead>
                         <tbody id="staffTableBody" class="divide-y divide-slate-100">
@@ -1254,45 +1253,11 @@
             }
         }
 
-        // Handle view dashboard button click
+        // Handle view dashboard button click (not used in HR Dashboard)
         function handleViewDashboard() {
-            const supervisorSelect = document.getElementById('supervisorSelect');
-            const selectedSupervisor = supervisorSelect.value;
-
-            if (!selectedSupervisor) {
-                alert('Please select a supervisor to view');
-                return;
-            }
-
-            currentSupervisor = selectedSupervisor;
-            document.getElementById('currentSupervisorName').textContent = currentSupervisor;
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('dashboardScreen').classList.remove('hidden');
-
-            // Show "Change" button if user has multiple supervisors
-            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
-            if (accessibleSupervisors.length > 1) {
-                document.getElementById('changeSupervisorBtn').classList.remove('hidden');
-            }
-
-            loadStaffData(currentSupervisor);
-        }
-
-        // Handle change supervisor button click (go back to selection)
-        function handleChangeSupervisor() {
-            document.getElementById('dashboardScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-
-            // Reset state
-            currentSupervisor = '';
-            staffData = [];
-            filteredData = [];
-
-            // Show supervisor selection again
-            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
-            if (accessibleSupervisors.length > 1) {
-                showSupervisorSelection(currentUser, accessibleSupervisors);
-            }
+            loadStaffData();
         }
 
         // Setup event listeners
@@ -1302,8 +1267,7 @@
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
             document.getElementById('closeModalBtnFooter').addEventListener('click', closeModal);
             document.getElementById('modalBackdrop').addEventListener('click', closeModal);
-            document.getElementById('viewDashboardBtn').addEventListener('click', handleViewDashboard);
-            document.getElementById('changeSupervisorBtn').addEventListener('click', handleChangeSupervisor);
+            document.getElementById('viewDashboardBtn')?.addEventListener('click', handleViewDashboard);
 
             // Filter buttons (segmented control)
             document.querySelectorAll('.segment-btn').forEach(btn => {
@@ -1355,12 +1319,15 @@
 
                 const queryString = params.toString() ? `?${params.toString()}` : '';
 
-                // Load staff data and certification status in parallel
-                const [staffResponse, certResponse] = await Promise.all([
+                // Load staff data, certification status, and action steps in parallel
+                const [staffResponse, certResponse, actionStepsResponse] = await Promise.all([
                     fetch(`${API_BASE}/api/all-staff${queryString}`, {
                         credentials: 'include'
                     }),
                     fetch(`${API_BASE}/api/cert-status`, {
+                        credentials: 'include'
+                    }),
+                    fetch(`${API_BASE}/api/all-action-steps`, {
                         credentials: 'include'
                     })
                 ]);
@@ -1389,8 +1356,12 @@
                     certificationStatus = {};
                 }
 
-                // Action steps not loaded for all-staff view (too many)
-                actionStepsData = {};
+                // Load action steps (non-blocking if fails)
+                if (actionStepsResponse.ok) {
+                    actionStepsData = await actionStepsResponse.json();
+                } else {
+                    actionStepsData = {};
+                }
 
                 document.getElementById('loadingIndicator').classList.add('hidden');
 
@@ -1496,9 +1467,7 @@
 
         // Refresh data
         function refreshData() {
-            if (currentSupervisor) {
-                loadStaffData(currentSupervisor);
-            }
+            loadStaffData();
         }
 
         // Filter data based on search and filter type
@@ -1651,9 +1620,6 @@
                         <div class="text-sm text-slate-600">${formatDate(staff.Last_Hire_Date)}</div>
                         <div class="text-xs text-slate-400">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
                         ${getSabbaticalDisplay(staff)}
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-sm text-slate-600">${formatBirthday(staff.Date_of_Birth)}</span>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="w-24">
