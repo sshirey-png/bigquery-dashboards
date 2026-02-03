@@ -350,13 +350,18 @@ def logout():
 def auth_status():
     """Return current authentication status"""
     if 'user' in session:
+        user = session['user']
+        user_email = user.get('email', '').lower()
+        is_admin = user_email in [e.lower() for e in ADMIN_EMAILS]
         return jsonify({
             'authenticated': True,
-            'user': session['user']
+            'user': user,
+            'is_admin': is_admin
         })
     return jsonify({
         'authenticated': False,
-        'user': None
+        'user': None,
+        'is_admin': False
     })
 
 
@@ -368,6 +373,12 @@ def auth_status():
 def index():
     """Serve the main dashboard HTML file"""
     return send_from_directory('.', 'index.html')
+
+
+@app.route('/hr-dashboard')
+def hr_dashboard():
+    """Serve the HR/Talent dashboard HTML file"""
+    return send_from_directory('.', 'hr-dashboard.html')
 
 
 @app.route('/api/supervisors', methods=['GET'])
@@ -613,6 +624,250 @@ def get_staff(supervisor_name):
 
     except Exception as e:
         logger.error(f"Error fetching staff for {supervisor_name}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/all-staff', methods=['GET'])
+@login_required
+def get_all_staff():
+    """
+    Get all staff members with optional filters.
+    Only accessible by admin users.
+    Query params:
+        - location: Filter by location name
+        - supervisor: Filter by supervisor name
+        - employee_type: Filter by Salary_or_Hourly (Salary, Hourly)
+        - job_function: Filter by Job_Function
+    Returns: JSON array of staff records with all fields
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    # Authorization check: only admins can access all staff
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+
+    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
+        logger.warning(f"Authorization denied: user {user_email} tried to access all-staff (not admin)")
+        return jsonify({'error': 'Access denied. Admin access required.'}), 403
+
+    # Get filter parameters
+    location_filter = request.args.get('location', '')
+    supervisor_filter = request.args.get('supervisor', '')
+    employee_type_filter = request.args.get('employee_type', '')
+    job_function_filter = request.args.get('job_function', '')
+
+    try:
+        query = f"""
+            WITH latest_accruals AS (
+                SELECT
+                    `Person Number` as Person_Number,
+                    `Accrual Code Name` as Accrual_Code_Name,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_`) as max_hours,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_` - COALESCE(`Taken to Date _Hours_`, 0)) as remaining_hours
+                FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                WHERE `Date Balance as of Date` = (
+                    SELECT MAX(`Date Balance as of Date`)
+                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                )
+            ),
+            accrual_pivoted AS (
+                SELECT
+                    Person_Number,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN remaining_hours END) as pto_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN max_hours END) as pto_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN remaining_hours END) as vacation_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN max_hours END) as vacation_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN remaining_hours END) as personal_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN max_hours END) as personal_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN remaining_hours END) as sick_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN max_hours END) as sick_max
+                FROM latest_accruals
+                GROUP BY Person_Number
+            ),
+            sabbatical_apps AS (
+                SELECT
+                    LOWER(employee_email) as employee_email,
+                    application_id,
+                    status,
+                    start_date,
+                    end_date
+                FROM `{PROJECT_ID}.sabbatical.applications`
+                WHERE status NOT IN ('Denied')
+            ),
+            published_obs_counts AS (
+                SELECT
+                    teacher_internal_id,
+                    COUNT(*) as total_published,
+                    COUNTIF(observation_type = 'Self-Reflection 1') as sr1_finalized,
+                    COUNTIF(observation_type = 'PMAP 1') as pmap1_finalized,
+                    COUNTIF(observation_type = 'Self-Reflection 2') as sr2_finalized,
+                    COUNTIF(observation_type = 'PMAP 2') as pmap2_finalized
+                FROM (
+                    SELECT DISTINCT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        observer_name,
+                        rubric_form
+                    FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                    WHERE teacher_internal_id IS NOT NULL
+                    AND is_published = 1
+                    AND observed_at >= '2025-07-01'
+                )
+                GROUP BY teacher_internal_id
+            )
+            SELECT
+                s.Employee_Number,
+                s.first_name,
+                s.last_name,
+                s.Email_Address,
+                s.Date_of_Birth,
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                s.Supervisor_Email,
+                s.job_title,
+                s.Employment_Status,
+                s.Last_Hire_Date,
+                s.Job_Function,
+                s.years_of_service,
+                s.pto_hours_left,
+                s.vacation_hours_left,
+                s.personal_hours_left,
+                s.sick_hours_left,
+                s.total_goals,
+                COALESCE(poc.total_published, 0) as total_observations,
+                s.last_observation_date,
+                COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
+                COALESCE(poc.sr2_finalized, 0) as self_reflection_2_count,
+                COALESCE(poc.pmap1_finalized, 0) as pmap_1_count,
+                COALESCE(poc.pmap2_finalized, 0) as pmap_2_count,
+                s.iap_count,
+                s.writeup_count,
+                s.last_observation_type,
+                s.intent_to_return,
+                s.intent_response_status,
+                s.nps_score,
+                CONCAT(s.first_name, ' ', s.last_name) AS Staff_Name,
+                a.pto_available,
+                a.pto_max,
+                a.vacation_available,
+                a.vacation_max,
+                a.personal_available,
+                a.personal_max,
+                a.sick_available,
+                a.sick_max,
+                sml.Salary_or_Hourly,
+                sab.application_id as sabbatical_app_id,
+                sab.status as sabbatical_status,
+                sab.start_date as sabbatical_start,
+                sab.end_date as sabbatical_end
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            LEFT JOIN published_obs_counts poc
+                ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            LEFT JOIN sabbatical_apps sab
+                ON LOWER(s.Email_Address) = sab.employee_email
+            WHERE 1=1
+                {f"AND s.Location_Name = @location" if location_filter else ""}
+                {f"AND s.Supervisor_Name__Unsecured_ = @supervisor" if supervisor_filter else ""}
+                {f"AND sml.Salary_or_Hourly = @employee_type" if employee_type_filter else ""}
+                {f"AND s.Job_Function = @job_function" if job_function_filter else ""}
+            ORDER BY s.Location_Name, s.last_name, s.first_name
+        """
+
+        # Build query parameters
+        params = []
+        if location_filter:
+            params.append(bigquery.ScalarQueryParameter("location", "STRING", location_filter))
+        if supervisor_filter:
+            params.append(bigquery.ScalarQueryParameter("supervisor", "STRING", supervisor_filter))
+        if employee_type_filter:
+            params.append(bigquery.ScalarQueryParameter("employee_type", "STRING", employee_type_filter))
+        if job_function_filter:
+            params.append(bigquery.ScalarQueryParameter("job_function", "STRING", job_function_filter))
+
+        job_config = bigquery.QueryJobConfig(query_parameters=params)
+
+        logger.info(f"Fetching all staff data with filters: location={location_filter}, supervisor={supervisor_filter}, employee_type={employee_type_filter}, job_function={job_function_filter}")
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        # Convert results to list of dictionaries
+        staff_data = []
+        for row in results:
+            staff_member = dict(row.items())
+            for key, value in staff_member.items():
+                if hasattr(value, 'isoformat'):
+                    staff_member[key] = value.isoformat()
+            staff_data.append(staff_member)
+
+        logger.info(f"Found {len(staff_data)} staff members")
+        return jsonify(staff_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching all staff: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/filter-options', methods=['GET'])
+@login_required
+def get_filter_options():
+    """
+    Get available filter options for the HR/Talent dashboard.
+    Returns distinct values for locations, supervisors, employee types, and job functions.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    # Authorization check: only admins can access
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+
+    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
+        return jsonify({'error': 'Access denied. Admin access required.'}), 403
+
+    try:
+        query = f"""
+            SELECT DISTINCT
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                sml.Salary_or_Hourly,
+                s.Job_Function
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            WHERE s.Location_Name IS NOT NULL
+        """
+
+        results = client.query(query).result()
+
+        locations = set()
+        supervisors = set()
+        employee_types = set()
+        job_functions = set()
+
+        for row in results:
+            if row.Location_Name:
+                locations.add(row.Location_Name)
+            if row.Supervisor_Name__Unsecured_:
+                supervisors.add(row.Supervisor_Name__Unsecured_)
+            if row.Salary_or_Hourly:
+                employee_types.add(row.Salary_or_Hourly)
+            if row.Job_Function:
+                job_functions.add(row.Job_Function)
+
+        return jsonify({
+            'locations': sorted(list(locations)),
+            'supervisors': sorted(list(supervisors)),
+            'employee_types': sorted(list(employee_types)),
+            'job_functions': sorted(list(job_functions))
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching filter options: {e}")
         return jsonify({'error': str(e)}), 500
 
 
