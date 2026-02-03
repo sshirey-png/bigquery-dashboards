@@ -371,6 +371,10 @@ def get_accessible_supervisors(email, supervisor_name):
 @app.route('/login')
 def login():
     """Initiate Google OAuth flow"""
+    # Remember where to redirect after login
+    next_url = request.args.get('next', '/')
+    session['login_next'] = next_url
+
     # Dev mode - auto authenticate
     if DEV_MODE:
         logger.info(f"DEV MODE: Auto-authenticating as {DEV_USER_EMAIL}")
@@ -386,7 +390,7 @@ def login():
             'is_admin': is_admin(email),
             'accessible_supervisors': accessible_supervisors
         }
-        return redirect('/')
+        return redirect(next_url)
 
     # Build redirect URI based on request
     redirect_uri = url_for('auth_callback', _external=True)
@@ -433,7 +437,8 @@ def auth_callback():
 
         logger.info(f"User authenticated: {email}, supervisor: {supervisor_name}, "
                     f"accessible: {len(accessible_supervisors)} supervisors, admin: {is_admin(email)}")
-        return redirect('/')
+        next_url = session.pop('login_next', '/')
+        return redirect(next_url)
 
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
