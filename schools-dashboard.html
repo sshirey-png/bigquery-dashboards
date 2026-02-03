@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HR/Talent Dashboard | FirstLine Schools</title>
+    <title>Schools Team Dashboard | FirstLine Schools</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -169,6 +169,24 @@
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
         }
+
+        /* Badge styles for subject/grade */
+        .badge-subject {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            font-size: 0.625rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .badge-grade {
+            background-color: #f0fdf4;
+            color: #15803d;
+            font-size: 0.625rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -181,8 +199,8 @@
                     <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
                 </div>
 
-                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">HR/Talent Dashboard</h1>
-                <p class="text-slate-500 text-center mb-8">Admin access required</p>
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Schools Team Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">For network staff who support schools</p>
 
                 <!-- Error Messages -->
                 <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -197,67 +215,10 @@
                     </div>
                 </div>
 
-                <!-- Not a Supervisor Warning -->
-                <div id="notSupervisorWarning" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <div>
-                            <p class="text-sm font-medium text-amber-800">Access Limited</p>
-                            <p class="text-sm text-amber-700 mt-1">Your account is not associated with a supervisor role. Please contact your administrator if you believe this is an error.</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Loading State -->
                 <div id="authLoading" class="hidden mb-6 text-center">
                     <div class="loading mx-auto mb-3"></div>
                     <p class="text-sm text-slate-500">Checking authentication...</p>
-                </div>
-
-                <!-- Supervisor Selection (shown after auth for users with multiple supervisors) -->
-                <div id="supervisorSelection" class="hidden">
-                    <div class="flex items-center gap-2 mb-4">
-                        <img id="loginUserPic" src="" alt="" class="w-10 h-10 rounded-full">
-                        <div>
-                            <p class="text-sm font-medium text-slate-900" id="loginUserName"></p>
-                            <p class="text-xs text-slate-500" id="loginUserEmail"></p>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="supervisorSelect" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                            Select a Supervisor to View
-                        </label>
-                        <div class="relative">
-                            <select id="supervisorSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
-                                <option value="">Select a supervisor...</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between mt-2">
-                            <p class="text-xs text-slate-400">You have access to <span id="accessibleCount">0</span> supervisors</p>
-                            <button id="refreshSupervisorsBtn" onclick="refreshSupervisorList()" class="text-xs text-slate-400 hover:text-fls-orange flex items-center gap-1 transition-colors" title="Refresh supervisor list">
-                                <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                                <span id="refreshText">Refresh</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="viewDashboardBtn" class="w-full bg-fls-orange hover:bg-fls-orange-dark text-white font-semibold py-3 px-4 rounded-full transition-all shadow-lg shadow-fls-orange/30 hover:shadow-fls-orange/40 mb-3">
-                        View Dashboard
-                    </button>
-
-                    <a href="/logout" class="block text-center text-sm text-slate-500 hover:text-slate-700">
-                        Sign out
-                    </a>
                 </div>
 
                 <!-- Sign In Button -->
@@ -287,8 +248,8 @@
                     <div class="flex items-center gap-4">
                         <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
                         <div>
-                            <h1 class="text-lg font-semibold text-white">HR/Talent Dashboard</h1>
-                            <p class="text-xs text-orange-200">All Employees</p>
+                            <h1 class="text-lg font-semibold text-white">Schools Team Dashboard</h1>
+                            <p class="text-xs text-orange-200" id="roleLabel">Loading...</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -304,12 +265,12 @@
                             </svg>
                             Supervisor View
                         </a>
-                        <!-- Link to Schools Team Dashboard -->
-                        <a href="/schools-dashboard" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                        <!-- Link to HR Dashboard (shown for admins) -->
+                        <a href="/hr-dashboard" id="hrDashboardLink" class="hidden inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            Schools View
+                            HR View
                         </a>
                         <button id="refreshBtn" onclick="loadStaffData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,6 +315,18 @@
                         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Job Function</label>
                         <select id="jobFunctionFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
                             <option value="">All Functions</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Subject</label>
+                        <select id="subjectFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Subjects</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Grade Band</label>
+                        <select id="gradeBandFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Grades</option>
                         </select>
                     </div>
                     <div class="flex items-center gap-2">
@@ -458,13 +431,12 @@
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Staff Member</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Location</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start / Years</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off (1/31)</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[70px]">Total Obs</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[90px]">Action Step</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">PMAPS</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">ITR</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[90px]">Action Steps</th>
                             </tr>
                         </thead>
                         <tbody id="staffTableBody" class="divide-y divide-slate-100">
@@ -551,12 +523,24 @@
                                     <p class="text-xs text-slate-500 mb-1">Job Function</p>
                                     <p class="text-sm font-medium text-slate-900" id="detailJobFunction"></p>
                                 </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Subject</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailSubject"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Grade Band</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailGradeBand"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Location</p>
+                                    <p class="text-sm font-medium text-slate-900" id="detailLocation"></p>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Time Off Balances -->
                         <div class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Time Off Balances (1/31)</h3>
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Time Off Balances</h3>
                             <div class="space-y-4">
                                 <div id="detailPTORow">
                                     <div class="flex justify-between text-sm mb-1">
@@ -597,10 +581,10 @@
                             </div>
                         </div>
 
-                        <!-- Observations & Performance -->
+                        <!-- Observations -->
                         <div class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Observations & Performance</h3>
-                            <div class="grid grid-cols-2 gap-4 mb-4">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Observations</h3>
+                            <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-xs text-slate-500 mb-1">Total Observations</p>
                                     <p class="text-sm font-medium text-slate-900" id="detailTotalObs"></p>
@@ -613,33 +597,16 @@
                                     <p class="text-xs text-slate-500 mb-1">Last Observation Date</p>
                                     <p class="text-sm font-medium text-slate-900" id="detailLastObsDate"></p>
                                 </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">IAPs/Write-ups</p>
-                                    <p class="text-sm font-medium text-slate-900" id="detailDisciplinary"></p>
-                                </div>
-                            </div>
-                            <div class="pt-4 border-t border-slate-200">
-                                <p class="text-xs text-slate-500 mb-3">PMAPS Status</p>
-                                <div class="flex flex-wrap gap-2" id="detailComplianceChips"></div>
                             </div>
                         </div>
 
-                        <!-- Intent to Return -->
-                        <div class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Intent to Return</h3>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">Intent to Return</p>
-                                    <p class="text-sm font-medium text-slate-900" id="detailIntentToReturn"></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">Response Status</p>
-                                    <p class="text-sm font-medium text-slate-900" id="detailIntentDate"></p>
-                                </div>
+                        <!-- Certification -->
+                        <div id="detailCertSection" class="bg-slate-50 rounded-xl p-4 hidden">
+                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Certification</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Certified</span>
+                                <button id="detailCertViewBtn" class="text-sm text-fls-orange hover:text-fls-orange-dark font-medium">View Details</button>
                             </div>
-                            <button onclick="closeModal(); showITRDetail(currentDetailEmail);" class="mt-3 text-sm text-fls-orange hover:text-fls-orange-dark font-medium">
-                                View Full ITR Details →
-                            </button>
                         </div>
 
                         <!-- All Alerts Section -->
@@ -653,119 +620,6 @@
                 <!-- Modal Footer -->
                 <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
                     <button id="closeModalBtnFooter" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ITR Detail Modal -->
-    <div id="itrModal" class="fixed inset-0 z-50 hidden animate-fade-in">
-        <div class="modal-backdrop absolute inset-0" id="itrModalBackdrop"></div>
-        <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-slide-up">
-                <!-- Modal Header -->
-                <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900">Intent to Return Details</h2>
-                        <p class="text-sm text-slate-500" id="itrEmployeeName"></p>
-                    </div>
-                    <button id="closeItrModalBtn" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Modal Content -->
-                <div class="overflow-y-auto max-h-[calc(90vh-140px)]">
-                    <!-- Loading State -->
-                    <div id="itrLoading" class="p-12 text-center">
-                        <div class="loading mx-auto mb-4"></div>
-                        <p class="text-slate-500 text-sm">Loading ITR data...</p>
-                    </div>
-
-                    <!-- No Response State -->
-                    <div id="itrNoResponse" class="hidden p-12 text-center">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <p class="text-slate-600 font-medium mb-1">No Response Yet</p>
-                        <p class="text-slate-500 text-sm">This employee has not completed the Intent to Return survey.</p>
-                    </div>
-
-                    <!-- ITR Data Content -->
-                    <div id="itrContent" class="hidden p-6 space-y-4">
-                        <!-- Response Status Banner -->
-                        <div id="itrStatusBanner" class="p-4 rounded-xl">
-                            <div class="flex items-center gap-3">
-                                <div id="itrStatusIcon" class="w-10 h-10 rounded-full flex items-center justify-center"></div>
-                                <div>
-                                    <p class="text-sm font-medium" id="itrStatusText"></p>
-                                    <p class="text-xs opacity-75" id="itrResponseDate"></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Return Role (if returning) -->
-                        <div id="itrReturnRoleSection" class="hidden bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Return Plans</h3>
-                            <div class="space-y-2">
-                                <div>
-                                    <p class="text-xs text-slate-500">Same Role?</p>
-                                    <p class="text-sm font-medium text-slate-900" id="itrReturnRole"></p>
-                                </div>
-                                <div id="itrRolePreferenceSection" class="hidden">
-                                    <p class="text-xs text-slate-500">Role Preference</p>
-                                    <p class="text-sm font-medium text-slate-900" id="itrRolePreference"></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Decision Factors -->
-                        <div id="itrDecisionSection" class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Decision Factors</h3>
-                            <p class="text-sm text-slate-700" id="itrDecisionFactors"></p>
-                        </div>
-
-                        <!-- NPS Score -->
-                        <div id="itrNpsSection" class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">NPS Score</h3>
-                            <div class="flex items-center gap-3">
-                                <div id="itrNpsScoreBadge" class="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold"></div>
-                                <div>
-                                    <p class="text-sm font-medium text-slate-900" id="itrNpsCategory"></p>
-                                    <p class="text-xs text-slate-500">Net Promoter Score</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Top Factors to Recommend FLS -->
-                        <div id="itrRecommendSection" class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Top Factors to Recommend FLS</h3>
-                            <p class="text-sm text-slate-700" id="itrTopFactors"></p>
-                        </div>
-
-                        <!-- Adult Culture Feedback -->
-                        <div id="itrCultureSection" class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Adult Culture Feedback</h3>
-                            <p class="text-sm text-slate-700 italic" id="itrCultureFeedback"></p>
-                        </div>
-
-                        <!-- Retention Improvement Feedback -->
-                        <div id="itrRetentionSection" class="bg-slate-50 rounded-xl p-4">
-                            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Suggestions to Improve Retention</h3>
-                            <p class="text-sm text-slate-700 italic" id="itrRetentionFeedback"></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
-                    <button id="closeItrModalBtnFooter" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition-colors">
                         Close
                     </button>
                 </div>
@@ -846,17 +700,13 @@
                         <!-- Active Certifications List -->
                         <div>
                             <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Active Certifications</h3>
-                            <div id="certActiveList" class="space-y-2">
-                                <!-- Populated by JS -->
-                            </div>
+                            <div id="certActiveList" class="space-y-2"></div>
                         </div>
 
                         <!-- Expired Certifications (if any) -->
                         <div id="certExpiredSection" class="hidden">
                             <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Expired Certifications</h3>
-                            <div id="certExpiredList" class="space-y-2">
-                                <!-- Populated by JS -->
-                            </div>
+                            <div id="certExpiredList" class="space-y-2"></div>
                         </div>
                     </div>
                 </div>
@@ -914,7 +764,6 @@
 
                 <!-- Modal Body - Scrollable List -->
                 <div class="p-4 space-y-3 overflow-y-auto flex-1" id="actionStepsList">
-                    <!-- Action steps will be populated here -->
                 </div>
 
                 <!-- Modal Footer -->
@@ -955,7 +804,6 @@
 
                 <!-- Modal Body - Scrollable List -->
                 <div class="p-4 space-y-3 overflow-y-auto flex-1" id="observationsList">
-                    <!-- Observations will be populated here -->
                 </div>
 
                 <!-- Modal Footer -->
@@ -970,107 +818,17 @@
 
     <script>
         // Global state
-        let currentSupervisor = '';
         let currentUser = null;
         let staffData = [];
         let filteredData = [];
         let currentFilter = 'all';
         let currentDetailEmail = '';
-        let certificationStatus = {}; // email -> cert info for teachers/leaders
-        let actionStepsData = {}; // email -> most recent action step
+        let certificationStatus = {};
+        let actionStepsData = {};
+        let schoolsRole = null;
 
         // API base URL
         const API_BASE = window.location.origin;
-
-        // Deadline configuration by Job_Function
-        // Values: Teacher, Leadership, Network, Support, Operations
-        // Note: Using Date(year, month-1, day) to avoid timezone issues
-        const DEADLINES = {
-            'Teacher': {
-                sr1: new Date(2025, 10, 17),  // Nov 17, 2025
-                pmap1: new Date(2025, 10, 17),
-                sr2: new Date(2026, 2, 6),    // Mar 6, 2026
-                pmap2: new Date(2026, 2, 6),
-                hasSecondRound: true
-            },
-            'Leadership': {
-                sr1: new Date(2025, 7, 29),   // Aug 29, 2025
-                pmap1: new Date(2025, 7, 29),
-                sr2: new Date(2026, 0, 30),   // Jan 30, 2026
-                pmap2: new Date(2026, 0, 30),
-                hasSecondRound: true
-            },
-            'Network': {
-                sr1: new Date(2025, 7, 29),   // Aug 29, 2025
-                pmap1: new Date(2025, 7, 29),
-                sr2: new Date(2026, 0, 30),   // Jan 30, 2026
-                pmap2: new Date(2026, 0, 30),
-                hasSecondRound: true
-            },
-            'Support': {
-                sr1: new Date(2026, 2, 6),    // Mar 6, 2026
-                pmap1: new Date(2026, 2, 6),
-                sr2: null,
-                pmap2: null,
-                hasSecondRound: false
-            },
-            'Operations': {
-                sr1: new Date(2026, 2, 6),    // Mar 6, 2026
-                pmap1: new Date(2026, 2, 6),
-                sr2: null,
-                pmap2: null,
-                hasSecondRound: false
-            }
-        };
-
-        // Get deadlines for a Job_Function (with fallback to Teacher deadlines)
-        function getDeadlines(jobFunction) {
-            // Try exact match first
-            if (DEADLINES[jobFunction]) {
-                return DEADLINES[jobFunction];
-            }
-            // Try case-insensitive partial match
-            const lowerType = (jobFunction || '').toLowerCase();
-            for (const [key, value] of Object.entries(DEADLINES)) {
-                if (lowerType.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerType)) {
-                    return value;
-                }
-            }
-            // Default to Teacher deadlines (most common)
-            return DEADLINES['Teacher'];
-        }
-
-        // Check if a deadline is overdue
-        function isOverdue(deadline) {
-            if (!deadline) return false;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return today > deadline;
-        }
-
-        // Check if within 2 weeks of deadline (for showing reminders)
-        function isWithinTwoWeeks(deadline) {
-            if (!deadline) return false;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const twoWeeksBefore = new Date(deadline);
-            twoWeeksBefore.setDate(twoWeeksBefore.getDate() - 14);
-            return today >= twoWeeksBefore && today <= deadline;
-        }
-
-        // Check if employee was hired after a deadline (not applicable for that item)
-        function wasHiredAfterDeadline(hireDate, deadline) {
-            if (!hireDate || !deadline) return false;
-            const hire = new Date(hireDate);
-            hire.setHours(0, 0, 0, 0);
-            return hire > deadline;
-        }
-
-        // Format deadline for display
-        function formatDeadline(deadline) {
-            if (!deadline) return 'N/A';
-            return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1099,13 +857,15 @@
                 } else if (error === 'session_expired') {
                     errorTitle.textContent = 'Session Expired';
                     errorMessage.textContent = 'Your session has expired. Please sign in again.';
+                } else if (error === 'access_denied') {
+                    errorTitle.textContent = 'Access Denied';
+                    errorMessage.textContent = 'You do not have permission to access the Schools Team Dashboard. This dashboard is available to specific network roles.';
                 } else {
                     errorTitle.textContent = 'Error';
                     errorMessage.textContent = 'An unexpected error occurred. Please try again.';
                 }
 
                 errorDiv.classList.remove('hidden');
-                // Clear URL params
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -1131,6 +891,14 @@
                 if (data.authenticated && data.user) {
                     currentUser = data.user;
 
+                    // Check schools dashboard access
+                    if (!data.schools_dashboard_access) {
+                        window.location.href = '/schools-dashboard?error=access_denied';
+                        return;
+                    }
+
+                    schoolsRole = data.schools_dashboard_role;
+
                     // Update user profile in header
                     if (data.user.picture) {
                         const profilePic = document.getElementById('userProfilePic');
@@ -1143,7 +911,15 @@
                         displayName.classList.remove('hidden');
                     }
 
-                    // HR Dashboard - load directly (admin check happens on API side)
+                    // Update role label
+                    document.getElementById('roleLabel').textContent = schoolsRole ? schoolsRole.label : 'Schools Support';
+
+                    // Show HR Dashboard link for admins
+                    if (data.is_admin) {
+                        document.getElementById('hrDashboardLink').classList.remove('hidden');
+                    }
+
+                    // Show dashboard
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('dashboardScreen').classList.remove('hidden');
 
@@ -1151,7 +927,6 @@
                     await loadFilterOptions();
                     loadStaffData();
                 } else {
-                    // Not authenticated - show sign in button
                     googleSignInBtn.classList.remove('hidden');
                     signInNote.classList.remove('hidden');
                 }
@@ -1163,110 +938,6 @@
             }
         }
 
-        // Show supervisor selection for users with multiple accessible supervisors
-        function showSupervisorSelection(user, supervisors) {
-            const supervisorSelection = document.getElementById('supervisorSelection');
-            const loginUserPic = document.getElementById('loginUserPic');
-            const loginUserName = document.getElementById('loginUserName');
-            const loginUserEmail = document.getElementById('loginUserEmail');
-            const supervisorSelect = document.getElementById('supervisorSelect');
-            const accessibleCount = document.getElementById('accessibleCount');
-
-            // Set user info
-            if (user.picture) {
-                loginUserPic.src = user.picture;
-            }
-            loginUserName.textContent = user.name || 'User';
-            loginUserEmail.textContent = user.email || '';
-            accessibleCount.textContent = supervisors.length;
-
-            // Populate supervisor dropdown
-            supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
-            supervisors.forEach(supervisor => {
-                const option = document.createElement('option');
-                option.value = supervisor;
-                option.textContent = supervisor;
-                // Pre-select user's own supervisor if they have one
-                if (supervisor === user.supervisor_name) {
-                    option.selected = true;
-                }
-                supervisorSelect.appendChild(option);
-            });
-
-            // Show the selection UI
-            supervisorSelection.classList.remove('hidden');
-        }
-
-        // Refresh supervisor list by recalculating from current data
-        async function refreshSupervisorList() {
-            const refreshBtn = document.getElementById('refreshSupervisorsBtn');
-            const refreshIcon = document.getElementById('refreshIcon');
-            const refreshText = document.getElementById('refreshText');
-
-            // Show loading state
-            refreshBtn.disabled = true;
-            refreshIcon.classList.add('animate-spin');
-            refreshText.textContent = 'Refreshing...';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/refresh-session`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to refresh session');
-                }
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Update the supervisor dropdown
-                    const supervisorSelect = document.getElementById('supervisorSelect');
-                    const accessibleCount = document.getElementById('accessibleCount');
-                    const supervisors = data.accessible_supervisors || [];
-
-                    accessibleCount.textContent = supervisors.length;
-
-                    // Preserve current selection if still valid
-                    const currentSelection = supervisorSelect.value;
-
-                    supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
-                    supervisors.forEach(supervisor => {
-                        const option = document.createElement('option');
-                        option.value = supervisor;
-                        option.textContent = supervisor;
-                        if (supervisor === currentSelection || supervisor === data.supervisor_name) {
-                            option.selected = true;
-                        }
-                        supervisorSelect.appendChild(option);
-                    });
-
-                    // Show success feedback
-                    refreshText.textContent = 'Updated!';
-                    setTimeout(() => {
-                        refreshText.textContent = 'Refresh';
-                    }, 2000);
-                }
-            } catch (error) {
-                console.error('Error refreshing supervisor list:', error);
-                refreshText.textContent = 'Error';
-                setTimeout(() => {
-                    refreshText.textContent = 'Refresh';
-                }, 2000);
-            } finally {
-                refreshBtn.disabled = false;
-                refreshIcon.classList.remove('animate-spin');
-            }
-        }
-
-        // Handle view dashboard button click (not used in HR Dashboard)
-        function handleViewDashboard() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboardScreen').classList.remove('hidden');
-            loadStaffData();
-        }
-
         // Setup event listeners
         function setupEventListeners() {
             document.getElementById('refreshBtn').addEventListener('click', refreshData);
@@ -1274,7 +945,6 @@
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
             document.getElementById('closeModalBtnFooter').addEventListener('click', closeModal);
             document.getElementById('modalBackdrop').addEventListener('click', closeModal);
-            document.getElementById('viewDashboardBtn')?.addEventListener('click', handleViewDashboard);
 
             // Filter buttons (segmented control)
             document.querySelectorAll('.segment-btn').forEach(btn => {
@@ -1289,15 +959,11 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeModal();
-                    closeItrModal();
                     closeCertModal();
+                    closeActionStepModal();
+                    closeObservationsModal();
                 }
             });
-
-            // ITR Modal event listeners
-            document.getElementById('closeItrModalBtn').addEventListener('click', closeItrModal);
-            document.getElementById('closeItrModalBtnFooter').addEventListener('click', closeItrModal);
-            document.getElementById('itrModalBackdrop').addEventListener('click', closeItrModal);
 
             // Certification Modal event listeners
             document.getElementById('closeCertModalBtn').addEventListener('click', closeCertModal);
@@ -1318,36 +984,39 @@
                 const supervisorFilter = document.getElementById('supervisorFilter')?.value || '';
                 const employeeTypeFilter = document.getElementById('employeeTypeFilter')?.value || '';
                 const jobFunctionFilter = document.getElementById('jobFunctionFilter')?.value || '';
+                const subjectFilter = document.getElementById('subjectFilter')?.value || '';
+                const gradeBandFilter = document.getElementById('gradeBandFilter')?.value || '';
 
                 if (locationFilter) params.append('location', locationFilter);
                 if (supervisorFilter) params.append('supervisor', supervisorFilter);
                 if (employeeTypeFilter) params.append('employee_type', employeeTypeFilter);
                 if (jobFunctionFilter) params.append('job_function', jobFunctionFilter);
+                if (subjectFilter) params.append('subject', subjectFilter);
+                if (gradeBandFilter) params.append('grade_band', gradeBandFilter);
 
                 const queryString = params.toString() ? `?${params.toString()}` : '';
 
                 // Load staff data, certification status, and action steps in parallel
                 const [staffResponse, certResponse, actionStepsResponse] = await Promise.all([
-                    fetch(`${API_BASE}/api/all-staff${queryString}`, {
+                    fetch(`${API_BASE}/api/schools/staff${queryString}`, {
                         credentials: 'include'
                     }),
                     fetch(`${API_BASE}/api/cert-status`, {
                         credentials: 'include'
                     }),
-                    fetch(`${API_BASE}/api/all-action-steps`, {
+                    fetch(`${API_BASE}/api/schools/action-steps`, {
                         credentials: 'include'
                     })
                 ]);
 
                 // Handle authentication errors
                 if (staffResponse.status === 401) {
-                    window.location.href = '/hr-dashboard?error=session_expired';
+                    window.location.href = '/schools-dashboard?error=session_expired';
                     return;
                 }
 
                 if (staffResponse.status === 403) {
-                    alert('Access denied. Admin access required for HR Dashboard.');
-                    window.location.href = '/hr-dashboard';
+                    window.location.href = '/schools-dashboard?error=access_denied';
                     return;
                 }
 
@@ -1392,7 +1061,7 @@
         // Load filter options
         async function loadFilterOptions() {
             try {
-                const response = await fetch(`${API_BASE}/api/filter-options`, {
+                const response = await fetch(`${API_BASE}/api/schools/filter-options`, {
                     credentials: 'include'
                 });
                 if (!response.ok) return;
@@ -1434,6 +1103,24 @@
                     opt.textContent = func;
                     jobFunctionSelect.appendChild(opt);
                 });
+
+                // Populate subject filter
+                const subjectSelect = document.getElementById('subjectFilter');
+                options.subjects.forEach(subj => {
+                    const opt = document.createElement('option');
+                    opt.value = subj;
+                    opt.textContent = subj;
+                    subjectSelect.appendChild(opt);
+                });
+
+                // Populate grade band filter
+                const gradeBandSelect = document.getElementById('gradeBandFilter');
+                options.grade_bands.forEach(band => {
+                    const opt = document.createElement('option');
+                    opt.value = band;
+                    opt.textContent = band;
+                    gradeBandSelect.appendChild(opt);
+                });
             } catch (error) {
                 console.error('Error loading filter options:', error);
             }
@@ -1450,6 +1137,8 @@
             document.getElementById('supervisorFilter').value = '';
             document.getElementById('employeeTypeFilter').value = '';
             document.getElementById('jobFunctionFilter').value = '';
+            document.getElementById('subjectFilter').value = '';
+            document.getElementById('gradeBandFilter').value = '';
             loadStaffData();
         }
 
@@ -1484,7 +1173,8 @@
             filteredData = staffData.filter(staff => {
                 // Search filter
                 const matchesSearch = !searchTerm ||
-                    (staff.Staff_Name || '').toLowerCase().includes(searchTerm);
+                    (staff.Staff_Name || '').toLowerCase().includes(searchTerm) ||
+                    (staff.Location_Name || '').toLowerCase().includes(searchTerm);
 
                 // Alert filter
                 const alerts = calculateAlerts(staff);
@@ -1525,8 +1215,6 @@
 
         // Get time off data (available hours and max hours) from accrual fields
         function getTimeOffData(staff) {
-            // Use new accrual columns: pto_available/pto_max or vacation_available/vacation_max
-            // Pick the type that has a max balance (their primary time-off type)
             let available = 0;
             let max = 0;
 
@@ -1535,7 +1223,6 @@
             const vacationMax = parseFloat(staff.vacation_max) || 0;
             const vacationAvailable = parseFloat(staff.vacation_available);
 
-            // Use whichever type has a max balance configured (their primary type)
             if (ptoMax > 0) {
                 available = isNaN(ptoAvailable) ? 0 : ptoAvailable;
                 max = ptoMax;
@@ -1544,23 +1231,8 @@
                 available = isNaN(vacationAvailable) ? 0 : vacationAvailable;
                 max = vacationMax;
             }
-            // Fall back to old columns for backwards compatibility
-            else if (staff.pto_hours_left !== null && staff.pto_hours_left !== undefined) {
-                available = parseFloat(staff.pto_hours_left) || 0;
-                max = 40; // Default max for old data
-            }
-            else if (staff.vacation_hours_left !== null && staff.vacation_hours_left !== undefined) {
-                available = parseFloat(staff.vacation_hours_left) || 0;
-                max = 80; // Default max for old data
-            }
 
             return { available, max };
-        }
-
-        // Get time off progress percentage
-        function getTimeOffProgress(hours, maxHours = 80) {
-            const num = parseFloat(hours) || 0;
-            return Math.min(100, (num / maxHours) * 100);
         }
 
         // Get certification badge HTML for a staff member
@@ -1569,10 +1241,21 @@
             const certInfo = certificationStatus[email.toLowerCase()];
             if (!certInfo || certInfo.status !== 'Certified') return '';
 
-            // Return the orange "C" badge - clickable
             return `<button onclick="event.stopPropagation(); showCertDetail('${email}')"
                 class="ml-2 w-5 h-5 rounded bg-fls-orange text-white text-xs font-bold flex items-center justify-center hover:bg-fls-orange-dark transition-colors"
                 title="Certified - Click to view certifications">C</button>`;
+        }
+
+        // Get subject/grade badges HTML
+        function getSubjectGradeBadges(staff) {
+            let badges = '';
+            if (staff.Subject_Desc) {
+                badges += `<span class="badge-subject">${staff.Subject_Desc}</span> `;
+            }
+            if (staff.grade_band) {
+                badges += `<span class="badge-grade">${staff.grade_band}</span>`;
+            }
+            return badges;
         }
 
         // Render list view
@@ -1594,10 +1277,10 @@
 
             data.forEach(staff => {
                 const alerts = calculateAlerts(staff);
-                const yearsOfService = staff.years_of_service ? `${staff.years_of_service}` : '—';
+                const yearsOfService = staff.years_of_service ? `${staff.years_of_service}` : '0';
                 const initials = getInitials(staff.Staff_Name);
 
-                // Calculate time off using new accrual data (available and max)
+                // Calculate time off
                 const timeOffData = getTimeOffData(staff);
                 const timeOffHours = timeOffData.available;
                 const timeOffMax = timeOffData.max;
@@ -1619,14 +1302,16 @@
                             <div>
                                 <div class="flex items-center font-medium text-slate-900 whitespace-nowrap">${staff.Staff_Name || 'N/A'}${getCertBadge(staff.Email_Address)}</div>
                                 <div class="text-xs text-slate-500 whitespace-nowrap">${staff.job_title || 'N/A'}</div>
-                                <div class="mt-1">${getEmployeeStatusBadgeSmall(staff.Employment_Status)}</div>
+                                <div class="flex gap-1 mt-1">${getSubjectGradeBadges(staff)}</div>
                             </div>
                         </div>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="text-sm text-slate-700">${staff.Location_Name || 'N/A'}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
                         <div class="text-sm text-slate-600">${formatDate(staff.Last_Hire_Date)}</div>
                         <div class="text-xs text-slate-400">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
-                        ${getSabbaticalDisplay(staff)}
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="w-24">
@@ -1647,18 +1332,10 @@
                                 <span class="font-medium text-slate-700">${formatShortDate(staff.last_observation_date)}</span>
                                 <div class="text-slate-400">${staff.last_observation_type || ''}</div>
                             </div>
-                        ` : '<span class="text-xs text-slate-400">—</span>'}
+                        ` : '<span class="text-xs text-slate-400">&mdash;</span>'}
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap min-w-[90px]">
                         ${getActionStepCell(staff.Email_Address)}
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="flex items-center justify-center gap-1">
-                            ${getPmapIconsForStaff(staff)}
-                        </div>
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <button onclick="event.stopPropagation(); showITRDetail('${staff.Email_Address}')" class="text-sm ${getIntentColor(staff.intent_to_return)} hover:underline cursor-pointer">${getIntentStatus(staff.intent_to_return)}</button>
                     </td>
                 `;
                 tableBody.appendChild(row);
@@ -1674,33 +1351,26 @@
                             <div>
                                 <div class="flex items-center font-semibold text-slate-900">${staff.Staff_Name || 'N/A'}${getCertBadge(staff.Email_Address)}</div>
                                 <div class="text-sm text-slate-500">${staff.job_title || 'N/A'}</div>
-                                <div class="mt-1">${getEmployeeStatusBadgeSmall(staff.Employment_Status)}</div>
+                                <div class="flex gap-1 mt-1">${getSubjectGradeBadges(staff)}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-4 gap-2 mb-3 text-center">
+                    <div class="grid grid-cols-3 gap-2 mb-3 text-center">
                         <div>
-                            <div class="text-sm font-semibold text-slate-900">${formatDate(staff.Last_Hire_Date)}</div>
-                            <div class="text-xs text-slate-500">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
-                            ${getSabbaticalDisplay(staff)}
-                        </div>
-                        <div>
-                            <div class="text-lg font-semibold text-slate-900">${formatBirthday(staff.Date_of_Birth)}</div>
-                            <div class="text-xs text-slate-500">Birthday</div>
+                            <div class="text-sm font-medium text-slate-700">${staff.Location_Name || 'N/A'}</div>
+                            <div class="text-xs text-slate-500">Location</div>
                         </div>
                         <div>
                             <div class="text-lg font-semibold text-slate-900">${staff.total_observations || 0}</div>
                             <div class="text-xs text-slate-500">Total Obs</div>
                         </div>
-                        <div onclick="event.stopPropagation(); showITRDetail('${staff.Email_Address}')" class="cursor-pointer">
-                            <div class="text-lg font-semibold ${getIntentColor(staff.intent_to_return)}">${getIntentStatus(staff.intent_to_return)}</div>
-                            <div class="text-xs text-slate-500">Intent</div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
+                            <div class="text-xs text-slate-500">Service</div>
                         </div>
                     </div>
                     <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <div class="flex items-center gap-1">
-                            ${getPmapIconsForStaff(staff)}
-                        </div>
+                        <div class="text-xs text-slate-500">${staff.Supervisor_Name__Unsecured_ || ''}</div>
                         <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
@@ -1708,105 +1378,6 @@
                 `;
                 cardsContainer.appendChild(card);
             });
-        }
-
-        // Get PMAP icon HTML with deadline and hire date awareness
-        function getPmapIcon(status, label, deadline = null, hireDate = null) {
-            const complete = isComplete(status);
-
-            // If hired after deadline, this item is N/A for this employee
-            if (!complete && wasHiredAfterDeadline(hireDate, deadline)) {
-                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-50 text-slate-300" title="${label}: N/A (hired after deadline)">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                    </svg>
-                </span>`;
-            }
-
-            const overdue = !complete && isOverdue(deadline);
-            const dueSoon = !complete && !overdue && isWithinTwoWeeks(deadline);
-
-            if (complete) {
-                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-emerald-50 text-emerald-600" title="${label}: Complete">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                </span>`;
-            }
-
-            // Overdue - show with red background
-            if (overdue) {
-                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-red-100 text-red-600 ring-2 ring-red-300" title="${label}: OVERDUE (was due ${formatDeadline(deadline)})">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
-                </span>`;
-            }
-
-            // Due within 2 weeks - show amber reminder
-            if (dueSoon) {
-                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-amber-50 text-amber-500" title="${label}: Due soon (due ${formatDeadline(deadline)})">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </span>`;
-            }
-
-            // Not complete but not due for a while - show neutral gray
-            return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-slate-400" title="${label}: Pending (due ${formatDeadline(deadline)})">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </span>`;
-        }
-
-        // Get PMAP icons for a staff member based on their user type
-        function getPmapIconsForStaff(staff) {
-            // Hourly employees don't receive PMAPs
-            if (staff.Salary_or_Hourly === 'Hourly') {
-                return '';
-            }
-
-            const userType = staff.Job_Function || '';
-            const deadlines = getDeadlines(userType);
-            const hireDate = staff.Last_Hire_Date;
-
-            let icons = '';
-            icons += getPmapIcon(staff.self_reflection_1_count, 'SR1', deadlines.sr1, hireDate);
-            icons += getPmapIcon(staff.pmap_1_count, 'PMAP1', deadlines.pmap1, hireDate);
-
-            // Only show SR2/PMAP2 if this user type has them
-            if (deadlines.hasSecondRound) {
-                icons += getPmapIcon(staff.self_reflection_2_count, 'SR2', deadlines.sr2, hireDate);
-                icons += getPmapIcon(staff.pmap_2_count, 'PMAP2', deadlines.pmap2, hireDate);
-            }
-
-            return icons;
-        }
-
-        // Get employee status badge HTML (actual status from data)
-        function getEmployeeStatusBadge(status) {
-            const statusLower = (status || '').toLowerCase();
-            let colors, text;
-
-            if (statusLower === 'active' || statusLower === 'employed') {
-                colors = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                text = 'Active';
-            } else if (statusLower === 'on leave' || statusLower === 'leave' || statusLower === 'leave of absence') {
-                colors = 'bg-amber-50 text-amber-700 border-amber-200';
-                text = 'On Leave';
-            } else if (statusLower === 'terminated' || statusLower === 'inactive') {
-                colors = 'bg-red-50 text-red-700 border-red-200';
-                text = 'Inactive';
-            } else if (statusLower === 'pending') {
-                colors = 'bg-fls-navy/10 text-fls-navy border-fls-navy/20';
-                text = 'Pending';
-            } else {
-                colors = 'bg-slate-50 text-slate-600 border-slate-200';
-                text = status || '—';
-            }
-
-            return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${colors}">${text}</span>`;
         }
 
         // Get employee status badge HTML - smaller version for inline display
@@ -1828,68 +1399,10 @@
                 text = 'Pending';
             } else {
                 colors = 'bg-slate-50 text-slate-500';
-                text = status || '—';
+                text = status || '&mdash;';
             }
 
             return `<span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${colors}">${text}</span>`;
-        }
-
-        // Get sabbatical status display
-        function getSabbaticalDisplay(staff) {
-            const years = staff.years_of_service || 0;
-            const status = staff.sabbatical_status;
-            const startDate = staff.sabbatical_start;
-            const endDate = staff.sabbatical_end;
-
-            // Not eligible (less than 10 years)
-            if (years < 10) {
-                return '';
-            }
-
-            // No application or withdrawn - just eligible
-            if (!status || status === 'Withdrawn' || status === 'Denied') {
-                return `<div class="text-xs text-slate-400 mt-1">Sabbatical Eligible</div>`;
-            }
-
-            // Determine display text and colors based on status
-            let displayText, colors;
-            if (status === 'Submitted' || status === 'Tentatively Approved') {
-                displayText = 'Sabbatical Submitted';
-                colors = 'bg-yellow-100 text-yellow-800';
-            } else if (status === 'Approved' || status === 'Plan Submitted' || status === 'Confirmed' || status === 'On Sabbatical') {
-                displayText = 'Sabbatical Approved';
-                colors = 'bg-emerald-100 text-emerald-800';
-            } else if (status === 'Completed') {
-                displayText = 'Sabbatical Completed';
-                colors = 'bg-blue-100 text-blue-800';
-            } else {
-                displayText = 'Sabbatical ' + status;
-                colors = 'bg-slate-100 text-slate-600';
-            }
-
-            // Format dates if available
-            let dateStr = '';
-            if (startDate && endDate) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                const formatOpt = { month: 'short', day: 'numeric' };
-                dateStr = `<div class="text-xs text-slate-500 mt-0.5">${start.toLocaleDateString('en-US', formatOpt)} - ${end.toLocaleDateString('en-US', formatOpt)}</div>`;
-            }
-
-            // Build the display with link to planning page
-            const planningUrl = `https://sabbatical-program-965913991496.us-central1.run.app/my-sabbatical?email=${encodeURIComponent(staff.Email_Address)}`;
-
-            return `
-                <a href="${planningUrl}" target="_blank" class="group block mt-1.5" title="Click to view sabbatical plan">
-                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold ${colors} shadow-sm border border-current/20 hover:shadow-md hover:scale-105 transition-all cursor-pointer">
-                        ${displayText}
-                        <svg class="w-3 h-3 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                        </svg>
-                    </span>
-                    ${dateStr}
-                </a>
-            `;
         }
 
         // Get action step status text and color
@@ -1909,10 +1422,9 @@
             const actionSteps = actionStepsData[email.toLowerCase()];
 
             if (!actionSteps || actionSteps.length === 0) {
-                return `<span class="text-xs text-slate-400">—</span>`;
+                return `<span class="text-xs text-slate-400">&mdash;</span>`;
             }
 
-            // Count in-progress steps (progress_percent = 0)
             const inProgressCount = actionSteps.filter(s => s.progress_percent === 0).length;
             const totalCount = actionSteps.length;
 
@@ -1936,12 +1448,10 @@
                 return;
             }
 
-            // Get staff name from first action step
             const staffName = actionSteps[0].user_name || 'Staff Member';
             document.getElementById('actionStepModalTitle').textContent = staffName;
             document.getElementById('actionStepModalSubtitle').textContent = `${actionSteps.length} Action Step${actionSteps.length !== 1 ? 's' : ''} This Year`;
 
-            // Count by status
             const inProgressCount = actionSteps.filter(s => s.progress_percent === 0).length;
             const masteredCount = actionSteps.filter(s => s.progress_percent === 100).length;
             const notMasteredCount = actionSteps.filter(s => s.progress_percent === -1 || s.progress_percent === -10).length;
@@ -1950,7 +1460,6 @@
             document.getElementById('actionStepMasteredCount').textContent = masteredCount;
             document.getElementById('actionStepNotMasteredCount').textContent = notMasteredCount;
 
-            // Build action steps list HTML
             const listContainer = document.getElementById('actionStepsList');
             listContainer.innerHTML = actionSteps.map(step => {
                 const status = getActionStepStatus(step.progress_percent);
@@ -2004,7 +1513,6 @@
             const modal = document.getElementById('observationsModal');
             const listContainer = document.getElementById('observationsList');
 
-            // Get staff info
             const staffMember = staffData.find(s => s.Email_Address && s.Email_Address.toLowerCase() === email.toLowerCase());
             const staffName = staffMember ? staffMember.Staff_Name : 'Staff Member';
 
@@ -2036,41 +1544,31 @@
                     return;
                 }
 
-                // Group by observation type
-                const byType = {};
-                observations.forEach(obs => {
-                    const type = obs.observation_type || 'Other';
-                    if (!byType[type]) byType[type] = [];
-                    byType[type].push(obs);
-                });
-
                 let html = '';
-                for (const [type, obs] of Object.entries(byType)) {
-                    const typeColor = type.includes('Self') ? 'bg-purple-500' :
-                                     type.includes('PMAP') ? 'bg-emerald-500' : 'bg-blue-500';
+                observations.forEach(o => {
+                    const typeColor = (o.observation_type || '').includes('Self') ? 'bg-purple-500' :
+                                     (o.observation_type || '').includes('PMAP') ? 'bg-emerald-500' : 'bg-blue-500';
 
-                    obs.forEach(o => {
-                        html += `
-                            <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors">
-                                <div class="flex items-start justify-between gap-3 mb-2">
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeColor} text-white">${o.observation_type || 'Observation'}</span>
-                                    <span class="text-xs text-slate-400">${formatShortDate(o.observed_at)}</span>
-                                </div>
-                                <p class="text-sm text-slate-700 mb-1">${o.rubric_form || 'Standard Observation'}</p>
-                                <div class="flex items-center justify-between text-xs text-slate-400">
-                                    <span>${o.school || ''}</span>
-                                    <span>by ${o.observer_name || 'Unknown'}</span>
-                                </div>
-                                ${o.link ? `<a href="${o.link}" target="_blank" class="inline-flex items-center gap-1 mt-2 text-xs text-fls-blue hover:underline">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                    </svg>
-                                    View in Grow
-                                </a>` : ''}
+                    html += `
+                        <div class="bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-colors">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeColor} text-white">${o.observation_type || 'Observation'}</span>
+                                <span class="text-xs text-slate-400">${formatShortDate(o.observed_at)}</span>
                             </div>
-                        `;
-                    });
-                }
+                            <p class="text-sm text-slate-700 mb-1">${o.rubric_form || 'Standard Observation'}</p>
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>${o.school || ''}</span>
+                                <span>by ${o.observer_name || 'Unknown'}</span>
+                            </div>
+                            ${o.link ? `<a href="${o.link}" target="_blank" class="inline-flex items-center gap-1 mt-2 text-xs text-fls-blue hover:underline">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                                View in Grow
+                            </a>` : ''}
+                        </div>
+                    `;
+                });
 
                 listContainer.innerHTML = html;
 
@@ -2089,41 +1587,8 @@
             document.getElementById('observationsModal').classList.add('hidden');
         }
 
-        // Format birthday as month/day only
-        function formatBirthday(dateStr) {
-            if (!dateStr) return '—';
-            try {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            } catch {
-                return '—';
-            }
-        }
-
-        // Format short date (for last observation)
-        function formatShortDate(dateStr) {
-            if (!dateStr) return '—';
-            try {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
-            } catch {
-                return '—';
-            }
-        }
-
-        // Get intent color class
-        function getIntentColor(intent) {
-            if (!intent) return 'text-slate-500';
-            const str = String(intent).toLowerCase();
-            if (str === 'yes') return 'text-emerald-600 font-medium';
-            if (str === 'no') return 'text-red-600 font-medium';
-            if (str === 'unsure') return 'text-amber-600 font-medium';
-            return 'text-slate-500';
-        }
-
         // Render detail view modal
         function renderDetailView(staff) {
-            // Store email for ITR detail link
             currentDetailEmail = staff.Email_Address || '';
 
             const initials = getInitials(staff.Staff_Name);
@@ -2131,12 +1596,18 @@
             document.getElementById('detailName').textContent = staff.Staff_Name || 'N/A';
             document.getElementById('detailJobTitleHeader').textContent = staff.job_title || 'N/A';
             document.getElementById('detailEmail').textContent = staff.Email_Address || 'N/A';
-            document.getElementById('detailBirthday').textContent = formatDate(staff.Date_of_Birth);
+
+            // Birthday: month/day only (no year - sent as MM-DD from backend)
+            document.getElementById('detailBirthday').textContent = formatBirthdayMonthDay(staff.birthday_month_day);
+
             document.getElementById('detailHireDate').textContent = formatDate(staff.Last_Hire_Date);
             document.getElementById('detailYearsOfService').textContent = staff.years_of_service ? `${staff.years_of_service} years` : 'N/A';
             document.getElementById('detailJobFunction').textContent = staff.Job_Function || 'N/A';
+            document.getElementById('detailSubject').textContent = staff.Subject_Desc || 'N/A';
+            document.getElementById('detailGradeBand').textContent = staff.grade_band || 'N/A';
+            document.getElementById('detailLocation').textContent = staff.Location_Name || 'N/A';
 
-            // Time off with progress bars - use new accrual data
+            // Time off with progress bars
             const ptoMax = parseFloat(staff.pto_max) || 0;
             const ptoAvailable = parseFloat(staff.pto_available) || 0;
             const vacationMax = parseFloat(staff.vacation_max) || 0;
@@ -2146,13 +1617,11 @@
             const sickMax = parseFloat(staff.sick_max) || 0;
             const sickAvailable = parseFloat(staff.sick_available) || 0;
 
-            // Format as "available / max" (show actual value including negatives)
             const formatTimeOff = (avail, max) => {
                 if (max > 0) return `${avail.toFixed(1)} / ${max.toFixed(0)}h`;
-                return '—';
+                return '&mdash;';
             };
 
-            // Show/hide rows based on whether employee has that time-off type
             const hasPTO = ptoMax > 0;
             const hasVacation = vacationMax > 0;
             const hasPersonal = personalMax > 0;
@@ -2168,19 +1637,18 @@
             const personalHoursEl = document.getElementById('detailPersonalHours');
             const sickHoursEl = document.getElementById('detailSickHours');
 
-            ptoHoursEl.textContent = formatTimeOff(ptoAvailable, ptoMax);
+            ptoHoursEl.innerHTML = formatTimeOff(ptoAvailable, ptoMax);
             ptoHoursEl.className = ptoAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
 
-            vacationHoursEl.textContent = formatTimeOff(vacationAvailable, vacationMax);
+            vacationHoursEl.innerHTML = formatTimeOff(vacationAvailable, vacationMax);
             vacationHoursEl.className = vacationAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
 
-            personalHoursEl.textContent = formatTimeOff(personalAvailable, personalMax);
+            personalHoursEl.innerHTML = formatTimeOff(personalAvailable, personalMax);
             personalHoursEl.className = personalAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
 
-            sickHoursEl.textContent = formatTimeOff(sickAvailable, sickMax);
+            sickHoursEl.innerHTML = formatTimeOff(sickAvailable, sickMax);
             sickHoursEl.className = sickAvailable < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
 
-            // Helper to get color class based on percentage (matches main table logic)
             const getTimeOffColorClass = (avail, max) => {
                 if (max <= 0) return 'bg-slate-300';
                 if (avail < 0) return 'bg-red-600';
@@ -2188,12 +1656,6 @@
                 return percent < 0.25 ? 'bg-red-500' : percent < 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
             };
 
-            // Helper to style text for negative balances
-            const getTimeOffTextClass = (avail) => {
-                return avail < 0 ? 'font-medium text-red-600' : 'font-medium text-slate-900';
-            };
-
-            // Update bar widths and colors
             const ptoBar = document.getElementById('detailPTOBar');
             const vacationBar = document.getElementById('detailVacationBar');
             const personalBar = document.getElementById('detailPersonalBar');
@@ -2211,80 +1673,20 @@
             sickBar.style.width = `${sickMax > 0 ? Math.min(100, (Math.max(0, sickAvailable) / sickMax) * 100) : 0}%`;
             sickBar.className = `progress-bar-fill ${getTimeOffColorClass(sickAvailable, sickMax)}`;
 
+            // Observations
             document.getElementById('detailTotalObs').textContent = staff.total_observations || '0';
             document.getElementById('detailLastObsType').textContent = staff.last_observation_type || 'N/A';
             document.getElementById('detailLastObsDate').textContent = formatDate(staff.last_observation_date);
-            document.getElementById('detailDisciplinary').textContent =
-                `${staff.iap_count || 0} IAPs, ${staff.writeup_count || 0} Write-ups`;
 
-            // PMAP chips - user type aware (hourly employees don't receive PMAPs)
-            const chipsContainer = document.getElementById('detailComplianceChips');
-            chipsContainer.innerHTML = '';
-
-            const isHourly = staff.Salary_or_Hourly === 'Hourly';
-            const userType = staff.Job_Function || '';
-            const deadlines = getDeadlines(userType);
-            const hireDate = staff.Last_Hire_Date;
-
-            let pmapItems = [];
-            if (!isHourly) {
-                pmapItems = [
-                    { label: 'SR1', complete: isComplete(staff.self_reflection_1_count), deadline: deadlines.sr1 },
-                    { label: 'PMAP1', complete: isComplete(staff.pmap_1_count), deadline: deadlines.pmap1 }
-                ];
-
-                // Only add SR2/PMAP2 if this user type has them
-                if (deadlines.hasSecondRound) {
-                    pmapItems.push(
-                        { label: 'SR2', complete: isComplete(staff.self_reflection_2_count), deadline: deadlines.sr2 },
-                        { label: 'PMAP2', complete: isComplete(staff.pmap_2_count), deadline: deadlines.pmap2 }
-                    );
-                }
+            // Certification section
+            const certSection = document.getElementById('detailCertSection');
+            const certInfo = certificationStatus[(staff.Email_Address || '').toLowerCase()];
+            if (certInfo && certInfo.status === 'Certified') {
+                certSection.classList.remove('hidden');
+                document.getElementById('detailCertViewBtn').onclick = () => { closeModal(); showCertDetail(staff.Email_Address); };
+            } else {
+                certSection.classList.add('hidden');
             }
-
-            pmapItems.forEach(item => {
-                const hiredAfter = !item.complete && wasHiredAfterDeadline(hireDate, item.deadline);
-                const overdue = !item.complete && !hiredAfter && isOverdue(item.deadline);
-                const dueSoon = !item.complete && !hiredAfter && !overdue && isWithinTwoWeeks(item.deadline);
-                let chipClass, icon, statusText;
-
-                if (item.complete) {
-                    chipClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                    statusText = 'Complete';
-                } else if (hiredAfter) {
-                    // Hired after deadline - N/A
-                    chipClass = 'bg-slate-50 text-slate-300 border-slate-200';
-                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>';
-                    statusText = 'N/A';
-                } else if (overdue) {
-                    chipClass = 'bg-red-100 text-red-700 border-red-300 ring-1 ring-red-300';
-                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
-                    statusText = `OVERDUE`;
-                } else if (dueSoon) {
-                    chipClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                    statusText = `Due ${formatDeadline(item.deadline)}`;
-                } else {
-                    // Not complete but not due soon - neutral gray
-                    chipClass = 'bg-slate-50 text-slate-500 border-slate-200';
-                    icon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                    statusText = `Due ${formatDeadline(item.deadline)}`;
-                }
-
-                const chip = document.createElement('div');
-                chip.className = `inline-flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium border ${chipClass}`;
-                chip.innerHTML = `
-                    <div class="flex items-center gap-1.5">
-                        ${icon} ${item.label}
-                    </div>
-                    <span class="text-[10px] opacity-80">${statusText}</span>
-                `;
-                chipsContainer.appendChild(chip);
-            });
-
-            document.getElementById('detailIntentToReturn').textContent = staff.intent_to_return || 'N/A';
-            document.getElementById('detailIntentDate').textContent = staff.intent_response_status || 'N/A';
 
             // Render alerts
             const alerts = calculateAlerts(staff);
@@ -2293,16 +1695,14 @@
             const alertsSection = document.getElementById('detailAlertsSection');
             const alertsContainer = document.getElementById('detailAlerts');
 
-            // Show alert banner if there are red alerts
             const redAlerts = alerts.items.filter(a => a.level === 'red');
             if (redAlerts.length > 0) {
                 alertBanner.classList.remove('hidden');
-                alertList.innerHTML = redAlerts.map(a => `<p>• ${a.message}</p>`).join('');
+                alertList.innerHTML = redAlerts.map(a => `<p>&bull; ${a.message}</p>`).join('');
             } else {
                 alertBanner.classList.add('hidden');
             }
 
-            // Show all alerts section if there are any alerts
             alertsContainer.innerHTML = '';
             if (alerts.items.length === 0) {
                 alertsSection.classList.add('hidden');
@@ -2331,175 +1731,6 @@
             document.body.style.overflow = '';
         }
 
-        // Show ITR Detail Modal
-        async function showITRDetail(email) {
-            if (!email) return;
-
-            const modal = document.getElementById('itrModal');
-            const loading = document.getElementById('itrLoading');
-            const noResponse = document.getElementById('itrNoResponse');
-            const content = document.getElementById('itrContent');
-
-            // Show modal with loading state
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            loading.classList.remove('hidden');
-            noResponse.classList.add('hidden');
-            content.classList.add('hidden');
-
-            // Find staff name from current data
-            const staffMember = staffData.find(s => s.Email_Address === email);
-            const staffName = staffMember ? staffMember.Staff_Name : email;
-            document.getElementById('itrEmployeeName').textContent = staffName;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/itr-detail/${encodeURIComponent(email)}`, {
-                    credentials: 'include'
-                });
-
-                loading.classList.add('hidden');
-
-                if (response.status === 404) {
-                    // No ITR data found
-                    noResponse.classList.remove('hidden');
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch ITR data');
-                }
-
-                const data = await response.json();
-                renderITRDetail(data);
-                content.classList.remove('hidden');
-
-            } catch (error) {
-                console.error('Error fetching ITR detail:', error);
-                loading.classList.add('hidden');
-                noResponse.classList.remove('hidden');
-            }
-        }
-
-        // Render ITR detail data
-        function renderITRDetail(data) {
-            // Status banner
-            const statusBanner = document.getElementById('itrStatusBanner');
-            const statusIcon = document.getElementById('itrStatusIcon');
-            const statusText = document.getElementById('itrStatusText');
-            const responseDate = document.getElementById('itrResponseDate');
-
-            const intent = (data.intent_to_return || '').toLowerCase();
-            let bannerColors, iconHtml, statusLabel;
-
-            if (intent === 'yes') {
-                bannerColors = 'bg-emerald-50 border border-emerald-200';
-                iconHtml = '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100';
-                statusLabel = 'Intends to Return';
-            } else if (intent === 'no') {
-                bannerColors = 'bg-red-50 border border-red-200';
-                iconHtml = '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-red-100';
-                statusLabel = 'Not Returning';
-            } else {
-                bannerColors = 'bg-amber-50 border border-amber-200';
-                iconHtml = '<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                statusIcon.className = 'w-10 h-10 rounded-full flex items-center justify-center bg-amber-100';
-                statusLabel = 'Unsure / Undecided';
-            }
-
-            statusBanner.className = `p-4 rounded-xl ${bannerColors}`;
-            statusIcon.innerHTML = iconHtml;
-            statusText.textContent = statusLabel;
-            responseDate.textContent = data.response_date ? `Responded: ${formatDate(data.response_date)}` : '';
-
-            // Return Role Section (show only if returning)
-            const returnRoleSection = document.getElementById('itrReturnRoleSection');
-            const rolePreferenceSection = document.getElementById('itrRolePreferenceSection');
-
-            if (intent === 'yes' && data.return_role) {
-                returnRoleSection.classList.remove('hidden');
-                document.getElementById('itrReturnRole').textContent = data.return_role;
-
-                if (data.return_role_preference || data.return_role_preference_other) {
-                    rolePreferenceSection.classList.remove('hidden');
-                    document.getElementById('itrRolePreference').textContent =
-                        data.return_role_preference_other || data.return_role_preference || 'N/A';
-                } else {
-                    rolePreferenceSection.classList.add('hidden');
-                }
-            } else {
-                returnRoleSection.classList.add('hidden');
-            }
-
-            // Decision Factors
-            const decisionSection = document.getElementById('itrDecisionSection');
-            if (data.decision_factors) {
-                decisionSection.classList.remove('hidden');
-                document.getElementById('itrDecisionFactors').textContent = data.decision_factors;
-            } else {
-                decisionSection.classList.add('hidden');
-            }
-
-            // NPS Score
-            const npsSection = document.getElementById('itrNpsSection');
-            if (data.nps_score !== null && data.nps_score !== undefined) {
-                npsSection.classList.remove('hidden');
-                const npsBadge = document.getElementById('itrNpsScoreBadge');
-                const npsCategory = document.getElementById('itrNpsCategory');
-
-                let npsColors;
-                if (data.nps_score >= 9) {
-                    npsColors = 'bg-emerald-100 text-emerald-700';
-                    npsCategory.textContent = 'Promoter';
-                } else if (data.nps_score >= 7) {
-                    npsColors = 'bg-amber-100 text-amber-700';
-                    npsCategory.textContent = 'Passive';
-                } else {
-                    npsColors = 'bg-red-100 text-red-700';
-                    npsCategory.textContent = 'Detractor';
-                }
-
-                npsBadge.className = `w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${npsColors}`;
-                npsBadge.textContent = data.nps_score;
-            } else {
-                npsSection.classList.add('hidden');
-            }
-
-            // Top Factors to Recommend FLS
-            const recommendSection = document.getElementById('itrRecommendSection');
-            if (data.top_factors_recommend_fls) {
-                recommendSection.classList.remove('hidden');
-                document.getElementById('itrTopFactors').textContent = data.top_factors_recommend_fls;
-            } else {
-                recommendSection.classList.add('hidden');
-            }
-
-            // Adult Culture Feedback
-            const cultureSection = document.getElementById('itrCultureSection');
-            if (data.adult_culture_feedback && data.adult_culture_feedback.toLowerCase() !== 'n/a') {
-                cultureSection.classList.remove('hidden');
-                document.getElementById('itrCultureFeedback').textContent = `"${data.adult_culture_feedback}"`;
-            } else {
-                cultureSection.classList.add('hidden');
-            }
-
-            // Retention Improvement Feedback
-            const retentionSection = document.getElementById('itrRetentionSection');
-            if (data.improve_retention_feedback && data.improve_retention_feedback.toLowerCase() !== 'n/a') {
-                retentionSection.classList.remove('hidden');
-                document.getElementById('itrRetentionFeedback').textContent = `"${data.improve_retention_feedback}"`;
-            } else {
-                retentionSection.classList.add('hidden');
-            }
-        }
-
-        // Close ITR modal
-        function closeItrModal() {
-            document.getElementById('itrModal').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
         // Show Certification Detail Modal
         async function showCertDetail(email) {
             if (!email) return;
@@ -2509,7 +1740,6 @@
             const noData = document.getElementById('certNoData');
             const content = document.getElementById('certContent');
 
-            // Show modal with loading state
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             loading.classList.remove('hidden');
@@ -2547,20 +1777,16 @@
             const content = document.getElementById('certContent');
             content.classList.remove('hidden');
 
-            // Employee name in header
             document.getElementById('certEmployeeName').textContent = data.name || '';
 
-            // Summary status
             document.getElementById('certSummaryStatus').textContent =
                 data.certification_status === 'Certified' ? 'State Certified' : data.certification_status;
             document.getElementById('certSummaryCount').textContent =
                 `${data.active_certifications || 0} active certification${data.active_certifications !== 1 ? 's' : ''}`;
 
-            // Staff info
             document.getElementById('certStaffTitle').textContent = data.title || 'N/A';
             document.getElementById('certStaffSchool').textContent = data.school || 'N/A';
 
-            // Build active certifications list
             const activeList = document.getElementById('certActiveList');
             const activeCerts = (data.certifications || []).filter(c => c.status === 'Active' && c.expiration_status !== 'Expired');
 
@@ -2584,7 +1810,6 @@
                 activeList.innerHTML = '<p class="text-sm text-slate-500 italic">No active certifications</p>';
             }
 
-            // Build expired certifications list (if any)
             const expiredSection = document.getElementById('certExpiredSection');
             const expiredList = document.getElementById('certExpiredList');
             const expiredCerts = (data.certifications || []).filter(c => c.status !== 'Active' || c.expiration_status === 'Expired');
@@ -2631,82 +1856,17 @@
             }
         }
 
-        // Format date for display (short format)
-        function formatDateShort(dateStr) {
-            if (!dateStr) return 'N/A';
-            try {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            } catch (e) {
-                return dateStr;
-            }
-        }
-
         // Close Certification modal
         function closeCertModal() {
             document.getElementById('certModal').classList.add('hidden');
             document.body.style.overflow = '';
         }
 
-        // Calculate alerts for a staff member (deadline-aware)
+        // Calculate alerts for a staff member - TIME OFF ONLY (no PMAP/ITR alerts)
         function calculateAlerts(staff) {
             const alerts = [];
-            const userType = staff.Job_Function || '';
-            const deadlines = getDeadlines(userType);
-            const isHourly = staff.Salary_or_Hourly === 'Hourly';
-            const hireDate = staff.Last_Hire_Date;
 
-            // Hourly employees don't receive PMAPs - skip SR/PMAP alerts
-            if (!isHourly) {
-                // Check SR1 observation (skip if hired after deadline)
-                if (!isComplete(staff.self_reflection_1_count) && !wasHiredAfterDeadline(hireDate, deadlines.sr1)) {
-                    if (isOverdue(deadlines.sr1)) {
-                        alerts.push({ level: 'red', message: `SR1 OVERDUE (was due ${formatDeadline(deadlines.sr1)})` });
-                    } else if (isWithinTwoWeeks(deadlines.sr1)) {
-                        alerts.push({ level: 'yellow', message: `SR1 due soon (due ${formatDeadline(deadlines.sr1)})` });
-                    }
-                }
-
-                // Check PMAP1 observation (skip if hired after deadline)
-                if (!isComplete(staff.pmap_1_count) && !wasHiredAfterDeadline(hireDate, deadlines.pmap1)) {
-                    if (isOverdue(deadlines.pmap1)) {
-                        alerts.push({ level: 'red', message: `PMAP1 OVERDUE (was due ${formatDeadline(deadlines.pmap1)})` });
-                    } else if (isWithinTwoWeeks(deadlines.pmap1)) {
-                        alerts.push({ level: 'yellow', message: `PMAP1 due soon (due ${formatDeadline(deadlines.pmap1)})` });
-                    }
-                }
-
-                // Only check SR2/PMAP2 if this user type requires them
-                if (deadlines.hasSecondRound) {
-                    // Check SR2 (skip if hired after deadline)
-                    if (!isComplete(staff.self_reflection_2_count) && !wasHiredAfterDeadline(hireDate, deadlines.sr2)) {
-                        if (isOverdue(deadlines.sr2)) {
-                            alerts.push({ level: 'red', message: `SR2 OVERDUE (was due ${formatDeadline(deadlines.sr2)})` });
-                        } else if (isWithinTwoWeeks(deadlines.sr2)) {
-                            alerts.push({ level: 'yellow', message: `SR2 due soon (due ${formatDeadline(deadlines.sr2)})` });
-                        }
-                    }
-
-                    // Check PMAP2 (skip if hired after deadline)
-                    if (!isComplete(staff.pmap_2_count) && !wasHiredAfterDeadline(hireDate, deadlines.pmap2)) {
-                        if (isOverdue(deadlines.pmap2)) {
-                            alerts.push({ level: 'red', message: `PMAP2 OVERDUE (was due ${formatDeadline(deadlines.pmap2)})` });
-                        } else if (isWithinTwoWeeks(deadlines.pmap2)) {
-                            alerts.push({ level: 'yellow', message: `PMAP2 due soon (due ${formatDeadline(deadlines.pmap2)})` });
-                        }
-                    }
-                }
-            }
-
-            // Check intent to return
-            const intent = (staff.intent_to_return || '').toLowerCase();
-            if (intent === 'no') {
-                alerts.push({ level: 'red', message: 'Staff member does not intend to return' });
-            } else if (!intent || intent === 'pending' || intent === '' || intent === 'n/a') {
-                alerts.push({ level: 'yellow', message: 'Intent to return status pending' });
-            }
-
-            // Check PTO balance using new accrual data
+            // Check PTO balance using accrual data
             const timeOffData = getTimeOffData(staff);
             const timeOffPercent = timeOffData.max > 0 ? (timeOffData.available / timeOffData.max) : 1;
             if (timeOffData.available < 0) {
@@ -2715,13 +1875,6 @@
                 alerts.push({ level: 'red', message: `Low time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
             } else if (timeOffPercent < 0.5) {
                 alerts.push({ level: 'yellow', message: `Medium time off balance (${timeOffData.available.toFixed(1)} / ${timeOffData.max.toFixed(0)} hours)` });
-            }
-
-            // Check disciplinary actions
-            const iapCount = parseInt(staff.iap_count) || 0;
-            const writeupCount = parseInt(staff.writeup_count) || 0;
-            if (iapCount > 0 || writeupCount > 0) {
-                alerts.push({ level: 'yellow', message: `${iapCount} IAPs, ${writeupCount} write-ups on record` });
             }
 
             // Determine overall level
@@ -2737,26 +1890,48 @@
             return { level, text, items: alerts };
         }
 
-        // Helper functions
-        function isComplete(count) {
-            // For counts: > 0 means complete, 0 or null means incomplete
-            if (count === null || count === undefined) return false;
-            const num = parseInt(count);
-            return !isNaN(num) && num > 0;
+        // Format birthday month/day from "MM-DD" string (no year sent from backend)
+        function formatBirthdayMonthDay(monthDay) {
+            if (!monthDay) return 'N/A';
+            try {
+                // monthDay is "MM-DD" format
+                const parts = monthDay.split('-');
+                if (parts.length !== 2) return monthDay;
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIdx = parseInt(parts[0]) - 1;
+                const day = parseInt(parts[1]);
+                if (monthIdx >= 0 && monthIdx < 12) {
+                    return `${months[monthIdx]} ${day}`;
+                }
+                return monthDay;
+            } catch {
+                return 'N/A';
+            }
         }
 
-        function getIntentStatus(status) {
-            if (!status) return 'Pending';
-            const str = String(status).trim();
-            // Return the actual value (Yes, No, Unsure, etc.)
-            return str;
+        // Format short date
+        function formatShortDate(dateStr) {
+            if (!dateStr) return '&mdash;';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+            } catch {
+                return '&mdash;';
+            }
         }
 
-        function formatHours(hours) {
-            const num = parseFloat(hours);
-            return isNaN(num) ? 'N/A' : `${num.toFixed(1)}h`;
+        // Format date for display (short format)
+        function formatDateShort(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            } catch (e) {
+                return dateStr;
+            }
         }
 
+        // Format date
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
             try {

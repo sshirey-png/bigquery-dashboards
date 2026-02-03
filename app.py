@@ -59,6 +59,13 @@ EMAIL_ALIASES = {
     'zach@esynola.org': 'zodonnell@firstlineschools.org',  # Zach O'Donnell
 }
 
+# Schools Dashboard role mapping by job title
+SCHOOLS_DASHBOARD_ROLES = {
+    'Chief Academic Officer': {'scope': 'all_except_cteam', 'label': 'Chief Academic Officer'},
+    'ExDir of Teach and Learn': {'scope': 'teachers_only', 'label': 'ExDir of Teach and Learn'},
+    'K-8 Content Lead': {'scope': 'teachers_only', 'label': 'K-8 Content Lead'},
+}
+
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -179,6 +186,97 @@ def get_all_supervisors():
     except Exception as e:
         logger.error(f"Error fetching all supervisors: {e}")
         return []
+
+
+def get_schools_dashboard_role(email):
+    """
+    Determine if a user has access to the Schools Dashboard and what scope.
+    Looks up their job title in staff_master_list_with_function.
+    Returns: dict with 'has_access', 'scope', 'label' or None if no access.
+    """
+    if not email:
+        return None
+
+    # Admin emails always get access (all except C-Team)
+    primary_email = resolve_email_alias(email)
+    if is_admin(email):
+        return {'has_access': True, 'scope': 'all_except_cteam', 'label': 'Admin'}
+
+    if not client:
+        return None
+
+    try:
+        query = f"""
+            SELECT Job_Title
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            AND Employment_Status IN ('Active', 'Leave of absence')
+            LIMIT 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
+            ]
+        )
+        results = list(client.query(query, job_config=job_config).result())
+        if not results:
+            return None
+
+        job_title = results[0].Job_Title or ''
+
+        # Check against known roles
+        for role_title, role_info in SCHOOLS_DASHBOARD_ROLES.items():
+            if role_title.lower() in job_title.lower():
+                return {'has_access': True, 'scope': role_info['scope'], 'label': role_info['label']}
+
+        return None
+    except Exception as e:
+        logger.error(f"Error checking schools dashboard role for {email}: {e}")
+        return None
+
+
+def compute_grade_band(grade_level_desc):
+    """
+    Map a Grade_Level_Desc value to a grade band bucket.
+    Returns: 'Pre-K', 'K-2', '3-8', or None if not mappable.
+    """
+    if not grade_level_desc:
+        return None
+
+    val = grade_level_desc.strip().lower()
+
+    # Pre-K
+    if 'pre-k' in val or 'pk' in val or 'pre k' in val:
+        return 'Pre-K'
+
+    # K-2
+    k2_values = [
+        'kinder', 'kindergarten', 'k', '1', '2',
+        'k thru 2', 'k-2', 'lower school', '1st', '2nd',
+        'grade 1', 'grade 2', 'grade k',
+    ]
+    if val in k2_values:
+        return 'K-2'
+    # Check for patterns like "K&1", "1&2"
+    if val in ['k&1', '1&2', 'k-1', '1-2', 'k thru 2']:
+        return 'K-2'
+
+    # 3-8
+    three_eight_values = [
+        '3', '4', '5', '6', '7', '8',
+        '3rd', '4th', '5th', '6th', '7th', '8th',
+        'grade 3', 'grade 4', 'grade 5', 'grade 6', 'grade 7', 'grade 8',
+        'middle school', 'upper school',
+    ]
+    if val in three_eight_values:
+        return '3-8'
+    # Check for patterns like "3-5", "5&6", "7&8", "3-8"
+    if any(val.startswith(p) for p in ['3-', '4-', '5-', '6-', '7-']) and val[-1].isdigit():
+        return '3-8'
+    if val in ['3&4', '5&6', '7&8', '3-5', '6-8', '3-8', '4-5', '4-6', '5-8']:
+        return '3-8'
+
+    return None
 
 
 def get_accessible_supervisors(email, supervisor_name):
@@ -355,16 +453,21 @@ def auth_status():
     if 'user' in session:
         user = session['user']
         user_email = user.get('email', '').lower()
-        is_admin = user_email in [e.lower() for e in ADMIN_EMAILS]
+        is_admin_flag = user_email in [e.lower() for e in ADMIN_EMAILS]
+        schools_role = get_schools_dashboard_role(user_email)
         return jsonify({
             'authenticated': True,
             'user': user,
-            'is_admin': is_admin
+            'is_admin': is_admin_flag,
+            'schools_dashboard_access': schools_role is not None,
+            'schools_dashboard_role': schools_role
         })
     return jsonify({
         'authenticated': False,
         'user': None,
-        'is_admin': False
+        'is_admin': False,
+        'schools_dashboard_access': False,
+        'schools_dashboard_role': None
     })
 
 
@@ -1137,6 +1240,343 @@ def get_cert_detail(email):
 
     except Exception as e:
         logger.error(f"Error fetching certification detail for {email}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/schools-dashboard')
+def schools_dashboard():
+    """Serve the Schools Dashboard HTML file"""
+    return send_from_directory('.', 'schools-dashboard.html')
+
+
+@app.route('/api/schools/staff', methods=['GET'])
+@login_required
+def get_schools_staff():
+    """
+    Get staff data for the Schools Dashboard.
+    Role-based scoping: teachers_only or all_except_cteam.
+    Excludes sensitive HR data (PMAP, ITR, IAP/Write-ups).
+    Query params: location, supervisor, employee_type, job_function, subject, grade_band
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+    schools_role = get_schools_dashboard_role(user_email)
+
+    if not schools_role:
+        return jsonify({'error': 'Access denied. Schools Dashboard access required.'}), 403
+
+    scope = schools_role['scope']
+
+    # Get filter parameters
+    location_filter = request.args.get('location', '')
+    supervisor_filter = request.args.get('supervisor', '')
+    employee_type_filter = request.args.get('employee_type', '')
+    job_function_filter = request.args.get('job_function', '')
+    subject_filter = request.args.get('subject', '')
+    grade_band_filter = request.args.get('grade_band', '')
+
+    try:
+        # Build scope filter
+        scope_filter = ""
+        if scope == 'teachers_only':
+            scope_filter = "AND s.Job_Function = 'Teacher'"
+        elif scope == 'all_except_cteam':
+            scope_filter = "AND sml.Job_Title NOT LIKE '%Chief%' AND sml.Job_Title NOT LIKE '%CEO%'"
+
+        query = f"""
+            WITH latest_accruals AS (
+                SELECT
+                    `Person Number` as Person_Number,
+                    `Accrual Code Name` as Accrual_Code_Name,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_`) as max_hours,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_` - COALESCE(`Taken to Date _Hours_`, 0)) as remaining_hours
+                FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                WHERE `Date Balance as of Date` = (
+                    SELECT MAX(`Date Balance as of Date`)
+                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                )
+            ),
+            accrual_pivoted AS (
+                SELECT
+                    Person_Number,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN remaining_hours END) as pto_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN max_hours END) as pto_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN remaining_hours END) as vacation_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN max_hours END) as vacation_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN remaining_hours END) as personal_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN max_hours END) as personal_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN remaining_hours END) as sick_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN max_hours END) as sick_max
+                FROM latest_accruals
+                GROUP BY Person_Number
+            ),
+            published_obs_counts AS (
+                SELECT
+                    teacher_internal_id,
+                    COUNT(*) as total_published
+                FROM (
+                    SELECT DISTINCT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        observer_name,
+                        rubric_form
+                    FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                    WHERE teacher_internal_id IS NOT NULL
+                    AND is_published = 1
+                    AND observed_at >= '2025-07-01'
+                )
+                GROUP BY teacher_internal_id
+            )
+            SELECT
+                s.Employee_Number,
+                s.first_name,
+                s.last_name,
+                s.Email_Address,
+                -- Only month/day exposed on frontend (year stripped by JS)
+                FORMAT_DATE('%%m-%%d', s.Date_of_Birth) as birthday_month_day,
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                s.job_title,
+                s.Employment_Status,
+                s.Last_Hire_Date,
+                s.Job_Function,
+                s.years_of_service,
+                COALESCE(poc.total_published, 0) as total_observations,
+                s.last_observation_date,
+                s.last_observation_type,
+                CONCAT(s.first_name, ' ', s.last_name) AS Staff_Name,
+                a.pto_available,
+                a.pto_max,
+                a.vacation_available,
+                a.vacation_max,
+                a.personal_available,
+                a.personal_max,
+                a.sick_available,
+                a.sick_max,
+                sml.Salary_or_Hourly,
+                sml.Subject_Desc,
+                sml.Grade_Level_Desc
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            LEFT JOIN published_obs_counts poc
+                ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            WHERE 1=1
+                {scope_filter}
+                {f"AND s.Location_Name = @location" if location_filter else ""}
+                {f"AND s.Supervisor_Name__Unsecured_ = @supervisor" if supervisor_filter else ""}
+                {f"AND sml.Salary_or_Hourly = @employee_type" if employee_type_filter else ""}
+                {f"AND s.Job_Function = @job_function" if job_function_filter else ""}
+                {f"AND sml.Subject_Desc = @subject" if subject_filter else ""}
+            ORDER BY s.Location_Name, s.last_name, s.first_name
+        """
+
+        # Build query parameters
+        params = []
+        if location_filter:
+            params.append(bigquery.ScalarQueryParameter("location", "STRING", location_filter))
+        if supervisor_filter:
+            params.append(bigquery.ScalarQueryParameter("supervisor", "STRING", supervisor_filter))
+        if employee_type_filter:
+            params.append(bigquery.ScalarQueryParameter("employee_type", "STRING", employee_type_filter))
+        if job_function_filter:
+            params.append(bigquery.ScalarQueryParameter("job_function", "STRING", job_function_filter))
+        if subject_filter:
+            params.append(bigquery.ScalarQueryParameter("subject", "STRING", subject_filter))
+
+        job_config = bigquery.QueryJobConfig(query_parameters=params)
+
+        logger.info(f"Schools Dashboard: Fetching staff data with scope={scope}")
+        query_job = client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        staff_data = []
+        for row in results:
+            staff_member = dict(row.items())
+
+            # Compute grade band from Grade_Level_Desc
+            grade_level_desc = staff_member.get('Grade_Level_Desc', '')
+            staff_member['grade_band'] = compute_grade_band(grade_level_desc)
+
+            # Convert date/datetime objects to strings for JSON serialization
+            for key, value in staff_member.items():
+                if hasattr(value, 'isoformat'):
+                    staff_member[key] = value.isoformat()
+
+            staff_data.append(staff_member)
+
+        # Apply grade band filter client-side (computed field)
+        if grade_band_filter:
+            staff_data = [s for s in staff_data if s.get('grade_band') == grade_band_filter]
+
+        logger.info(f"Schools Dashboard: Found {len(staff_data)} staff members")
+        return jsonify(staff_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching schools staff: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/schools/filter-options', methods=['GET'])
+@login_required
+def get_schools_filter_options():
+    """
+    Get available filter options for the Schools Dashboard.
+    Returns distinct values scoped by the user's role.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+    schools_role = get_schools_dashboard_role(user_email)
+
+    if not schools_role:
+        return jsonify({'error': 'Access denied. Schools Dashboard access required.'}), 403
+
+    scope = schools_role['scope']
+
+    try:
+        scope_filter = ""
+        if scope == 'teachers_only':
+            scope_filter = "AND s.Job_Function = 'Teacher'"
+        elif scope == 'all_except_cteam':
+            scope_filter = "AND sml.Job_Title NOT LIKE '%Chief%' AND sml.Job_Title NOT LIKE '%CEO%'"
+
+        query = f"""
+            SELECT DISTINCT
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                sml.Salary_or_Hourly,
+                s.Job_Function,
+                sml.Subject_Desc,
+                sml.Grade_Level_Desc
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            WHERE s.Location_Name IS NOT NULL
+                {scope_filter}
+        """
+
+        results = client.query(query).result()
+
+        locations = set()
+        supervisors = set()
+        employee_types = set()
+        job_functions = set()
+        subjects = set()
+        grade_bands = set()
+
+        for row in results:
+            if row.Location_Name:
+                locations.add(row.Location_Name)
+            if row.Supervisor_Name__Unsecured_:
+                supervisors.add(row.Supervisor_Name__Unsecured_)
+            if row.Salary_or_Hourly:
+                employee_types.add(row.Salary_or_Hourly)
+            if row.Job_Function:
+                job_functions.add(row.Job_Function)
+            if row.Subject_Desc:
+                subjects.add(row.Subject_Desc)
+            if row.Grade_Level_Desc:
+                band = compute_grade_band(row.Grade_Level_Desc)
+                if band:
+                    grade_bands.add(band)
+
+        return jsonify({
+            'locations': sorted(list(locations)),
+            'supervisors': sorted(list(supervisors)),
+            'employee_types': sorted(list(employee_types)),
+            'job_functions': sorted(list(job_functions)),
+            'subjects': sorted(list(subjects)),
+            'grade_bands': sorted(list(grade_bands))
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching schools filter options: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/schools/action-steps', methods=['GET'])
+@login_required
+def get_schools_action_steps():
+    """
+    Get action steps for staff in the Schools Dashboard scope.
+    Returns a dict of email -> action step info.
+    """
+    if not client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    user = session.get('user', {})
+    user_email = user.get('email', '').lower()
+    schools_role = get_schools_dashboard_role(user_email)
+
+    if not schools_role:
+        return jsonify({'error': 'Access denied. Schools Dashboard access required.'}), 403
+
+    scope = schools_role['scope']
+
+    try:
+        scope_filter = ""
+        if scope == 'teachers_only':
+            scope_filter = "AND s.Job_Function = 'Teacher'"
+        elif scope == 'all_except_cteam':
+            scope_filter = "AND s.Job_Title NOT LIKE '%Chief%' AND s.Job_Title NOT LIKE '%CEO%'"
+
+        query = f"""
+            SELECT
+                a._id,
+                a.name,
+                a.user_email,
+                a.user_name,
+                a.creator_name,
+                a.creator_email,
+                a.progress_percent,
+                a.tags,
+                a.created,
+                a.lastModified
+            FROM `{PROJECT_ID}.{DATASET_ID}.ldg_action_steps` a
+            INNER JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
+                ON LOWER(a.user_email) = LOWER(s.Email_Address)
+            WHERE s.Employment_Status IN ('Active', 'Leave of absence')
+            AND a.archivedAt IS NULL
+            AND a.created >= '2025-07-01'
+            {scope_filter}
+            ORDER BY a.user_email, a.created DESC
+        """
+
+        logger.info("Schools Dashboard: Fetching action steps")
+        query_job = client.query(query)
+        results = query_job.result()
+
+        action_steps = {}
+        for row in results:
+            email = row.user_email.lower() if row.user_email else ''
+            step = {
+                'id': row._id,
+                'name': row.name,
+                'user_name': row.user_name,
+                'creator_name': row.creator_name,
+                'creator_email': row.creator_email,
+                'progress_percent': row.progress_percent,
+                'tags': row.tags,
+                'created': row.created.isoformat() if row.created else None,
+                'lastModified': row.lastModified.isoformat() if row.lastModified else None
+            }
+            if email not in action_steps:
+                action_steps[email] = []
+            action_steps[email].append(step)
+
+        logger.info(f"Schools Dashboard: Found action steps for {len(action_steps)} staff members")
+        return jsonify(action_steps)
+
+    except Exception as e:
+        logger.error(f"Error fetching schools action steps: {e}")
         return jsonify({'error': str(e)}), 500
 
 
