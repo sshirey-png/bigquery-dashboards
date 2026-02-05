@@ -1,0 +1,31 @@
+# Documentation
+
+This folder contains user guides for the FirstLine Schools Dashboard System.
+
+## Available Guides
+
+### User Guide
+**For:** All dashboard users, administrators
+**Covers:** How to use each dashboard, understanding permissions, troubleshooting access issues
+
+- [USER_GUIDE.md](USER_GUIDE.md) - Markdown version (view on GitHub)
+- [USER_GUIDE.docx](USER_GUIDE.docx) - Word version (download for offline use)
+
+### Technical Guide
+**For:** Developers, IT administrators, anyone maintaining the system
+**Covers:** Code structure, making changes, deployment, using Claude Code
+
+- [TECHNICAL_GUIDE.md](TECHNICAL_GUIDE.md) - Markdown version (view on GitHub)
+- [TECHNICAL_GUIDE.docx](TECHNICAL_GUIDE.docx) - Word version (download for offline use)
+
+## Quick Links
+
+- **Live Application:** https://bigquery-dashboards-965913991496.us-central1.run.app
+- **Kickboard Dashboard:** https://bigquery-dashboards-965913991496.us-central1.run.app/kickboard-dashboard
+- **GitHub Repository:** https://github.com/sshirey-png/bigquery-dashboards
+
+## Getting Help
+
+1. Check the User Guide for general usage questions
+2. Check the Technical Guide for development/maintenance questions
+3. Contact an admin listed in the User Guide for access issues
