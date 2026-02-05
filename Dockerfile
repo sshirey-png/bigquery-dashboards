@@ -14,10 +14,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py .
+COPY config.py .
+COPY extensions.py .
+COPY auth.py .
+COPY blueprints/ blueprints/
 COPY index.html .
 COPY hr-dashboard.html .
 COPY schools-dashboard.html .
 COPY orgchart.html .
+COPY kickboard-dashboard.html .
 
 # Cloud Run uses PORT environment variable
 ENV PORT=8080

@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kickboard Dashboard | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #e47727;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive table */
+        @media (max-width: 1024px) {
+            .desktop-table {
+                display: none;
+            }
+            .mobile-cards {
+                display: block;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .desktop-table {
+                display: table;
+            }
+            .mobile-cards {
+                display: none;
+            }
+        }
+
+        /* Table row hover */
+        .table-row {
+            transition: all 0.15s ease;
+        }
+
+        .table-row:hover {
+            background-color: #f1f5f9;
+            cursor: pointer;
+        }
+
+        .table-row:hover td:first-child {
+            border-left: 3px solid #e47727;
+            padding-left: calc(1.5rem - 3px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        /* Ratio bar */
+        .ratio-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .ratio-bar-positive {
+            height: 100%;
+            border-radius: 4px 0 0 4px;
+            background-color: #22c55e;
+            transition: width 0.3s ease;
+        }
+
+        /* Sort header */
+        .sort-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sort-header:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Interaction row colors */
+        .row-positive { background-color: #f0fdf4; }
+        .row-negative { background-color: #fef2f2; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+                <div class="flex items-center justify-center mb-6">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+                </div>
+
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Kickboard Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">Student behavior tracking</p>
+
+                <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-red-800" id="authErrorTitle">Authentication Error</p>
+                            <p class="text-sm text-red-700 mt-1" id="authErrorMessage"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="authLoading" class="hidden mb-6 text-center">
+                    <div class="loading mx-auto mb-3"></div>
+                    <p class="text-sm text-slate-500">Checking authentication...</p>
+                </div>
+
+                <a href="/login?next=/kickboard-dashboard" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign in with Google
+                </a>
+
+                <p id="signInNote" class="text-xs text-slate-400 text-center mt-4">
+                    Only @firstlineschools.org accounts are allowed
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-4">
+                        <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                        <div>
+                            <h1 class="text-lg font-semibold text-white">Kickboard Dashboard</h1>
+                            <p class="text-xs text-orange-200" id="roleLabel">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
+                            <span id="userDisplayName" class="text-sm text-white hidden"></span>
+                        </div>
+                        <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Supervisor View
+                        </a>
+                        <button id="refreshBtn" onclick="refreshData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                        <a href="/logout" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Filter Bar -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px]" id="schoolFilterWrap">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">School</label>
+                        <select id="schoolFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Schools</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Grade</label>
+                        <select id="gradeFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Grades</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Category</label>
+                        <select id="categoryFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Staff</label>
+                        <select id="staffFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Staff</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[130px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Date From</label>
+                        <input type="date" id="dateFromFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                    </div>
+                    <div class="flex-1 min-w-[130px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Date To</label>
+                        <input type="date" id="dateToFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                    </div>
+                    <div>
+                        <button onclick="clearFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breadcrumb Navigation -->
+            <div id="breadcrumbBar" class="bg-white rounded-xl border border-slate-200 p-3 mb-6 hidden">
+                <nav class="flex items-center gap-2 text-sm" id="breadcrumbNav">
+                </nav>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-12">
+                <div class="loading mx-auto mb-4" style="width:40px;height:40px;border-width:4px;"></div>
+                <p class="text-slate-500">Loading dashboard data...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden text-center py-12">
+                <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <p class="text-red-600 font-medium" id="errorMessage">Failed to load data</p>
+                <button onclick="refreshData()" class="mt-4 px-4 py-2 bg-fls-orange text-white rounded-lg hover:bg-fls-orange-dark transition-colors">Try Again</button>
+            </div>
+
+            <!-- Level 0: Network Summary -->
+            <div id="level0" class="hidden animate-fade-in">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6" id="networkStats">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-fls-navy/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-fls-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</p>
+                                <p class="text-2xl font-semibold text-fls-navy" id="statTotalInteractions">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</p>
+                                <p class="text-2xl font-semibold text-emerald-600" id="statPositive">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</p>
+                                <p class="text-2xl font-semibold text-red-500" id="statNegative">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pos:Neg Ratio</p>
+                                <p class="text-2xl font-semibold text-blue-600" id="statRatio">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Net Dollars</p>
+                                <p class="text-2xl font-semibold text-amber-600" id="statNetDollars">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- School Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="schoolCardsGrid">
+                </div>
+            </div>
+
+            <!-- Level 1: Grade/Teacher Breakdown -->
+            <div id="level1" class="hidden animate-fade-in">
+                <!-- School Stats Row -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6" id="schoolStats">
+                </div>
+
+                <!-- View Toggle -->
+                <div class="flex gap-2 mb-4">
+                    <button id="viewGradesBtn" onclick="switchView('grades')" class="px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white">
+                        By Grade
+                    </button>
+                    <button id="viewTeachersBtn" onclick="switchView('teachers')" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300">
+                        By Teacher
+                    </button>
+                </div>
+
+                <!-- Grades Table (Desktop) -->
+                <div id="gradesTableContainer" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grade</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ratio</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Earned</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Lost</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Students</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradesTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="gradesMobileCards">
+                    </div>
+                </div>
+
+                <!-- Teachers Table (Desktop) -->
+                <div id="teachersTableContainer" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Teacher</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ratio</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Earned</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Lost</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Students</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachersTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="teachersMobileCards">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level 2: Student Table -->
+            <div id="level2" class="hidden animate-fade-in">
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="name" onclick="sortStudents('name')">Student Name <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="interactions" onclick="sortStudents('interactions')">Interactions <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="positive_count" onclick="sortStudents('positive_count')">Positive <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="negative_count" onclick="sortStudents('negative_count')">Negative <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="ratio" onclick="sortStudents('ratio')">Ratio <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="net_dollars" onclick="sortStudents('net_dollars')">Net $ <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="last_interaction_date" onclick="sortStudents('last_interaction_date')">Last Interaction <span class="sort-arrow"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="studentsMobileCards">
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Teacher Detail Modal -->
+    <div id="teacherModal" class="hidden fixed inset-0 z-[60] modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                <div>
+                    <h2 class="text-lg font-semibold text-fls-navy" id="modalTeacherName">Teacher Name</h2>
+                    <p class="text-sm text-slate-500" id="modalTeacherInfo">School</p>
+                </div>
+                <button onclick="closeTeacherModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Stats -->
+            <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="modalTeacherStats">
+                </div>
+            </div>
+
+            <!-- Modal Loading -->
+            <div id="teacherModalLoading" class="flex-1 flex items-center justify-center py-12">
+                <div class="loading" style="width:32px;height:32px;"></div>
+            </div>
+
+            <!-- Modal Content -->
+            <div id="teacherModalContent" class="hidden flex-1 overflow-auto">
+                <table class="w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <tr class="border-b border-slate-200">
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Date</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Student</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Grade</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Interaction</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Category</th>
+                            <th class="text-right px-6 py-2 text-xs font-semibold text-slate-500 uppercase">$ Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherInteractionsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button onclick="closeTeacherModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Detail Modal (Level 3) -->
+    <div id="studentModal" class="hidden fixed inset-0 z-[60] modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                <div>
+                    <h2 class="text-lg font-semibold text-fls-navy" id="modalStudentName">Student Name</h2>
+                    <p class="text-sm text-slate-500" id="modalStudentInfo">Grade / School</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Stats -->
+            <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="modalStats">
+                </div>
+            </div>
+
+            <!-- Modal Loading -->
+            <div id="modalLoading" class="flex-1 flex items-center justify-center py-12">
+                <div class="loading" style="width:32px;height:32px;"></div>
+            </div>
+
+            <!-- Modal Content -->
+            <div id="modalContent" class="hidden flex-1 overflow-auto">
+                <table class="w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <tr class="border-b border-slate-200">
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Date</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Interaction</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Category</th>
+                            <th class="text-right px-6 py-2 text-xs font-semibold text-slate-500 uppercase">$ Value</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Staff</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Comments</th>
+                        </tr>
+                    </thead>
+                    <tbody id="interactionsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // State
+        // ============================================
+        let kickboardAccess = null;
+        let currentLevel = 0;
+        let currentSchool = '';
+        let currentGrade = '';
+        let currentView = 'grades'; // 'grades' or 'teachers'
+        let currentStudentNumber = '';
+        let currentStudentName = '';
+        let studentsData = [];
+        let sortField = 'name';
+        let sortAsc = true;
+        let isSingleSchool = false;
+
+        const SCHOOL_MAP = {
+            'Ashe': 'Arthur Ashe Charter School',
+            'LHA': 'Langston Hughes Academy',
+            'Wheatley': 'Phillis Wheatley Community School',
+            'Green': 'Samuel J. Green Charter School',
+        };
+
+        // ============================================
+        // Initialization
+        // ============================================
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        async function checkAuth() {
+            const authLoading = document.getElementById('authLoading');
+            const googleSignInBtn = document.getElementById('googleSignInBtn');
+            const signInNote = document.getElementById('signInNote');
+
+            authLoading.classList.remove('hidden');
+            googleSignInBtn.classList.add('hidden');
+            signInNote.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+
+                authLoading.classList.add('hidden');
+
+                if (data.authenticated) {
+                    if (!data.kickboard_dashboard_access) {
+                        showAuthError('Access Denied', 'You do not have access to the Kickboard Dashboard. Contact your administrator.');
+                        googleSignInBtn.classList.remove('hidden');
+                        return;
+                    }
+
+                    kickboardAccess = data.kickboard_access;
+                    isSingleSchool = kickboardAccess.schools.length === 1;
+
+                    // Update user profile
+                    if (data.user.picture) {
+                        const pic = document.getElementById('userProfilePic');
+                        pic.src = data.user.picture;
+                        pic.classList.remove('hidden');
+                    }
+                    if (data.user.name) {
+                        const name = document.getElementById('userDisplayName');
+                        name.textContent = data.user.name;
+                        name.classList.remove('hidden');
+                    }
+
+                    document.getElementById('roleLabel').textContent = kickboardAccess.label || 'Kickboard';
+
+                    // Hide school filter for single-school users
+                    if (isSingleSchool) {
+                        document.getElementById('schoolFilterWrap').classList.add('hidden');
+                    }
+
+                    // Show dashboard
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboardScreen').classList.remove('hidden');
+
+                    // Set default date range: school year start to today
+                    document.getElementById('dateFromFilter').value = '2025-08-04';
+                    document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
+
+                    // Load filter options, then data
+                    await loadFilterOptions();
+
+                    if (isSingleSchool) {
+                        // Auto-drill to school's grade view
+                        drillToSchool(kickboardAccess.schools[0]);
+                    } else {
+                        loadSummary();
+                    }
+                } else {
+                    googleSignInBtn.classList.remove('hidden');
+                    signInNote.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking auth:', error);
+                authLoading.classList.add('hidden');
+                googleSignInBtn.classList.remove('hidden');
+                signInNote.classList.remove('hidden');
+            }
+        }
+
+        function showAuthError(title, message) {
+            document.getElementById('authErrorTitle').textContent = title;
+            document.getElementById('authErrorMessage').textContent = message;
+            document.getElementById('authError').classList.remove('hidden');
+        }
+
+        // ============================================
+        // Filter Management
+        // ============================================
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch('/api/kickboard/filter-options');
+                const data = await response.json();
+
+                populateSelect('schoolFilter', data.schools || [], 'All Schools');
+                populateSelect('gradeFilter', data.grades || [], 'All Grades');
+                populateSelect('categoryFilter', data.categories || [], 'All Categories');
+                populateSelect('staffFilter', data.staff || [], 'All Staff');
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        }
+
+        function populateSelect(id, options, allLabel) {
+            const select = document.getElementById(id);
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">${allLabel}</option>`;
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        function getFilterParams() {
+            const params = new URLSearchParams();
+            const school = document.getElementById('schoolFilter').value;
+            const grade = document.getElementById('gradeFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+            const staff = document.getElementById('staffFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
+
+            if (school) params.set('school', school);
+            if (grade) params.set('grade', grade);
+            if (category) params.set('category', category);
+            if (staff) params.set('staff', staff);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            return params;
+        }
+
+        function applyFilters() {
+            if (currentLevel === 0) {
+                loadSummary();
+            } else if (currentLevel === 1) {
+                // Reload current view (grades or teachers)
+                if (currentView === 'teachers') {
+                    loadTeachers(currentSchool);
+                } else {
+                    loadGrades(currentSchool);
+                }
+            } else if (currentLevel === 2) {
+                loadStudents(currentSchool, currentGrade);
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('schoolFilter').value = '';
+            document.getElementById('gradeFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('staffFilter').value = '';
+            // Reset dates to school year defaults
+            document.getElementById('dateFromFilter').value = '2025-08-04';
+            document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
+            applyFilters();
+        }
+
+        function refreshData() {
+            applyFilters();
+        }
+
+        // ============================================
+        // Breadcrumb Navigation
+        // ============================================
+        function updateBreadcrumbs() {
+            const bar = document.getElementById('breadcrumbBar');
+            const nav = document.getElementById('breadcrumbNav');
+            nav.innerHTML = '';
+
+            if (currentLevel === 0 && !isSingleSchool) {
+                bar.classList.add('hidden');
+                return;
+            }
+
+            bar.classList.remove('hidden');
+            const crumbs = [];
+
+            if (!isSingleSchool) {
+                crumbs.push({ label: 'All Schools', action: () => navigateTo(0) });
+            }
+
+            if (currentLevel >= 1) {
+                const schoolLabel = SCHOOL_MAP[currentSchool] || currentSchool;
+                if (currentLevel === 1 && isSingleSchool) {
+                    crumbs.push({ label: schoolLabel, action: null }); // current, non-clickable
+                } else if (currentLevel === 1) {
+                    crumbs.push({ label: schoolLabel, action: null });
+                } else {
+                    crumbs.push({ label: schoolLabel, action: () => drillToSchool(currentSchool) });
+                }
+            }
+
+            if (currentLevel >= 2) {
+                if (currentLevel === 2) {
+                    crumbs.push({ label: currentGrade, action: null });
+                } else {
+                    crumbs.push({ label: currentGrade, action: () => drillToGrade(currentSchool, currentGrade) });
+                }
+            }
+
+            crumbs.forEach((crumb, i) => {
+                if (i > 0) {
+                    const sep = document.createElement('span');
+                    sep.textContent = '/';
+                    sep.className = 'text-slate-400 mx-1';
+                    nav.appendChild(sep);
+                }
+
+                const el = document.createElement(crumb.action ? 'a' : 'span');
+                if (crumb.action) {
+                    el.href = '#';
+                    el.className = 'text-fls-blue hover:text-fls-navy hover:underline transition-colors';
+                    el.addEventListener('click', (e) => { e.preventDefault(); crumb.action(); });
+                } else {
+                    el.className = 'font-semibold text-fls-navy';
+                }
+                el.textContent = crumb.label;
+                nav.appendChild(el);
+            });
+        }
+
+        function navigateTo(level) {
+            if (level === 0) {
+                currentLevel = 0;
+                currentSchool = '';
+                currentGrade = '';
+                showLevel(0);
+                loadSummary();
+            }
+        }
+
+        // ============================================
+        // Level 0: Network Summary
+        // ============================================
+        async function loadSummary() {
+            currentLevel = 0;
+            showLevel(0);
+            showLoading(true);
+
+            try {
+                const params = getFilterParams();
+                const response = await fetch(`/api/kickboard/summary?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderNetworkStats(data.network_totals);
+                renderSchoolCards(data.schools);
+                showLoading(false);
+                document.getElementById('level0').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading summary:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderNetworkStats(totals) {
+            document.getElementById('statTotalInteractions').textContent = (totals.interactions || 0).toLocaleString();
+            document.getElementById('statPositive').textContent = (totals.positive_count || 0).toLocaleString();
+            document.getElementById('statNegative').textContent = (totals.negative_count || 0).toLocaleString();
+            document.getElementById('statRatio').textContent = (totals.ratio || 0) + ':1';
+            const net = (totals.total_earned || 0) + (totals.total_lost || 0);
+            document.getElementById('statNetDollars').textContent = '$' + net.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        }
+
+        function renderSchoolCards(schools) {
+            const grid = document.getElementById('schoolCardsGrid');
+            grid.innerHTML = '';
+
+            schools.forEach(school => {
+                const posPercent = school.interactions > 0 ? Math.round((school.positive_count / school.interactions) * 100) : 0;
+                const trendIcon = school.wow_trend >= 0
+                    ? `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>`
+                    : `<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>`;
+                const trendColor = school.wow_trend >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50';
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-fls-orange/30 transition-all cursor-pointer';
+                card.onclick = () => drillToSchool(school.school);
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-fls-navy">${school.full_name || school.school}</h3>
+                            <p class="text-xs text-slate-500 mt-1">${school.unique_students.toLocaleString()} students &middot; ${school.unique_staff.toLocaleString()} staff</p>
+                        </div>
+                        <div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${trendColor}">
+                            ${trendIcon}
+                            ${Math.abs(school.wow_trend)}%
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs text-slate-500">Interactions</p>
+                            <p class="text-lg font-semibold text-fls-navy">${school.interactions.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-emerald-600">Positive</p>
+                            <p class="text-lg font-semibold text-emerald-600">${school.positive_count.toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-red-500">Negative</p>
+                            <p class="text-lg font-semibold text-red-500">${school.negative_count.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-medium text-slate-500">Pos/Neg Ratio: ${school.ratio}:1</span>
+                            <span class="text-xs text-slate-400">${posPercent}% positive</span>
+                        </div>
+                        <div class="ratio-bar">
+                            <div class="ratio-bar-positive" style="width: ${posPercent}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between text-xs">
+                        <span class="text-emerald-600 font-medium">+$${school.total_earned.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                        <span class="text-red-500 font-medium">-$${Math.abs(school.total_lost).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // Level 1: Grade Breakdown
+        // ============================================
+        function drillToSchool(school) {
+            currentSchool = school;
+            currentLevel = 1;
+            loadGrades(school);
+        }
+
+        async function loadGrades(school) {
+            showLevel(1);
+            showLoading(true);
+
+            // Reset view to grades when loading a school
+            currentView = 'grades';
+            document.getElementById('viewGradesBtn').className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+            document.getElementById('viewTeachersBtn').className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+            document.getElementById('gradesTableContainer').classList.remove('hidden');
+            document.getElementById('teachersTableContainer').classList.add('hidden');
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/kickboard/grades?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderSchoolStatsRow(data.school_totals);
+                renderGradesTable(data.grades);
+                showLoading(false);
+                document.getElementById('level1').classList.remove('hidden');
+                updateBreadcrumbs();
+            } catch (error) {
+                console.error('Error loading grades:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderSchoolStatsRow(totals) {
+            const container = document.getElementById('schoolStats');
+            const net = (totals.total_earned || 0) + (totals.total_lost || 0);
+            container.innerHTML = `
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</p>
+                    <p class="text-2xl font-semibold text-fls-navy">${(totals.interactions || 0).toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</p>
+                    <p class="text-2xl font-semibold text-emerald-600">${(totals.positive_count || 0).toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</p>
+                    <p class="text-2xl font-semibold text-red-500">${(totals.negative_count || 0).toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Pos:Neg Ratio</p>
+                    <p class="text-2xl font-semibold text-blue-600">${(totals.ratio || 0)}:1</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Net Dollars</p>
+                    <p class="text-2xl font-semibold text-amber-600">$${net.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</p>
+                </div>
+            `;
+        }
+
+        function renderGradesTable(grades) {
+            // Desktop table
+            const tbody = document.getElementById('gradesTableBody');
+            tbody.innerHTML = '';
+
+            grades.forEach(g => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row border-b border-slate-100';
+                tr.onclick = () => drillToGrade(currentSchool, g.grade);
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-fls-navy">${g.grade}</td>
+                    <td class="px-6 py-4 text-right text-slate-700">${g.interactions.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-emerald-600 font-medium">${g.positive_count.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-red-500 font-medium">${g.negative_count.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-slate-700">${g.ratio}:1</td>
+                    <td class="px-6 py-4 text-right text-emerald-600">$${g.total_earned.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                    <td class="px-6 py-4 text-right text-red-500">$${Math.abs(g.total_lost).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                    <td class="px-6 py-4 text-right text-slate-700">${g.unique_students.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('gradesMobileCards');
+            mobileContainer.innerHTML = '';
+
+            grades.forEach(g => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                card.onclick = () => drillToGrade(currentSchool, g.grade);
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-fls-navy">${g.grade}</span>
+                        <span class="text-sm text-slate-500">${g.interactions.toLocaleString()} interactions</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div><span class="text-emerald-600 font-medium">${g.positive_count.toLocaleString()}</span> <span class="text-slate-400">pos</span></div>
+                        <div><span class="text-red-500 font-medium">${g.negative_count.toLocaleString()}</span> <span class="text-slate-400">neg</span></div>
+                        <div><span class="text-slate-700 font-medium">${g.ratio}:1</span> <span class="text-slate-400">ratio</span></div>
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // View Toggle (Grades vs Teachers)
+        // ============================================
+        function switchView(view) {
+            if (currentView === view) return; // No change
+            currentView = view;
+
+            // Update button styles
+            const gradesBtn = document.getElementById('viewGradesBtn');
+            const teachersBtn = document.getElementById('viewTeachersBtn');
+
+            if (view === 'grades') {
+                gradesBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+                teachersBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+                document.getElementById('gradesTableContainer').classList.remove('hidden');
+                document.getElementById('teachersTableContainer').classList.add('hidden');
+                // Reload grades to reflect any filter changes
+                reloadGradesTable(currentSchool);
+            } else {
+                gradesBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+                teachersBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+                document.getElementById('gradesTableContainer').classList.add('hidden');
+                document.getElementById('teachersTableContainer').classList.remove('hidden');
+                // Load teachers data if switching to teacher view
+                loadTeachers(currentSchool);
+            }
+        }
+
+        async function reloadGradesTable(school) {
+            // Reload just the grades table without resetting UI state
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/kickboard/grades?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderSchoolStatsRow(data.school_totals);
+                renderGradesTable(data.grades);
+            } catch (error) {
+                console.error('Error reloading grades:', error);
+            }
+        }
+
+        async function loadTeachers(school) {
+            const tbody = document.getElementById('teachersTableBody');
+            const mobileContainer = document.getElementById('teachersMobileCards');
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500"><div class="loading mx-auto mb-2"></div>Loading teachers...</td></tr>';
+            mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">Loading teachers...</div>';
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/kickboard/teachers?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                // Update school stats row (totals also returned from teachers endpoint)
+                if (data.school_totals) {
+                    renderSchoolStatsRow(data.school_totals);
+                }
+
+                renderTeachersTable(data.teachers || []);
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+                tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-red-500">Failed to load teachers: ${error.message}</td></tr>`;
+                mobileContainer.innerHTML = `<div class="text-center py-4 text-red-500">Failed to load teachers</div>`;
+            }
+        }
+
+        function renderTeachersTable(teachers) {
+            // Desktop table
+            const tbody = document.getElementById('teachersTableBody');
+            tbody.innerHTML = '';
+
+            if (teachers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">No teacher data found</td></tr>';
+            } else {
+                teachers.forEach(t => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'table-row border-b border-slate-100';
+                    tr.onclick = () => openTeacherModal(t.staff);
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-fls-navy">${t.staff}</td>
+                        <td class="px-6 py-4 text-right text-slate-700">${t.interactions.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-emerald-600 font-medium">${t.positive_count.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-red-500 font-medium">${t.negative_count.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-slate-700">${t.ratio}:1</td>
+                        <td class="px-6 py-4 text-right text-emerald-600">$${t.total_earned.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                        <td class="px-6 py-4 text-right text-red-500">$${Math.abs(t.total_lost).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                        <td class="px-6 py-4 text-right text-slate-700">${t.unique_students.toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('teachersMobileCards');
+            mobileContainer.innerHTML = '';
+
+            if (teachers.length === 0) {
+                mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">No teacher data found</div>';
+            } else {
+                teachers.forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                    card.onclick = () => openTeacherModal(t.staff);
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-fls-navy">${t.staff}</span>
+                            <span class="text-sm text-slate-500">${t.interactions.toLocaleString()} interactions</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-sm">
+                            <div><span class="text-emerald-600 font-medium">${t.positive_count.toLocaleString()}</span> <span class="text-slate-400">pos</span></div>
+                            <div><span class="text-red-500 font-medium">${t.negative_count.toLocaleString()}</span> <span class="text-slate-400">neg</span></div>
+                            <div><span class="text-slate-700 font-medium">${t.ratio}:1</span> <span class="text-slate-400">ratio</span></div>
+                        </div>
+                        <div class="mt-2 text-xs text-slate-500">${t.unique_students} students</div>
+                    `;
+                    mobileContainer.appendChild(card);
+                });
+            }
+        }
+
+        // ============================================
+        // Level 2: Student Table
+        // ============================================
+        function drillToGrade(school, grade) {
+            currentSchool = school;
+            currentGrade = grade;
+            currentLevel = 2;
+            loadStudents(school, grade);
+        }
+
+        async function loadStudents(school, grade) {
+            showLevel(2);
+            showLoading(true);
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                params.set('grade', grade);
+                const response = await fetch(`/api/kickboard/students?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                studentsData = data.students || [];
+                sortField = 'name';
+                sortAsc = true;
+                renderStudentsTable();
+                showLoading(false);
+                document.getElementById('level2').classList.remove('hidden');
+                updateBreadcrumbs();
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showError(error.message);
+            }
+        }
+
+        function sortStudents(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = field === 'name'; // default asc for name, desc for numbers
+            }
+            renderStudentsTable();
+        }
+
+        function renderStudentsTable() {
+            const sorted = [...studentsData].sort((a, b) => {
+                let aVal = a[sortField];
+                let bVal = b[sortField];
+                if (sortField === 'name') {
+                    aVal = (aVal || '').toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                    return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                if (sortField === 'last_interaction_date') {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                    return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                aVal = aVal || 0;
+                bVal = bVal || 0;
+                return sortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('.sort-header').forEach(th => {
+                const arrow = th.querySelector('.sort-arrow');
+                if (th.dataset.sort === sortField) {
+                    arrow.textContent = sortAsc ? ' \u25B2' : ' \u25BC';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
+            // Desktop table
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '';
+
+            sorted.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row border-b border-slate-100';
+                tr.onclick = () => openStudentModal(s.student_number, s.name);
+                const netColor = s.net_dollars >= 0 ? 'text-emerald-600' : 'text-red-500';
+                const dateStr = s.last_interaction_date ? new Date(s.last_interaction_date).toLocaleDateString() : '-';
+                tr.innerHTML = `
+                    <td class="px-6 py-3 font-medium text-fls-navy">${s.name}</td>
+                    <td class="px-6 py-3 text-right text-slate-700">${s.interactions.toLocaleString()}</td>
+                    <td class="px-6 py-3 text-right text-emerald-600 font-medium">${s.positive_count.toLocaleString()}</td>
+                    <td class="px-6 py-3 text-right text-red-500 font-medium">${s.negative_count.toLocaleString()}</td>
+                    <td class="px-6 py-3 text-right text-slate-700">${s.ratio}:1</td>
+                    <td class="px-6 py-3 text-right ${netColor} font-medium">$${s.net_dollars.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                    <td class="px-6 py-3 text-right text-slate-500">${dateStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('studentsMobileCards');
+            mobileContainer.innerHTML = '';
+
+            sorted.forEach(s => {
+                const netColor = s.net_dollars >= 0 ? 'text-emerald-600' : 'text-red-500';
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                card.onclick = () => openStudentModal(s.student_number, s.name);
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-fls-navy">${s.name}</span>
+                        <span class="text-sm ${netColor} font-medium">$${s.net_dollars.toLocaleString()}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div><span class="text-emerald-600 font-medium">${s.positive_count}</span> <span class="text-slate-400">pos</span></div>
+                        <div><span class="text-red-500 font-medium">${s.negative_count}</span> <span class="text-slate-400">neg</span></div>
+                        <div><span class="text-slate-700 font-medium">${s.ratio}:1</span></div>
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // Level 3: Student Detail Modal
+        // ============================================
+        async function openStudentModal(studentNumber, studentName) {
+            currentStudentNumber = studentNumber;
+            currentStudentName = studentName;
+
+            document.getElementById('studentModal').classList.remove('hidden');
+            document.getElementById('modalLoading').classList.remove('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalStudentName').textContent = studentName;
+            document.getElementById('modalStudentInfo').textContent = 'Loading...';
+            document.getElementById('modalStats').innerHTML = '';
+
+            try {
+                const params = getFilterParams();
+                params.set('student_number', studentNumber);
+                const response = await fetch(`/api/kickboard/interactions?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const schoolFullName = SCHOOL_MAP[data.student_school] || data.student_school;
+                document.getElementById('modalStudentInfo').textContent = `${data.student_grade} | ${schoolFullName}`;
+
+                // Calculate summary stats
+                const interactions = data.interactions || [];
+                let totalPos = 0, totalNeg = 0, totalEarned = 0, totalLost = 0;
+                interactions.forEach(i => {
+                    if (i.dollar_value > 0) { totalPos++; totalEarned += i.dollar_value; }
+                    if (i.dollar_value < 0) { totalNeg++; totalLost += i.dollar_value; }
+                });
+                const ratio = totalNeg > 0 ? (totalPos / totalNeg).toFixed(2) : totalPos;
+                const net = totalEarned + totalLost;
+
+                document.getElementById('modalStats').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Total</p>
+                        <p class="text-lg font-semibold text-fls-navy">${interactions.length}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-emerald-600">Positive</p>
+                        <p class="text-lg font-semibold text-emerald-600">${totalPos}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-red-500">Negative</p>
+                        <p class="text-lg font-semibold text-red-500">${totalNeg}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Ratio</p>
+                        <p class="text-lg font-semibold text-blue-600">${ratio}:1</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Net $</p>
+                        <p class="text-lg font-semibold ${net >= 0 ? 'text-emerald-600' : 'text-red-500'}">$${net.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</p>
+                    </div>
+                `;
+
+                // Render interactions table
+                const tbody = document.getElementById('interactionsTableBody');
+                tbody.innerHTML = '';
+
+                interactions.forEach(i => {
+                    const tr = document.createElement('tr');
+                    const rowClass = i.dollar_value > 0 ? 'row-positive' : (i.dollar_value < 0 ? 'row-negative' : '');
+                    tr.className = `border-b border-slate-100 ${rowClass}`;
+                    const dateStr = i.date ? new Date(i.date).toLocaleDateString() : '-';
+                    const dollarColor = i.dollar_value > 0 ? 'text-emerald-600' : (i.dollar_value < 0 ? 'text-red-500' : 'text-slate-500');
+                    const dollarStr = i.dollar_value !== 0 ? `$${i.dollar_value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-';
+                    tr.innerHTML = `
+                        <td class="px-6 py-2 text-sm text-slate-700 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-6 py-2 text-sm text-slate-700">${i.interaction || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500">${i.category || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-right ${dollarColor} font-medium">${dollarStr}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500">${i.staff || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500 max-w-xs truncate" title="${(i.comments || '').replace(/"/g, '&quot;')}">${i.comments || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('modalLoading').classList.add('hidden');
+                document.getElementById('modalContent').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading student interactions:', error);
+                document.getElementById('modalLoading').innerHTML = `<p class="text-red-500">Failed to load: ${error.message}</p>`;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').classList.add('hidden');
+        }
+
+        // ============================================
+        // Teacher Detail Modal
+        // ============================================
+        async function openTeacherModal(teacherName) {
+            document.getElementById('teacherModal').classList.remove('hidden');
+            document.getElementById('teacherModalLoading').classList.remove('hidden');
+            document.getElementById('teacherModalContent').classList.add('hidden');
+            document.getElementById('modalTeacherName').textContent = teacherName;
+            document.getElementById('modalTeacherInfo').textContent = 'Loading...';
+            document.getElementById('modalTeacherStats').innerHTML = '';
+
+            try {
+                const params = getFilterParams();
+                params.set('teacher', teacherName);
+                params.set('school', currentSchool);
+                const response = await fetch(`/api/kickboard/teacher-interactions?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const schoolFullName = SCHOOL_MAP[data.school] || data.school || currentSchool;
+                document.getElementById('modalTeacherInfo').textContent = schoolFullName;
+
+                // Calculate summary stats
+                const interactions = data.interactions || [];
+                let totalPos = 0, totalNeg = 0, totalEarned = 0, totalLost = 0;
+                interactions.forEach(i => {
+                    if (i.dollar_value > 0) { totalPos++; totalEarned += i.dollar_value; }
+                    if (i.dollar_value < 0) { totalNeg++; totalLost += i.dollar_value; }
+                });
+                const ratio = totalNeg > 0 ? (totalPos / totalNeg).toFixed(2) : totalPos;
+                const net = totalEarned + totalLost;
+                const uniqueStudents = new Set(interactions.map(i => i.student)).size;
+
+                document.getElementById('modalTeacherStats').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Total</p>
+                        <p class="text-lg font-semibold text-fls-navy">${interactions.length}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-emerald-600">Positive</p>
+                        <p class="text-lg font-semibold text-emerald-600">${totalPos}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-red-500">Negative</p>
+                        <p class="text-lg font-semibold text-red-500">${totalNeg}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Ratio</p>
+                        <p class="text-lg font-semibold text-blue-600">${ratio}:1</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Students</p>
+                        <p class="text-lg font-semibold text-amber-600">${uniqueStudents}</p>
+                    </div>
+                `;
+
+                // Render interactions table
+                const tbody = document.getElementById('teacherInteractionsTableBody');
+                tbody.innerHTML = '';
+
+                interactions.forEach(i => {
+                    const tr = document.createElement('tr');
+                    const rowClass = i.dollar_value > 0 ? 'row-positive' : (i.dollar_value < 0 ? 'row-negative' : '');
+                    tr.className = `border-b border-slate-100 ${rowClass}`;
+                    const dateStr = i.date ? new Date(i.date).toLocaleDateString() : '-';
+                    const dollarColor = i.dollar_value > 0 ? 'text-emerald-600' : (i.dollar_value < 0 ? 'text-red-500' : 'text-slate-500');
+                    const dollarStr = i.dollar_value !== 0 ? `$${i.dollar_value.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}` : '-';
+                    tr.innerHTML = `
+                        <td class="px-6 py-2 text-sm text-slate-700 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-6 py-2 text-sm text-slate-700">${i.student || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500">${i.grade || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-700">${i.interaction || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500">${i.category || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-right ${dollarColor} font-medium">${dollarStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('teacherModalLoading').classList.add('hidden');
+                document.getElementById('teacherModalContent').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading teacher interactions:', error);
+                document.getElementById('teacherModalLoading').innerHTML = `<p class="text-red-500">Failed to load: ${error.message}</p>`;
+            }
+        }
+
+        function closeTeacherModal() {
+            document.getElementById('teacherModal').classList.add('hidden');
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeTeacherModal();
+            }
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('studentModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('studentModal')) closeModal();
+        });
+
+        document.getElementById('teacherModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('teacherModal')) closeTeacherModal();
+        });
+
+        // ============================================
+        // UI Helpers
+        // ============================================
+        function showLevel(level) {
+            ['level0', 'level1', 'level2'].forEach((id, i) => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            updateBreadcrumbs();
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingState').classList.toggle('hidden', !show);
+            document.getElementById('errorState').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorMessage').textContent = message || 'Failed to load data';
+            document.getElementById('errorState').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
