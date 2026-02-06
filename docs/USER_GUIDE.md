@@ -17,6 +17,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 | Schools Dashboard | `/schools-dashboard` | Academic team view of teacher data |
 | Kickboard Dashboard | `/kickboard-dashboard` | Student behavior tracking and interactions |
 | Org Chart | `/orgchart` | Visual organization hierarchy |
+| Staff List | `/staff-list-dashboard` | Customizable, filterable staff directory |
 
 ---
 
@@ -108,6 +109,60 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 - **Category**: Filter by interaction category
 - **Staff**: Filter by staff member who logged the interaction
 - **Date Range**: Defaults to current school year (8/4/2025 - today)
+
+---
+
+## 5. Staff List Dashboard
+
+### Who Can Access
+Any user with a `@firstlineschools.org` Google account.
+
+### What You See
+A customizable staff directory with all current and past employees. The dashboard includes:
+- **Stat cards** showing Total Staff, Active count, Locations, and current filtered count
+- **Sortable, filterable table** with selectable columns
+
+### Filters
+- **Search**: Free-text search across name, email, title, location, department, supervisor
+- **Location**: Filter by school/site
+- **Status**: Active, Leave of Absence, Terminated, etc.
+- **Department**: Filter by department
+- **Supervisor**: Filter by supervisor name
+- **Function**: Leadership, Network, Operations, Support, Teacher
+
+Active filter badges appear below the toolbar — click the × on any badge to remove that filter.
+
+### Column Customization
+1. Click the **Columns** button in the toolbar
+2. Toggle columns on/off by clicking the checkboxes
+3. Drag columns to reorder them
+4. Use **Select All**, **Defaults**, or **Deselect All** for quick changes
+5. Click **Apply Changes**
+
+> **Note:** Your column preferences are saved in your browser. They will persist across sessions until you clear your browser data or click **Defaults** to reset.
+
+**Default columns:** Location, First Name, Last Name, Email, Job Title, Supervisor, Status, Hire Date
+
+### Row Selection & Emailing
+1. Use the **checkboxes** on the left side of the table to select individual staff members
+2. Use the **header checkbox** to select/deselect all on the current page
+3. A blue **selection banner** appears showing the count of selected staff
+4. Click **Email Selected** (on the banner) or **Email List** (in the toolbar) to open a Gmail compose window addressed to all selected staff
+5. Click **Deselect All** on the banner to clear selections
+
+> **Note:** Row selections do not persist across page reloads — they are temporary.
+
+### Exporting Data
+Click **Export** to choose from:
+- **Export as CSV** — downloads a CSV file of the filtered data with your visible columns
+- **Export as JSON** — downloads a JSON file
+- **Print** — opens the browser print dialog
+
+### Staff Detail View
+Click on any row to open a detail panel showing all available fields for that staff member.
+
+### Privacy
+- Birthdays display month and day only (no year)
 
 ---
 
