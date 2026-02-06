@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff List | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', system-ui, -apple-system, sans-serif; }
+
+        .loading { display:inline-block; width:24px; height:24px; border:3px solid #e2e8f0; border-radius:50%; border-top-color:#e47727; animation:spin .8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .hidden { display:none !important; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width:8px; height:8px; }
+        ::-webkit-scrollbar-track { background:#f1f5f9; border-radius:4px; }
+        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
+
+        /* Table */
+        .staff-table thead { position:sticky; top:0; z-index:10; }
+        .staff-table th { background-color:#f8fafc; cursor:pointer; user-select:none; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+        .staff-table th:hover { background-color:#e2e8f0; }
+        .staff-table th .sort-icon { opacity:0; transition:opacity .15s; }
+        .staff-table th:hover .sort-icon,
+        .staff-table th.sorted .sort-icon { opacity:1; }
+        .staff-table tbody tr { transition:background .12s; }
+        .staff-table tbody tr:hover { background-color:#f8fafc; }
+        .staff-table tbody tr.selected { background-color:#eff6ff; }
+        .staff-table tbody tr.selected:hover { background-color:#dbeafe; }
+        .staff-table th.cb-col, .staff-table td.cb-col { cursor:default; width:40px; min-width:40px; }
+        .staff-table th.cb-col:hover { background-color:#f8fafc; }
+
+        /* Column chooser */
+        .col-chip { transition:all .15s; }
+        .col-chip.active { background:#002f60; color:#fff; border-color:#002f60; }
+        .col-chip:not(.active) { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
+        .col-chip:hover { transform:translateY(-1px); box-shadow:0 2px 4px rgba(0,0,0,.08); }
+
+        /* Drag handle for column reorder */
+        .drag-handle { cursor:grab; opacity:.4; transition:opacity .15s; }
+        .drag-handle:hover { opacity:1; }
+        .dragging { opacity:.5; }
+
+        /* Modal backdrop */
+        .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+
+        /* Filter badge */
+        .filter-badge { font-size:10px; min-width:18px; height:18px; line-height:18px; }
+
+        /* Print styles */
+        @media print {
+            header, .no-print { display:none !important; }
+            .staff-table { font-size:10px; }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen">
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+            <div class="flex items-center justify-center mb-6">
+                <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+            </div>
+            <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Staff List</h1>
+            <p class="text-slate-500 text-center mb-8">Sign in with your FirstLine account</p>
+            <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <div>
+                        <p class="text-sm font-medium text-red-800" id="authErrorTitle">Authentication Error</p>
+                        <p class="text-sm text-red-700 mt-1" id="authErrorMessage"></p>
+                    </div>
+                </div>
+            </div>
+            <div id="authLoading" class="hidden mb-6 text-center"><div class="loading mx-auto mb-3"></div><p class="text-sm text-slate-500">Checking authentication…</p></div>
+            <a href="/login?next=/staff-list-dashboard" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Sign in with Google
+            </a>
+            <p class="text-xs text-slate-400 text-center mt-4">Only @firstlineschools.org accounts</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== DASHBOARD ===================== -->
+<div id="dashboardScreen" class="hidden">
+
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy no-print">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-4">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                    <div>
+                        <h1 class="text-lg font-semibold text-white">Staff List</h1>
+                        <p class="text-xs text-orange-200">Customizable staff directory</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
+                    <span id="userDisplayName" class="text-sm text-white hidden sm:inline"></span>
+                    <button onclick="loadData()" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors" title="Refresh data">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span class="hidden sm:inline">Refresh</span>
+                    </button>
+                    <a href="/logout" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span class="hidden sm:inline">Sign Out</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="statCards">
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-fls-navy/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-fls-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                    <div><p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Staff</p><p class="text-2xl font-semibold text-fls-navy" id="statTotal">—</p></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div><p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Active</p><p class="text-2xl font-semibold text-emerald-600" id="statActive">—</p></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-fls-orange/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-fls-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div><p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Locations</p><p class="text-2xl font-semibold text-fls-orange" id="statLocations">—</p></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    </div>
+                    <div><p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Showing</p><p class="text-2xl font-semibold text-blue-600" id="statFiltered">—</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4 no-print">
+            <div class="flex flex-wrap gap-3 items-center">
+                <!-- Search -->
+                <div class="relative flex-1 min-w-[220px]">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, title…" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange/50 focus:border-fls-orange transition-all">
+                </div>
+
+                <!-- Filter Dropdowns -->
+                <select id="filterLocation" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
+                    <option value="">All Locations</option>
+                </select>
+                <select id="filterStatus" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
+                    <option value="">All Statuses</option>
+                </select>
+                <select id="filterDept" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
+                    <option value="">All Departments</option>
+                </select>
+                <select id="filterSupervisor" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
+                    <option value="">All Supervisors</option>
+                </select>
+                <select id="filterFunction" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
+                    <option value="">All Functions</option>
+                </select>
+
+                <!-- Actions -->
+                <button onclick="openColumnChooser()" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-fls-navy bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Choose & reorder columns">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+                    Columns
+                </button>
+                <button onclick="clearAllFilters()" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Clear all filters">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Clear
+                </button>
+                <div class="relative">
+                    <button onclick="toggleExportMenu()" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-fls-orange hover:bg-fls-orange-dark rounded-lg transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-50 animate-fade-in">
+                        <button onclick="exportCSV()" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Export as CSV
+                        </button>
+                        <button onclick="exportJSON()" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                            Export as JSON
+                        </button>
+                        <button onclick="printTable()" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            Print
+                        </button>
+                    </div>
+                </div>
+                <button onclick="emailList()" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-fls-navy hover:bg-fls-blue rounded-lg transition-colors shadow-sm" title="Email filtered list via Gmail">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Email List
+                </button>
+            </div>
+
+            <!-- Active filter badges -->
+            <div id="filterBadges" class="hidden flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100"></div>
+        </div>
+
+        <!-- Selection Banner -->
+        <div id="selectionBanner" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center justify-between no-print animate-fade-in">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-sm font-medium text-blue-800"><span id="selectionCount">0</span> staff selected</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="emailSelected()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-fls-navy hover:bg-fls-blue rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Email Selected
+                </button>
+                <button onclick="clearSelection()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Deselect All
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <!-- Loading -->
+            <div id="loadingIndicator" class="p-16 text-center">
+                <div class="loading mx-auto mb-4" style="width:40px;height:40px;border-width:4px;"></div>
+                <p class="text-slate-500 text-sm font-medium">Loading staff data from BigQuery…</p>
+                <p class="text-slate-400 text-xs mt-1">This may take a moment</p>
+            </div>
+
+            <!-- Table -->
+            <div id="tableWrapper" class="hidden overflow-auto" style="max-height:calc(100vh - 340px);">
+                <table class="staff-table w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr id="tableHead"></tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="hidden p-16 text-center">
+                <div class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                </div>
+                <p class="text-slate-500 font-medium">No staff found matching your filters</p>
+                <p class="text-slate-400 text-xs mt-1">Try adjusting your search or filters</p>
+                <button onclick="clearAllFilters()" class="mt-4 px-4 py-2 text-sm font-medium text-fls-orange hover:text-fls-orange-dark transition-colors">Clear all filters</button>
+            </div>
+
+            <!-- Error -->
+            <div id="errorState" class="hidden p-12">
+                <div class="max-w-md mx-auto p-6 bg-red-50 border border-red-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div>
+                            <p class="text-sm font-medium text-red-800">Error loading data</p>
+                            <p class="text-sm text-red-700 mt-1" id="errorMessage"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div id="tableFooter" class="hidden border-t border-slate-200 bg-slate-50 px-4 py-3 flex items-center justify-between text-xs text-slate-500">
+                <span id="footerInfo"></span>
+                <div class="flex items-center gap-4">
+                    <label class="flex items-center gap-1.5">
+                        Rows per page:
+                        <select id="pageSizeSelect" onchange="changePageSize()" class="px-2 py-1 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-fls-orange">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                            <option value="0">All</option>
+                        </select>
+                    </label>
+                    <div class="flex items-center gap-1">
+                        <button onclick="prevPage()" id="prevBtn" class="px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <span id="pageInfo" class="px-2"></span>
+                        <button onclick="nextPage()" id="nextBtn" class="px-2 py-1 rounded hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ===================== COLUMN CHOOSER MODAL ===================== -->
+<div id="columnModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[80vh] flex flex-col animate-slide-up">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <div>
+                <h2 class="text-lg font-semibold text-fls-navy">Customize Columns</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Toggle visibility and drag to reorder</p>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Your column preferences are saved in this browser.
+                </p>
+            </div>
+            <button onclick="closeColumnChooser()" class="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-auto flex-1">
+            <div class="flex gap-2 mb-4">
+                <button onclick="selectAllCols()" class="px-3 py-1.5 text-xs font-medium text-fls-navy bg-fls-navy/5 hover:bg-fls-navy/10 rounded-lg transition-colors">Select All</button>
+                <button onclick="selectDefaultCols()" class="px-3 py-1.5 text-xs font-medium text-fls-orange bg-fls-orange/5 hover:bg-fls-orange/10 rounded-lg transition-colors">Defaults</button>
+                <button onclick="deselectAllCols()" class="px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Deselect All</button>
+            </div>
+            <div id="columnList" class="space-y-1.5"></div>
+        </div>
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+            <button onclick="closeColumnChooser()" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">Cancel</button>
+            <button onclick="applyColumns()" class="px-5 py-2 text-sm font-medium text-white bg-fls-navy hover:bg-fls-blue rounded-lg transition-colors shadow-sm">Apply Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== ROW DETAIL MODAL ===================== -->
+<div id="detailModal" class="hidden fixed inset-0 z-[100] modal-backdrop flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[85vh] flex flex-col animate-slide-up">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            <h2 class="text-lg font-semibold text-fls-navy" id="detailName">Staff Details</h2>
+            <button onclick="closeDetailModal()" class="p-1 hover:bg-slate-100 rounded-lg transition-colors">
+                <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="detailBody" class="p-6 overflow-auto flex-1 space-y-3"></div>
+    </div>
+</div>
+
+
+<script>
+// ========== COLUMN DEFINITIONS ==========
+const ALL_COLUMNS = [
+    { key: 'Employee_Number',  label: 'Emp #',          default: false },
+    { key: 'Location_Name',    label: 'Location',        default: true  },
+    { key: 'First_Name',       label: 'First Name',     default: true  },
+    { key: 'Last_Name',        label: 'Last Name',      default: true  },
+    { key: 'Preferred_First_Name', label: 'Preferred Name', default: false },
+    { key: 'Email_Address',    label: 'Email',           default: true  },
+    { key: 'Job_Title',        label: 'Job Title',       default: true  },
+    { key: 'Job_Function',     label: 'Function',        default: false },
+    { key: 'Job_Code',         label: 'Job Code',        default: false },
+    { key: 'Job_Alike_Desc',   label: 'Job Alike',       default: false },
+    { key: 'Dept',             label: 'Department',      default: false },
+    { key: 'Function',         label: 'Function',        default: false },
+    { key: 'Supervisor',       label: 'Supervisor',      default: true  },
+    { key: 'Employment_Status',label: 'Status',          default: true  },
+    { key: 'Full_Part_Time_Code', label: 'FT/PT',        default: false },
+    { key: 'Salary_or_Hourly', label: 'Pay Type',        default: false },
+    { key: 'Last_Hire_Date',   label: 'Hire Date',       default: true  },
+    { key: 'Date_Of_Birth',    label: 'DOB',             default: false },
+    { key: 'Highest_Education_Level', label: 'Education', default: false },
+    { key: 'Relevant_Years_of_Experience', label: 'Yrs Experience', default: false },
+    { key: 'Subject_Desc',     label: 'Subject',         default: false },
+    { key: 'Grade_Level_Desc', label: 'Grade Level',     default: false },
+    { key: 'Science_of_Reading', label: 'Sci of Reading', default: false },
+    { key: 'Numeracy_Certification', label: 'Numeracy Cert', default: false },
+    { key: 'Teacher_Certification', label: 'Teacher Cert', default: false },
+    { key: 'T_Shirt_Size_Desc', label: 'T-Shirt Size',   default: false },
+    { key: 'Work_Phone',       label: 'Phone',            default: false },
+    { key: 'GL_Account_Number', label: 'GL Account',      default: false },
+    { key: 'Dept_Code',        label: 'Dept Code',        default: false },
+    { key: 'Function_Code',    label: 'Function Code',    default: false },
+    { key: 'Termination_Date', label: 'Term Date',        default: false },
+];
+
+// ========== STATE ==========
+let allData = [];
+let filteredData = [];
+let visibleColumns = [];     // array of column keys, in display order
+let sortColumn = null;
+let sortDirection = 'asc';
+let currentPage = 1;
+let pageSize = 50;
+let selectedRows = new Set(); // Set of Employee_Number values that are checked
+
+// Temp state for column chooser
+let tempColumns = [];
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    // Load saved column prefs from localStorage
+    const saved = localStorage.getItem('stafflist_columns');
+    if (saved) {
+        try {
+            visibleColumns = JSON.parse(saved);
+            // Validate — remove any keys that no longer exist
+            const validKeys = new Set(ALL_COLUMNS.map(c => c.key));
+            visibleColumns = visibleColumns.filter(k => validKeys.has(k));
+        } catch(e) { visibleColumns = []; }
+    }
+    if (!visibleColumns.length) {
+        visibleColumns = ALL_COLUMNS.filter(c => c.default).map(c => c.key);
+    }
+    // Close export menu on outside click
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('exportMenu');
+        if (!menu.classList.contains('hidden') && !e.target.closest('.relative')) {
+            menu.classList.add('hidden');
+        }
+    });
+});
+
+// ========== AUTH ==========
+async function checkAuth() {
+    const loading = document.getElementById('authLoading');
+    loading.classList.remove('hidden');
+    try {
+        const resp = await fetch('/api/auth/status');
+        const auth = await resp.json();
+        loading.classList.add('hidden');
+        if (auth.authenticated) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            if (auth.user) {
+                if (auth.user.picture) {
+                    const pic = document.getElementById('userProfilePic');
+                    pic.src = auth.user.picture;
+                    pic.classList.remove('hidden');
+                }
+                if (auth.user.name) {
+                    const name = document.getElementById('userDisplayName');
+                    name.textContent = auth.user.name;
+                    name.classList.remove('hidden');
+                }
+            }
+            loadData();
+        }
+    } catch(e) {
+        loading.classList.add('hidden');
+        showAuthError('Connection Error', 'Unable to reach the server.');
+    }
+}
+
+function showAuthError(title, msg) {
+    document.getElementById('authErrorTitle').textContent = title;
+    document.getElementById('authErrorMessage').textContent = msg;
+    document.getElementById('authError').classList.remove('hidden');
+}
+
+// ========== DATA ==========
+async function loadData() {
+    showLoading();
+    try {
+        const [dataResp, filterResp] = await Promise.all([
+            fetch('/api/staff-list/data'),
+            fetch('/api/staff-list/filters')
+        ]);
+        if (!dataResp.ok) {
+            const err = await dataResp.json();
+            throw new Error(err.error || `HTTP ${dataResp.status}`);
+        }
+        allData = await dataResp.json();
+        const filters = await filterResp.json();
+        populateFilterDropdowns(filters);
+        applyFilters();
+    } catch(e) {
+        showError(e.message);
+    }
+}
+
+function populateFilterDropdowns(filters) {
+    populateSelect('filterLocation', filters.locations || [], 'All Locations');
+    populateSelect('filterStatus', filters.statuses || [], 'All Statuses');
+    populateSelect('filterDept', filters.departments || [], 'All Departments');
+    populateSelect('filterSupervisor', filters.supervisors || [], 'All Supervisors');
+    populateSelect('filterFunction', filters.job_functions || [], 'All Functions');
+}
+
+function populateSelect(id, values, allLabel) {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    sel.innerHTML = `<option value="">${allLabel}</option>`;
+    values.forEach(v => {
+        if (v) sel.innerHTML += `<option value="${escHTML(v)}">${escHTML(v)}</option>`;
+    });
+    sel.value = current; // preserve selection on refresh
+}
+
+// ========== FILTERING ==========
+['searchInput','filterLocation','filterStatus','filterDept','filterSupervisor','filterFunction'].forEach(id => {
+    document.getElementById(id).addEventListener(id === 'searchInput' ? 'input' : 'change', () => {
+        currentPage = 1;
+        applyFilters();
+    });
+});
+
+function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const loc    = document.getElementById('filterLocation').value;
+    const status = document.getElementById('filterStatus').value;
+    const dept   = document.getElementById('filterDept').value;
+    const sup    = document.getElementById('filterSupervisor').value;
+    const func   = document.getElementById('filterFunction').value;
+
+    filteredData = allData.filter(row => {
+        if (loc && row.Location_Name !== loc) return false;
+        if (status && row.Employment_Status !== status) return false;
+        if (dept && row.Dept !== dept) return false;
+        if (sup && row.Supervisor !== sup) return false;
+        if (func && row.Job_Function !== func) return false;
+        if (search) {
+            const haystack = [
+                row.First_Name, row.Last_Name, row.Preferred_First_Name,
+                row.Email_Address, row.Job_Title, row.Job_Function, row.Location_Name,
+                row.Dept, row.Supervisor, row.Employee_Number
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (!haystack.includes(search)) return false;
+        }
+        return true;
+    });
+
+    if (sortColumn) {
+        sortData();
+    }
+
+    updateStats();
+    updateFilterBadges();
+    renderTable();
+}
+
+function clearAllFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterDept').value = '';
+    document.getElementById('filterSupervisor').value = '';
+    document.getElementById('filterFunction').value = '';
+    sortColumn = null;
+    sortDirection = 'asc';
+    currentPage = 1;
+    selectedRows.clear();
+    document.getElementById('selectionBanner').classList.add('hidden');
+    applyFilters();
+}
+
+function updateFilterBadges() {
+    const container = document.getElementById('filterBadges');
+    const badges = [];
+    const search = document.getElementById('searchInput').value;
+    const loc = document.getElementById('filterLocation').value;
+    const status = document.getElementById('filterStatus').value;
+    const dept = document.getElementById('filterDept').value;
+    const sup = document.getElementById('filterSupervisor').value;
+    const func = document.getElementById('filterFunction').value;
+
+    if (search) badges.push({ label: `Search: "${search}"`, clear: () => { document.getElementById('searchInput').value = ''; }});
+    if (loc)    badges.push({ label: `Location: ${loc}`, clear: () => { document.getElementById('filterLocation').value = ''; }});
+    if (status) badges.push({ label: `Status: ${status}`, clear: () => { document.getElementById('filterStatus').value = ''; }});
+    if (dept)   badges.push({ label: `Dept: ${dept}`, clear: () => { document.getElementById('filterDept').value = ''; }});
+    if (sup)    badges.push({ label: `Supervisor: ${sup}`, clear: () => { document.getElementById('filterSupervisor').value = ''; }});
+    if (func)   badges.push({ label: `Function: ${func}`, clear: () => { document.getElementById('filterFunction').value = ''; }});
+
+    if (!badges.length) {
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+    container.innerHTML = '';
+    badges.forEach((b, i) => {
+        const span = document.createElement('span');
+        span.className = 'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-fls-navy bg-fls-navy/5 border border-fls-navy/10 rounded-full';
+        span.innerHTML = `${escHTML(b.label)}<button class="hover:text-red-500 transition-colors" data-idx="${i}">&times;</button>`;
+        span.querySelector('button').addEventListener('click', () => { b.clear(); currentPage = 1; applyFilters(); });
+        container.appendChild(span);
+    });
+}
+
+// ========== SORTING ==========
+function sortBy(key) {
+    if (sortColumn === key) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn = key;
+        sortDirection = 'asc';
+    }
+    sortData();
+    renderTable();
+}
+
+function sortData() {
+    filteredData.sort((a, b) => {
+        let va = a[sortColumn], vb = b[sortColumn];
+        if (va == null) va = '';
+        if (vb == null) vb = '';
+        // Numeric sort
+        if (typeof va === 'number' || (!isNaN(va) && va !== '')) {
+            va = Number(va) || 0;
+            vb = Number(vb) || 0;
+        } else {
+            va = String(va).toLowerCase();
+            vb = String(vb).toLowerCase();
+        }
+        if (va < vb) return sortDirection === 'asc' ? -1 : 1;
+        if (va > vb) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+// ========== RENDERING ==========
+function renderTable() {
+    const thead = document.getElementById('tableHead');
+    const tbody = document.getElementById('tableBody');
+
+    // Head — checkbox + data columns
+    const pageStart = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
+    const pageEnd = pageSize > 0 ? Math.min(pageStart + pageSize, filteredData.length) : filteredData.length;
+    const pageSlice = filteredData.slice(pageStart, pageEnd);
+    const allPageChecked = pageSlice.length > 0 && pageSlice.every(r => selectedRows.has(r.Employee_Number));
+
+    thead.innerHTML = `<th class="cb-col px-2 py-3 text-center" onclick="event.stopPropagation()">
+            <input type="checkbox" ${allPageChecked ? 'checked' : ''} onchange="toggleSelectAll(this.checked)" class="w-4 h-4 rounded border-slate-300 text-fls-navy focus:ring-fls-orange cursor-pointer" title="Select all on this page">
+        </th>` +
+        visibleColumns.map(key => {
+        const col = ALL_COLUMNS.find(c => c.key === key);
+        const isSorted = sortColumn === key;
+        const arrow = isSorted ? (sortDirection === 'asc' ? '&#9650;' : '&#9660;') : '&#9650;';
+        return `<th onclick="sortBy('${key}')" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap ${isSorted ? 'sorted text-fls-navy' : ''}">
+            <span class="inline-flex items-center gap-1">${escHTML(col.label)}<span class="sort-icon text-[10px] ${isSorted ? 'text-fls-orange' : 'text-slate-400'}">${arrow}</span></span>
+        </th>`;
+    }).join('');
+
+    // Pagination
+    const total = filteredData.length;
+    const start = pageStart;
+    const end = pageEnd;
+    const pageData = pageSlice;
+    const totalPages = pageSize > 0 ? Math.ceil(total / pageSize) : 1;
+
+    // Body
+    if (pageData.length === 0) {
+        tbody.innerHTML = '';
+        document.getElementById('tableWrapper').classList.add('hidden');
+        document.getElementById('tableFooter').classList.add('hidden');
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        document.getElementById('errorState').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+        return;
+    }
+
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('loadingIndicator').classList.add('hidden');
+    document.getElementById('errorState').classList.add('hidden');
+    document.getElementById('tableWrapper').classList.remove('hidden');
+    document.getElementById('tableFooter').classList.remove('hidden');
+
+    tbody.innerHTML = pageData.map((row, idx) => {
+        const isChecked = selectedRows.has(row.Employee_Number);
+        return `<tr class="hover:bg-slate-50 cursor-pointer transition-colors ${isChecked ? 'selected' : ''}" onclick="showDetail(${start + idx})">` +
+            `<td class="cb-col px-2 py-2.5 text-center" onclick="event.stopPropagation()">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleRowSelect(${row.Employee_Number}, this.checked)" class="w-4 h-4 rounded border-slate-300 text-fls-navy focus:ring-fls-orange cursor-pointer">
+            </td>` +
+            visibleColumns.map(key => {
+                let val = row[key];
+                if (val == null) val = '';
+                // Status badge
+                if (key === 'Employment_Status') {
+                    const color = val === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                  val === 'Leave of absence' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                  'bg-slate-100 text-slate-600 border-slate-200';
+                    return `<td class="px-4 py-2.5"><span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full border ${color}">${escHTML(val)}</span></td>`;
+                }
+                // Email link
+                if (key === 'Email_Address' && val) {
+                    return `<td class="px-4 py-2.5 text-sm text-fls-blue hover:underline" onclick="event.stopPropagation()"><a href="mailto:${escHTML(val)}">${escHTML(val)}</a></td>`;
+                }
+                // Boolean certifications
+                if (['Science_of_Reading','Numeracy_Certification','Teacher_Certification'].includes(key)) {
+                    if (val === 'Yes') return `<td class="px-4 py-2.5 text-center"><span class="inline-block w-5 h-5 bg-emerald-100 text-emerald-700 rounded-full text-xs leading-5 font-bold">&check;</span></td>`;
+                    if (val === 'No')  return `<td class="px-4 py-2.5 text-center"><span class="inline-block w-5 h-5 bg-red-100 text-red-500 rounded-full text-xs leading-5 font-bold">&times;</span></td>`;
+                    return `<td class="px-4 py-2.5 text-center text-slate-300">—</td>`;
+                }
+                return `<td class="px-4 py-2.5 text-sm text-slate-700 whitespace-nowrap">${escHTML(String(val))}</td>`;
+            }).join('') +
+        '</tr>';
+    }).join('');
+
+    // Footer
+    document.getElementById('footerInfo').textContent = `Showing ${start+1}–${end} of ${total} staff`;
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+}
+
+// ========== PAGINATION ==========
+function changePageSize() {
+    pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+    currentPage = 1;
+    renderTable();
+}
+function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); scrollTableTop(); } }
+function nextPage() {
+    const totalPages = pageSize > 0 ? Math.ceil(filteredData.length / pageSize) : 1;
+    if (currentPage < totalPages) { currentPage++; renderTable(); scrollTableTop(); }
+}
+function scrollTableTop() { document.getElementById('tableWrapper').scrollTop = 0; }
+
+// ========== STATS ==========
+function updateStats() {
+    document.getElementById('statTotal').textContent = allData.length.toLocaleString();
+    document.getElementById('statActive').textContent = allData.filter(r => r.Employment_Status === 'Active').length.toLocaleString();
+    document.getElementById('statLocations').textContent = new Set(allData.map(r => r.Location_Name).filter(Boolean)).size;
+    document.getElementById('statFiltered').textContent = filteredData.length.toLocaleString();
+}
+
+// ========== COLUMN CHOOSER ==========
+function openColumnChooser() {
+    tempColumns = [...visibleColumns];
+    renderColumnList();
+    document.getElementById('columnModal').classList.remove('hidden');
+}
+function closeColumnChooser() { document.getElementById('columnModal').classList.add('hidden'); }
+
+function renderColumnList() {
+    const container = document.getElementById('columnList');
+    // Build ordered list: visible columns first (in order), then hidden ones
+    const visible = new Set(tempColumns);
+    const ordered = [...tempColumns, ...ALL_COLUMNS.filter(c => !visible.has(c.key)).map(c => c.key)];
+
+    container.innerHTML = ordered.map((key, idx) => {
+        const col = ALL_COLUMNS.find(c => c.key === key);
+        const active = visible.has(key);
+        return `<div class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors ${active ? '' : 'opacity-60'}" draggable="true" data-key="${key}" data-idx="${idx}">
+            <span class="drag-handle text-slate-400" title="Drag to reorder">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+            </span>
+            <label class="flex items-center gap-2 flex-1 cursor-pointer">
+                <input type="checkbox" ${active ? 'checked' : ''} onchange="toggleTempCol('${key}')" class="w-4 h-4 rounded border-slate-300 text-fls-navy focus:ring-fls-orange">
+                <span class="text-sm text-slate-700 font-medium">${escHTML(col.label)}</span>
+                <span class="text-xs text-slate-400 ml-auto">${key}</span>
+            </label>
+        </div>`;
+    }).join('');
+
+    // Drag and drop
+    let dragSrc = null;
+    container.querySelectorAll('[draggable]').forEach(el => {
+        el.addEventListener('dragstart', e => { dragSrc = el; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+        el.addEventListener('dragend', () => { el.classList.remove('dragging'); });
+        el.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        el.addEventListener('drop', e => {
+            e.preventDefault();
+            if (dragSrc === el) return;
+            // Reorder
+            const srcKey = dragSrc.dataset.key;
+            const tgtKey = el.dataset.key;
+            const allKeys = [...container.querySelectorAll('[data-key]')].map(n => n.dataset.key);
+            const srcIdx = allKeys.indexOf(srcKey);
+            const tgtIdx = allKeys.indexOf(tgtKey);
+            allKeys.splice(srcIdx, 1);
+            allKeys.splice(tgtIdx, 0, srcKey);
+            // Update tempColumns to match new order, keeping only checked items
+            const checked = new Set(tempColumns);
+            // If src was checked, keep it checked
+            tempColumns = allKeys.filter(k => checked.has(k));
+            renderColumnList();
+        });
+    });
+}
+
+function toggleTempCol(key) {
+    const idx = tempColumns.indexOf(key);
+    if (idx >= 0) tempColumns.splice(idx, 1);
+    else tempColumns.push(key);
+    renderColumnList();
+}
+
+function selectAllCols()     { tempColumns = ALL_COLUMNS.map(c => c.key); renderColumnList(); }
+function selectDefaultCols() { tempColumns = ALL_COLUMNS.filter(c => c.default).map(c => c.key); renderColumnList(); }
+function deselectAllCols()   { tempColumns = []; renderColumnList(); }
+
+function applyColumns() {
+    visibleColumns = [...tempColumns];
+    localStorage.setItem('stafflist_columns', JSON.stringify(visibleColumns));
+    closeColumnChooser();
+    renderTable();
+}
+
+// ========== ROW DETAIL MODAL ==========
+function showDetail(idx) {
+    const row = filteredData[idx];
+    if (!row) return;
+    const name = [row.Preferred_First_Name || row.First_Name, row.Last_Name].filter(Boolean).join(' ');
+    document.getElementById('detailName').textContent = name || 'Staff Details';
+    const body = document.getElementById('detailBody');
+    body.innerHTML = ALL_COLUMNS.map(col => {
+        let val = row[col.key];
+        if (val == null || val === '') val = '—';
+        return `<div class="flex justify-between items-start py-2 border-b border-slate-100 last:border-0">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">${escHTML(col.label)}</span>
+            <span class="text-sm text-slate-800 text-right max-w-[60%]">${escHTML(String(val))}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('detailModal').classList.remove('hidden');
+}
+function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+// ========== ROW SELECTION ==========
+function toggleRowSelect(empNum, checked) {
+    if (checked) {
+        selectedRows.add(empNum);
+    } else {
+        selectedRows.delete(empNum);
+    }
+    updateSelectionUI();
+}
+
+function toggleSelectAll(checked) {
+    // Select/deselect all rows on the current page
+    const start = pageSize > 0 ? (currentPage - 1) * pageSize : 0;
+    const end = pageSize > 0 ? Math.min(start + pageSize, filteredData.length) : filteredData.length;
+    const pageData = filteredData.slice(start, end);
+
+    pageData.forEach(row => {
+        if (checked) {
+            selectedRows.add(row.Employee_Number);
+        } else {
+            selectedRows.delete(row.Employee_Number);
+        }
+    });
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedRows.clear();
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const count = selectedRows.size;
+    const banner = document.getElementById('selectionBanner');
+    if (count > 0) {
+        banner.classList.remove('hidden');
+        document.getElementById('selectionCount').textContent = count;
+    } else {
+        banner.classList.add('hidden');
+    }
+    // Re-render to update checkbox states without losing scroll position
+    const wrapper = document.getElementById('tableWrapper');
+    const scrollTop = wrapper.scrollTop;
+    renderTable();
+    wrapper.scrollTop = scrollTop;
+}
+
+function emailSelected() {
+    const emails = filteredData
+        .filter(row => selectedRows.has(row.Employee_Number))
+        .map(row => row.Email_Address)
+        .filter(e => e && e.trim())
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+    if (!emails.length) {
+        alert('No email addresses found for the selected staff.');
+        return;
+    }
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emails.join(','))}`;
+    window.open(gmailUrl, '_blank');
+}
+
+// ========== EXPORT ==========
+function toggleExportMenu() { document.getElementById('exportMenu').classList.toggle('hidden'); }
+
+function exportCSV() {
+    document.getElementById('exportMenu').classList.add('hidden');
+    const headers = visibleColumns.map(k => ALL_COLUMNS.find(c => c.key === k).label);
+    const rows = filteredData.map(row => visibleColumns.map(k => {
+        let v = row[k];
+        if (v == null) v = '';
+        v = String(v).replace(/"/g, '""');
+        return `"${v}"`;
+    }));
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    download(csv, 'staff_list.csv', 'text/csv');
+}
+
+function exportJSON() {
+    document.getElementById('exportMenu').classList.add('hidden');
+    const data = filteredData.map(row => {
+        const obj = {};
+        visibleColumns.forEach(k => { obj[k] = row[k]; });
+        return obj;
+    });
+    download(JSON.stringify(data, null, 2), 'staff_list.json', 'application/json');
+}
+
+function printTable() {
+    document.getElementById('exportMenu').classList.add('hidden');
+    window.print();
+}
+
+function emailList() {
+    if (selectedRows.size === 0) {
+        showToast('Select staff using the checkboxes first');
+        return;
+    }
+
+    const emails = filteredData
+        .filter(row => selectedRows.has(row.Employee_Number))
+        .map(row => row.Email_Address)
+        .filter(e => e && e.trim())
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+    if (!emails.length) {
+        showToast('No email addresses found for selected staff');
+        return;
+    }
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emails.join(','))}`;
+    window.open(gmailUrl, '_blank');
+}
+
+function showToast(msg) {
+    // Remove existing toast if any
+    const existing = document.getElementById('toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3 bg-fls-navy text-white text-sm font-medium rounded-xl shadow-lg flex items-center gap-2 animate-slide-up';
+    toast.innerHTML = `<svg class="w-4 h-4 text-fls-orange flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${escHTML(msg)}`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; }, 2500);
+    setTimeout(() => { toast.remove(); }, 2800);
+}
+
+function download(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+// ========== UI HELPERS ==========
+function showLoading() {
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+    document.getElementById('tableWrapper').classList.add('hidden');
+    document.getElementById('tableFooter').classList.add('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('errorState').classList.add('hidden');
+}
+
+function showError(msg) {
+    document.getElementById('loadingIndicator').classList.add('hidden');
+    document.getElementById('tableWrapper').classList.add('hidden');
+    document.getElementById('tableFooter').classList.add('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('errorMessage').textContent = msg;
+    document.getElementById('errorState').classList.remove('hidden');
+}
+
+function escHTML(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeColumnChooser();
+        closeDetailModal();
+    }
+    // Ctrl+F focuses search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+    }
+});
+
+// Close modals on backdrop click
+document.getElementById('columnModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('columnModal')) closeColumnChooser();
+});
+document.getElementById('detailModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('detailModal')) closeDetailModal();
+});
+</script>
+</body>
+</html>
