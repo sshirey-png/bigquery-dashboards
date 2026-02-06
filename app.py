@@ -50,6 +50,7 @@ def create_app():
     from blueprints.schools import bp as schools_bp
     from blueprints.kickboard import bp as kickboard_bp
     from blueprints.orgchart import bp as orgchart_bp
+    from blueprints.staff_list import bp as staff_list_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -58,6 +59,7 @@ def create_app():
     app.register_blueprint(schools_bp)
     app.register_blueprint(kickboard_bp)
     app.register_blueprint(orgchart_bp)
+    app.register_blueprint(staff_list_bp)
 
     return app
 
