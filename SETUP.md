@@ -721,6 +721,9 @@ gcloud config set project talent-demo-482004
 git clone https://github.com/sshirey-png/bigquery-dashboards.git
 git clone https://github.com/sshirey-png/sabbatical-program.git
 git clone https://github.com/sshirey-png/position-control.git
+git clone https://github.com/sshirey-png/referral-program.git
+git clone https://github.com/sshirey-png/salary-scale.git
+git clone https://github.com/sshirey-png/impact-bonus.git
 ```
 
 **Or from sshirey-cpc (all in one repo, different branches):**
@@ -728,6 +731,9 @@ git clone https://github.com/sshirey-png/position-control.git
 git clone -b bigquery-dashboards https://github.com/sshirey-cpc/firstline-schools.git bigquery-dashboards
 git clone -b sabbatical-program https://github.com/sshirey-cpc/firstline-schools.git sabbatical-program
 git clone -b position-control https://github.com/sshirey-cpc/firstline-schools.git position-control
+git clone -b referral-program https://github.com/sshirey-cpc/firstline-schools.git referral-program
+git clone -b salary-scale https://github.com/sshirey-cpc/firstline-schools.git salary-scale
+git clone -b impact-bonus https://github.com/sshirey-cpc/firstline-schools.git impact-bonus
 ```
 
 ### 4. Install Python Dependencies
