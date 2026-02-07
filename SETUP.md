@@ -697,6 +697,55 @@ Once your environment is set up, you can:
 
 ---
 
+## Disaster Recovery
+
+If your computer crashes, here's how to get back up and running:
+
+### 1. Install Tools
+- **Python 3.12**: python.org
+- **Git**: git-scm.com
+- **Google Cloud SDK**: cloud.google.com/sdk
+- **VS Code** (optional): code.visualstudio.com
+
+### 2. Authenticate with Google Cloud
+```bash
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project talent-demo-482004
+```
+
+### 3. Clone Your Projects
+
+**From sshirey-png (original repos):**
+```bash
+git clone https://github.com/sshirey-png/bigquery-dashboards.git
+git clone https://github.com/sshirey-png/sabbatical-program.git
+git clone https://github.com/sshirey-png/position-control.git
+```
+
+**Or from sshirey-cpc (all in one repo, different branches):**
+```bash
+git clone -b bigquery-dashboards https://github.com/sshirey-cpc/firstline-schools.git bigquery-dashboards
+git clone -b sabbatical-program https://github.com/sshirey-cpc/firstline-schools.git sabbatical-program
+git clone -b position-control https://github.com/sshirey-cpc/firstline-schools.git position-control
+```
+
+### 4. Install Python Dependencies
+```bash
+cd bigquery-dashboards && pip install -r requirements.txt
+cd ../sabbatical-program && pip install -r requirements.txt
+cd ../position-control && pip install -r requirements.txt
+```
+
+### 5. You're Back!
+- All code is in GitHub
+- All data is in BigQuery (unchanged)
+- All apps are live on Cloud Run (unchanged)
+
+The only thing you'd lose is local uncommitted changes. Everything else is safely in the cloud.
+
+---
+
 ## Support
 
 For questions about this setup:
