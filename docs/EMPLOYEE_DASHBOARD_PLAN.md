@@ -37,10 +37,10 @@ A single Employee Dashboard where every FirstLine employee logs in once and sees
 |  +-------------+  +-------------+  +-------------+                |
 |                                                                   |
 |  RESOURCES                                                        |
-|  +-------------+  +-------------+                                 |
-|  | Salary      |  | Impact      |                                 |
-|  | Calculator  |  | Bonus Guide |                                 |
-|  +-------------+  +-------------+                                 |
+|  +-------------+  +-------------+  +-------------+                |
+|  | Salary      |  | Impact      |  | Org Chart   |                |
+|  | Calculator  |  | Bonus Guide |  |             |                |
+|  +-------------+  +-------------+  +-------------+                |
 |                                                                   |
 |  ADMIN TOOLS (shown based on role)                                |
 |  +-------------+  +-------------+  +-------------+  +-------------+
@@ -79,13 +79,13 @@ A single Employee Dashboard where every FirstLine employee logs in once and sees
 | Submit Referral | Yes | Yes | Yes | Yes | Yes |
 | Salary Calculator | Yes | Yes | Yes | Yes | Yes |
 | Impact Bonus Guide | Yes | Yes | Yes | Yes | Yes |
+| Org Chart | Yes | Yes | Yes | Yes | Yes |
 | HR Dashboard | - | - | - | Yes | Yes |
 | Position Control | - | - | - | Yes | Yes |
 | Sabbatical Admin | - | - | School only | All | All |
 | Referral Admin | - | - | - | Yes | Yes |
 | Schools Dashboard | - | - | By role | By role | All |
 | Kickboard | - | Team | School | All | All |
-| Org Chart | - | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -101,17 +101,17 @@ graph TD
 
     E --> F{What Role?}
 
-    F -->|Employee| G[Personal Tools]
+    F -->|Employee| G[Personal Tools + Resources]
     G --> G1[My Sabbatical]
     G --> G2[Submit Referral]
     G --> G3[Salary Calculator]
     G --> G4[Impact Bonus Guide]
+    G --> G5[Org Chart]
 
     F -->|Supervisor| H[Personal + Team Toggle]
     H --> G
     H --> H1[Team Dashboard]
     H --> H2[Team Kickboard]
-    H --> H3[Org Chart]
 
     F -->|School Leader| I[School-Level Access]
     I --> H
