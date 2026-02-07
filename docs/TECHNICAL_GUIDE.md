@@ -524,6 +524,47 @@ Deploy the changes to Cloud Run
 
 ---
 
+## Migration / Portability
+
+This application is designed to be easily migrated to a different GCP project. All GCP project references are centralized in `config.py`.
+
+### To Migrate to a New GCP Project
+
+1. **Copy BigQuery datasets** to the new project:
+   ```bash
+   # Copy dataset using bq command
+   bq cp talent-demo-482004:talent_grow_observations new-project:talent_grow_observations
+   ```
+   Or use the BigQuery Console: Dataset → Copy Dataset
+
+2. **Update config.py** (one line):
+   ```python
+   PROJECT_ID = 'new-project-id'
+   ```
+
+3. **Enable required APIs** in the new project:
+   - BigQuery API
+   - Cloud Run API
+   - Secret Manager API (for OAuth credentials)
+
+4. **Set up service account** with BigQuery access
+
+5. **Deploy to Cloud Run** in the new project:
+   ```bash
+   gcloud run deploy supervisor-dashboard --source . --region us-central1 --project new-project-id --allow-unauthenticated
+   ```
+
+6. **Update OAuth redirect URIs** in Google Cloud Console to include the new Cloud Run URL
+
+### Configuration Files
+
+| File | What to Change |
+|------|----------------|
+| config.py | `PROJECT_ID` variable |
+| (Optional) Update OAuth credentials in Secret Manager |
+
+---
+
 ## Quick Reference
 
 ### Important URLs
