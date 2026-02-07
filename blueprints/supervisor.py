@@ -268,7 +268,7 @@ def get_itr_detail(email):
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
     try:
-        query = """
+        query = f"""
             SELECT
                 Email_Address,
                 Timestamp,
@@ -291,7 +291,7 @@ def get_itr_detail(email):
                 No_Top_Factors_Recommend_FLS,
                 No_Adult_Culture_Open,
                 No_Improve_Retention_Open
-            FROM `talent-demo-482004.intent_to_return.intent_to_return_native`
+            FROM `{PROJECT_ID}.intent_to_return.intent_to_return_native`
             WHERE LOWER(Email_Address) = LOWER(@email)
             LIMIT 1
         """
@@ -374,7 +374,7 @@ def get_cert_status():
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
     try:
-        query = """
+        query = f"""
             SELECT
                 LOWER(FLS_Email) as email,
                 certification_status,
@@ -382,7 +382,7 @@ def get_cert_status():
                 active_qualifications,
                 earliest_active_expiration,
                 days_until_earliest_expiration
-            FROM `talent-demo-482004.talent_certification.staff_with_certifications_native`
+            FROM `{PROJECT_ID}.talent_certification.staff_with_certifications_native`
             WHERE certification_status = 'Certified'
             AND (
                 Title LIKE '%Teacher%'
@@ -426,7 +426,7 @@ def get_cert_detail(email):
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
     try:
-        summary_query = """
+        summary_query = f"""
             SELECT
                 First_Name,
                 Last_Name,
@@ -439,7 +439,7 @@ def get_cert_detail(email):
                 active_qualifications,
                 earliest_active_expiration,
                 days_until_earliest_expiration
-            FROM `talent-demo-482004.talent_certification.staff_with_certifications_native`
+            FROM `{PROJECT_ID}.talent_certification.staff_with_certifications_native`
             WHERE LOWER(FLS_Email) = LOWER(@email)
             LIMIT 1
         """
@@ -458,7 +458,7 @@ def get_cert_detail(email):
 
         summary = summary_results[0]
 
-        detail_query = """
+        detail_query = f"""
             SELECT
                 Category_Name,
                 Qualification_Name,
@@ -468,7 +468,7 @@ def get_cert_detail(email):
                 Expire_Date,
                 days_until_expiration,
                 expiration_status
-            FROM `talent-demo-482004.talent_certification.staff_certifications_detail_native`
+            FROM `{PROJECT_ID}.talent_certification.staff_certifications_detail_native`
             WHERE LOWER(FLS_Email) = LOWER(@email)
             ORDER BY
                 CASE WHEN Status = 'Active' THEN 0 ELSE 1 END,
@@ -524,7 +524,7 @@ def get_observations(email):
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
     try:
-        query = """
+        query = f"""
             SELECT
                 teacher_email,
                 teacher_name,
@@ -534,7 +534,7 @@ def get_observations(email):
                 rubric_form,
                 school_when_observed,
                 MAX(observation_link) as observation_link
-            FROM `talent-demo-482004.talent_grow_observations.observations_raw_native`
+            FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
             WHERE LOWER(teacher_email) = LOWER(@email)
             AND observed_at >= '2025-07-01'
             AND is_published = 1
@@ -594,7 +594,7 @@ def get_action_steps(supervisor_name):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        query = """
+        query = f"""
             SELECT
                 a._id,
                 a.name,
@@ -606,8 +606,8 @@ def get_action_steps(supervisor_name):
                 a.tags,
                 a.created,
                 a.lastModified
-            FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
-            INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
+            FROM `{PROJECT_ID}.{DATASET_ID}.ldg_action_steps` a
+            INNER JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
                 ON LOWER(a.user_email) = LOWER(s.Email_Address)
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor_name
             AND a.archivedAt IS NULL
@@ -669,10 +669,10 @@ def get_meetings(supervisor_name):
         return jsonify({'error': 'Access denied'}), 403
 
     try:
-        query = """
+        query = f"""
             WITH staff_emails AS (
                 SELECT LOWER(Email_Address) as email
-                FROM `talent-demo-482004.talent_grow_observations.staff_master_list_with_function`
+                FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
                 WHERE Supervisor_Name__Unsecured_ = @supervisor_name
                 AND Employment_Status IN ('Active', 'Leave of absence')
             ),
@@ -690,7 +690,7 @@ def get_meetings(supervisor_name):
                     m.next_steps,
                     m.created,
                     LOWER(TRIM(pe)) as staff_email
-                FROM `talent-demo-482004.talent_grow_observations.ldg_meetings` m,
+                FROM `{PROJECT_ID}.{DATASET_ID}.ldg_meetings` m,
                 UNNEST(SPLIT(m.participant_emails, ', ')) as pe
                 WHERE m.created >= '2025-07-01'
                 AND m.archivedAt IS NULL

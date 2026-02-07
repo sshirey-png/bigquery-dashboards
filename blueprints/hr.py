@@ -278,7 +278,7 @@ def get_all_action_steps():
         return jsonify({'error': 'Access denied. Admin access required.'}), 403
 
     try:
-        query = """
+        query = f"""
             SELECT
                 a._id,
                 a.name,
@@ -290,8 +290,8 @@ def get_all_action_steps():
                 a.tags,
                 a.created,
                 a.lastModified
-            FROM `talent-demo-482004.talent_grow_observations.ldg_action_steps` a
-            INNER JOIN `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` s
+            FROM `{PROJECT_ID}.{DATASET_ID}.ldg_action_steps` a
+            INNER JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
                 ON LOWER(a.user_email) = LOWER(s.Email_Address)
             WHERE s.Employment_Status IN ('Active', 'Leave of absence')
             AND a.archivedAt IS NULL
