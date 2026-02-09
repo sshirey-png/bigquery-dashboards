@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suspensions Dashboard | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #e47727;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive table */
+        @media (max-width: 1024px) {
+            .desktop-table {
+                display: none;
+            }
+            .mobile-cards {
+                display: block;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .desktop-table {
+                display: table;
+            }
+            .mobile-cards {
+                display: none;
+            }
+        }
+
+        /* Table row hover */
+        .table-row {
+            transition: all 0.15s ease;
+        }
+
+        .table-row:hover {
+            background-color: #f1f5f9;
+            cursor: pointer;
+        }
+
+        .table-row:hover td:first-child {
+            border-left: 3px solid #e47727;
+            padding-left: calc(1.5rem - 3px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        /* Sort header */
+        .sort-header {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sort-header:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Row colors */
+        .row-iss { background-color: #fef9c3; }
+        .row-oss { background-color: #fee2e2; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+                <div class="flex items-center justify-center mb-6">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+                </div>
+
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Suspensions Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">ISS and OSS tracking</p>
+
+                <div id="authError" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-red-800" id="authErrorTitle">Authentication Error</p>
+                            <p class="text-sm text-red-700 mt-1" id="authErrorMessage"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="authLoading" class="hidden mb-6 text-center">
+                    <div class="loading mx-auto mb-3"></div>
+                    <p class="text-sm text-slate-500">Checking authentication...</p>
+                </div>
+
+                <a href="/login?next=/suspensions-dashboard" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign in with Google
+                </a>
+
+                <p id="signInNote" class="text-xs text-slate-400 text-center mt-4">
+                    Only @firstlineschools.org accounts are allowed
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-4">
+                        <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                        <div>
+                            <h1 class="text-lg font-semibold text-white">Suspensions Dashboard</h1>
+                            <p class="text-xs text-orange-200" id="roleLabel">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
+                            <span id="userDisplayName" class="text-sm text-white hidden"></span>
+                        </div>
+                        <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Supervisor View
+                        </a>
+                        <button id="refreshBtn" onclick="refreshData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                        <a href="/logout" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Filter Bar -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px]" id="schoolFilterWrap">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">School</label>
+                        <select id="schoolFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Schools</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Grade</label>
+                        <select id="gradeFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Grades</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Type</label>
+                        <select id="typeFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Types</option>
+                            <option value="iss">ISS Only</option>
+                            <option value="oss">OSS Only</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[130px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Date From</label>
+                        <input type="date" id="dateFromFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                    </div>
+                    <div class="flex-1 min-w-[130px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Date To</label>
+                        <input type="date" id="dateToFilter" onchange="applyFilters()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                    </div>
+                    <div>
+                        <button onclick="clearFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breadcrumb Navigation -->
+            <div id="breadcrumbBar" class="bg-white rounded-xl border border-slate-200 p-3 mb-6 hidden">
+                <nav class="flex items-center gap-2 text-sm" id="breadcrumbNav">
+                </nav>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-12">
+                <div class="loading mx-auto mb-4" style="width:40px;height:40px;border-width:4px;"></div>
+                <p class="text-slate-500">Loading dashboard data...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden text-center py-12">
+                <svg class="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <p class="text-red-600 font-medium" id="errorMessage">Failed to load data</p>
+                <button onclick="refreshData()" class="mt-4 px-4 py-2 bg-fls-orange text-white rounded-lg hover:bg-fls-orange-dark transition-colors">Try Again</button>
+            </div>
+
+            <!-- Level 0: Network Summary -->
+            <div id="level0" class="hidden animate-fade-in">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6" id="networkStats">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-fls-navy/10 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-fls-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Incidents</p>
+                                <p class="text-2xl font-semibold text-fls-navy" id="statTotalIncidents">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</p>
+                                <p class="text-2xl font-semibold text-amber-600" id="statISS">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</p>
+                                <p class="text-2xl font-semibold text-red-500" id="statOSS">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Days</p>
+                                <p class="text-2xl font-semibold text-blue-600" id="statTotalDays">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Students</p>
+                                <p class="text-2xl font-semibold text-purple-600" id="statStudents">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- School Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="schoolCardsGrid">
+                </div>
+            </div>
+
+            <!-- Level 1: Grade/Behavior Breakdown -->
+            <div id="level1" class="hidden animate-fade-in">
+                <!-- School Stats Row -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6" id="schoolStats">
+                </div>
+
+                <!-- View Toggle -->
+                <div class="flex gap-2 mb-4">
+                    <button id="viewGradesBtn" onclick="switchView('grades')" class="px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white">
+                        By Grade
+                    </button>
+                    <button id="viewBehaviorsBtn" onclick="switchView('behaviors')" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300">
+                        By Behavior
+                    </button>
+                </div>
+
+                <!-- Grades Table -->
+                <div id="gradesTableContainer" class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grade</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS Days</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS Days</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Days</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradesTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="gradesMobileCards">
+                    </div>
+                </div>
+
+                <!-- Behaviors Table -->
+                <div id="behaviorsTableContainer" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Behavior</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS Days</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS Days</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Days</th>
+                            </tr>
+                        </thead>
+                        <tbody id="behaviorsTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="behaviorsMobileCards">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level 2: Student Table -->
+            <div id="level2" class="hidden animate-fade-in">
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full desktop-table">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="name" onclick="sortStudents('name')">Student Name <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="grade" onclick="sortStudents('grade')">Grade <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="total_incidents" onclick="sortStudents('total_incidents')">Total <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="iss_count" onclick="sortStudents('iss_count')">ISS <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="oss_count" onclick="sortStudents('oss_count')">OSS <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="total_days" onclick="sortStudents('total_days')">Total Days <span class="sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort="last_incident" onclick="sortStudents('last_incident')">Last Incident <span class="sort-arrow"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                        </tbody>
+                    </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="mobile-cards p-4 space-y-3" id="studentsMobileCards">
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Student Detail Modal (Level 3) -->
+    <div id="studentModal" class="hidden fixed inset-0 z-[60] modal-backdrop flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                <div>
+                    <h2 class="text-lg font-semibold text-fls-navy" id="modalStudentName">Student Name</h2>
+                    <p class="text-sm text-slate-500" id="modalStudentInfo">Grade / School</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Stats -->
+            <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="modalStats">
+                </div>
+            </div>
+
+            <!-- Modal Loading -->
+            <div id="modalLoading" class="flex-1 flex items-center justify-center py-12">
+                <div class="loading" style="width:32px;height:32px;"></div>
+            </div>
+
+            <!-- Modal Content -->
+            <div id="modalContent" class="hidden flex-1 overflow-auto">
+                <table class="w-full">
+                    <thead class="sticky top-0 bg-white">
+                        <tr class="border-b border-slate-200">
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Date</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Type</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Behavior</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Title</th>
+                            <th class="text-right px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Days</th>
+                            <th class="text-left px-6 py-2 text-xs font-semibold text-slate-500 uppercase">Creator</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incidentsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 flex justify-end flex-shrink-0">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // State
+        // ============================================
+        let suspensionsAccess = null;
+        let currentLevel = 0;
+        let currentSchool = '';
+        let currentGrade = '';
+        let currentView = 'grades'; // 'grades' or 'behaviors'
+        let currentStudentNumber = '';
+        let studentsData = [];
+        let sortField = 'name';
+        let sortAsc = true;
+        let isSingleSchool = false;
+
+        const SCHOOL_MAP = {
+            'Ashe': 'Arthur Ashe Charter School',
+            'LHA': 'Langston Hughes Academy',
+            'Wheatley': 'Phillis Wheatley Community School',
+            'Green': 'Samuel J. Green Charter School',
+        };
+
+        // ============================================
+        // Initialization
+        // ============================================
+        document.addEventListener('DOMContentLoaded', checkAuth);
+
+        async function checkAuth() {
+            const authLoading = document.getElementById('authLoading');
+            const googleSignInBtn = document.getElementById('googleSignInBtn');
+            const signInNote = document.getElementById('signInNote');
+
+            authLoading.classList.remove('hidden');
+            googleSignInBtn.classList.add('hidden');
+            signInNote.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+
+                authLoading.classList.add('hidden');
+
+                if (data.authenticated) {
+                    // Check suspensions access
+                    const accessResponse = await fetch('/api/suspensions/summary');
+                    if (accessResponse.status === 403) {
+                        showAuthError('Access Denied', 'You do not have access to the Suspensions Dashboard. Contact your administrator.');
+                        googleSignInBtn.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Get access info from a filter-options call
+                    const filterResponse = await fetch('/api/suspensions/filter-options');
+                    const filterData = await filterResponse.json();
+
+                    suspensionsAccess = {
+                        schools: filterData.schools || [],
+                        label: filterData.schools?.length === 1
+                            ? SCHOOL_MAP[filterData.schools[0]] || filterData.schools[0]
+                            : 'Admin - All Schools'
+                    };
+                    isSingleSchool = suspensionsAccess.schools.length === 1;
+
+                    // Update user profile
+                    if (data.user.picture) {
+                        const pic = document.getElementById('userProfilePic');
+                        pic.src = data.user.picture;
+                        pic.classList.remove('hidden');
+                    }
+                    if (data.user.name) {
+                        const name = document.getElementById('userDisplayName');
+                        name.textContent = data.user.name;
+                        name.classList.remove('hidden');
+                    }
+
+                    document.getElementById('roleLabel').textContent = suspensionsAccess.label || 'Suspensions';
+
+                    // Hide school filter for single-school users
+                    if (isSingleSchool) {
+                        document.getElementById('schoolFilterWrap').classList.add('hidden');
+                    }
+
+                    // Show dashboard
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboardScreen').classList.remove('hidden');
+
+                    // Set default date range: school year start to today
+                    document.getElementById('dateFromFilter').value = '2025-08-04';
+                    document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
+
+                    // Load filter options
+                    await loadFilterOptions();
+
+                    if (isSingleSchool) {
+                        // Auto-drill to school's grade view
+                        drillToSchool(suspensionsAccess.schools[0]);
+                    } else {
+                        loadSummary();
+                    }
+                } else {
+                    googleSignInBtn.classList.remove('hidden');
+                    signInNote.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking auth:', error);
+                authLoading.classList.add('hidden');
+                googleSignInBtn.classList.remove('hidden');
+                signInNote.classList.remove('hidden');
+            }
+        }
+
+        function showAuthError(title, message) {
+            document.getElementById('authErrorTitle').textContent = title;
+            document.getElementById('authErrorMessage').textContent = message;
+            document.getElementById('authError').classList.remove('hidden');
+        }
+
+        // ============================================
+        // Filter Management
+        // ============================================
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch('/api/suspensions/filter-options');
+                const data = await response.json();
+
+                populateSelect('schoolFilter', data.schools || [], 'All Schools');
+                populateSelect('gradeFilter', data.grades || [], 'All Grades');
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        }
+
+        function populateSelect(id, options, allLabel) {
+            const select = document.getElementById(id);
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">${allLabel}</option>`;
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        function getFilterParams() {
+            const params = new URLSearchParams();
+            const school = document.getElementById('schoolFilter').value;
+            const grade = document.getElementById('gradeFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
+
+            if (school) params.set('school', school);
+            if (grade) params.set('grade', grade);
+            if (type) params.set('type', type);
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            return params;
+        }
+
+        function applyFilters() {
+            if (currentLevel === 0) {
+                loadSummary();
+            } else if (currentLevel === 1) {
+                if (currentView === 'behaviors') {
+                    loadBehaviors(currentSchool);
+                } else {
+                    loadGrades(currentSchool);
+                }
+            } else if (currentLevel === 2) {
+                loadStudents(currentSchool, currentGrade);
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('schoolFilter').value = '';
+            document.getElementById('gradeFilter').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('dateFromFilter').value = '2025-08-04';
+            document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
+            applyFilters();
+        }
+
+        function refreshData() {
+            applyFilters();
+        }
+
+        // ============================================
+        // Breadcrumb Navigation
+        // ============================================
+        function updateBreadcrumbs() {
+            const bar = document.getElementById('breadcrumbBar');
+            const nav = document.getElementById('breadcrumbNav');
+            nav.innerHTML = '';
+
+            if (currentLevel === 0 && !isSingleSchool) {
+                bar.classList.add('hidden');
+                return;
+            }
+
+            bar.classList.remove('hidden');
+            const crumbs = [];
+
+            if (!isSingleSchool) {
+                crumbs.push({ label: 'All Schools', action: () => navigateTo(0) });
+            }
+
+            if (currentLevel >= 1) {
+                const schoolLabel = SCHOOL_MAP[currentSchool] || currentSchool;
+                if (currentLevel === 1) {
+                    crumbs.push({ label: schoolLabel, action: null });
+                } else {
+                    crumbs.push({ label: schoolLabel, action: () => drillToSchool(currentSchool) });
+                }
+            }
+
+            if (currentLevel >= 2) {
+                crumbs.push({ label: `Grade ${currentGrade}`, action: null });
+            }
+
+            crumbs.forEach((crumb, i) => {
+                if (i > 0) {
+                    const sep = document.createElement('span');
+                    sep.textContent = '/';
+                    sep.className = 'text-slate-400 mx-1';
+                    nav.appendChild(sep);
+                }
+
+                const el = document.createElement(crumb.action ? 'a' : 'span');
+                if (crumb.action) {
+                    el.href = '#';
+                    el.className = 'text-fls-blue hover:text-fls-navy hover:underline transition-colors';
+                    el.addEventListener('click', (e) => { e.preventDefault(); crumb.action(); });
+                } else {
+                    el.className = 'font-semibold text-fls-navy';
+                }
+                el.textContent = crumb.label;
+                nav.appendChild(el);
+            });
+        }
+
+        function navigateTo(level) {
+            if (level === 0) {
+                currentLevel = 0;
+                currentSchool = '';
+                currentGrade = '';
+                showLevel(0);
+                loadSummary();
+            }
+        }
+
+        // ============================================
+        // Level 0: Network Summary
+        // ============================================
+        async function loadSummary() {
+            currentLevel = 0;
+            showLevel(0);
+            showLoading(true);
+
+            try {
+                const params = getFilterParams();
+                const response = await fetch(`/api/suspensions/summary?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderNetworkStats(data.network_totals);
+                renderSchoolCards(data.schools);
+                showLoading(false);
+                document.getElementById('level0').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading summary:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderNetworkStats(totals) {
+            document.getElementById('statTotalIncidents').textContent = (totals.total_incidents || 0).toLocaleString();
+            document.getElementById('statISS').textContent = (totals.iss_count || 0).toLocaleString();
+            document.getElementById('statOSS').textContent = (totals.oss_count || 0).toLocaleString();
+            document.getElementById('statTotalDays').textContent = (totals.total_days || 0).toLocaleString();
+            document.getElementById('statStudents').textContent = (totals.students_affected || 0).toLocaleString();
+        }
+
+        function renderSchoolCards(schools) {
+            const grid = document.getElementById('schoolCardsGrid');
+            grid.innerHTML = '';
+
+            schools.forEach(school => {
+                const issPercent = school.total_incidents > 0 ? Math.round((school.iss_count / school.total_incidents) * 100) : 0;
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-fls-orange/30 transition-all cursor-pointer';
+                card.onclick = () => drillToSchool(school.school);
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-fls-navy">${school.full_name || school.school}</h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-semibold text-fls-navy">${school.total_incidents}</p>
+                            <p class="text-xs text-slate-500">incidents</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-amber-50 rounded-lg p-3">
+                            <p class="text-xs text-amber-600 font-medium">ISS</p>
+                            <p class="text-xl font-semibold text-amber-700">${school.iss_count}</p>
+                            <p class="text-xs text-amber-600">${school.iss_days} days</p>
+                        </div>
+                        <div class="bg-red-50 rounded-lg p-3">
+                            <p class="text-xs text-red-600 font-medium">OSS</p>
+                            <p class="text-xl font-semibold text-red-700">${school.oss_count}</p>
+                            <p class="text-xs text-red-600">${school.oss_days} days</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-500">Total Days: <span class="font-semibold text-fls-navy">${school.total_days}</span></span>
+                        <span class="text-xs text-slate-400">${issPercent}% ISS</span>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // Level 1: Grade Breakdown
+        // ============================================
+        function drillToSchool(school) {
+            currentSchool = school;
+            currentLevel = 1;
+            loadGrades(school);
+        }
+
+        async function loadGrades(school) {
+            showLevel(1);
+            showLoading(true);
+
+            // Reset view to grades
+            currentView = 'grades';
+            document.getElementById('viewGradesBtn').className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+            document.getElementById('viewBehaviorsBtn').className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+            document.getElementById('gradesTableContainer').classList.remove('hidden');
+            document.getElementById('behaviorsTableContainer').classList.add('hidden');
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/suspensions/grades?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderSchoolStatsRow(data.grades);
+                renderGradesTable(data.grades);
+                showLoading(false);
+                document.getElementById('level1').classList.remove('hidden');
+                updateBreadcrumbs();
+            } catch (error) {
+                console.error('Error loading grades:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderSchoolStatsRow(grades) {
+            const totals = {
+                total_incidents: 0,
+                iss_count: 0,
+                oss_count: 0,
+                iss_days: 0,
+                oss_days: 0,
+                total_days: 0,
+            };
+            grades.forEach(g => {
+                totals.total_incidents += g.total_incidents || 0;
+                totals.iss_count += g.iss_count || 0;
+                totals.oss_count += g.oss_count || 0;
+                totals.iss_days += g.iss_days || 0;
+                totals.oss_days += g.oss_days || 0;
+                totals.total_days += g.total_days || 0;
+            });
+
+            const container = document.getElementById('schoolStats');
+            container.innerHTML = `
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Incidents</p>
+                    <p class="text-2xl font-semibold text-fls-navy">${totals.total_incidents.toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</p>
+                    <p class="text-2xl font-semibold text-amber-600">${totals.iss_count.toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</p>
+                    <p class="text-2xl font-semibold text-red-500">${totals.oss_count.toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS Days</p>
+                    <p class="text-2xl font-semibold text-amber-600">${totals.iss_days.toLocaleString()}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS Days</p>
+                    <p class="text-2xl font-semibold text-red-500">${totals.oss_days.toLocaleString()}</p>
+                </div>
+            `;
+        }
+
+        function renderGradesTable(grades) {
+            const tbody = document.getElementById('gradesTableBody');
+            tbody.innerHTML = '';
+
+            grades.forEach(g => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row border-b border-slate-100';
+                tr.onclick = () => drillToGrade(currentSchool, g.grade);
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-fls-navy">Grade ${g.grade}</td>
+                    <td class="px-6 py-4 text-right text-slate-700 font-semibold">${g.total_incidents.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-amber-600 font-medium">${g.iss_count.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-red-500 font-medium">${g.oss_count.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-amber-600">${g.iss_days.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-red-500">${g.oss_days.toLocaleString()}</td>
+                    <td class="px-6 py-4 text-right text-slate-700">${g.total_days.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('gradesMobileCards');
+            mobileContainer.innerHTML = '';
+
+            grades.forEach(g => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                card.onclick = () => drillToGrade(currentSchool, g.grade);
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-fls-navy">Grade ${g.grade}</span>
+                        <span class="text-sm text-slate-500">${g.total_incidents} incidents</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="text-amber-600 font-medium">${g.iss_count}</span> <span class="text-slate-400">ISS</span></div>
+                        <div><span class="text-red-500 font-medium">${g.oss_count}</span> <span class="text-slate-400">OSS</span></div>
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // View Toggle (Grades vs Behaviors)
+        // ============================================
+        function switchView(view) {
+            if (currentView === view) return;
+            currentView = view;
+
+            const gradesBtn = document.getElementById('viewGradesBtn');
+            const behaviorsBtn = document.getElementById('viewBehaviorsBtn');
+
+            if (view === 'grades') {
+                gradesBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+                behaviorsBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+                document.getElementById('gradesTableContainer').classList.remove('hidden');
+                document.getElementById('behaviorsTableContainer').classList.add('hidden');
+                reloadGradesTable(currentSchool);
+            } else {
+                gradesBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300';
+                behaviorsBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-fls-navy text-white';
+                document.getElementById('gradesTableContainer').classList.add('hidden');
+                document.getElementById('behaviorsTableContainer').classList.remove('hidden');
+                loadBehaviors(currentSchool);
+            }
+        }
+
+        async function reloadGradesTable(school) {
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/suspensions/grades?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderSchoolStatsRow(data.grades);
+                renderGradesTable(data.grades);
+            } catch (error) {
+                console.error('Error reloading grades:', error);
+            }
+        }
+
+        async function loadBehaviors(school) {
+            const tbody = document.getElementById('behaviorsTableBody');
+            const mobileContainer = document.getElementById('behaviorsMobileCards');
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500"><div class="loading mx-auto mb-2"></div>Loading behaviors...</td></tr>';
+            mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">Loading behaviors...</div>';
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                const response = await fetch(`/api/suspensions/behaviors?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                renderBehaviorsTable(data.behaviors || []);
+            } catch (error) {
+                console.error('Error loading behaviors:', error);
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Failed to load behaviors: ${error.message}</td></tr>`;
+            }
+        }
+
+        function renderBehaviorsTable(behaviors) {
+            const tbody = document.getElementById('behaviorsTableBody');
+            tbody.innerHTML = '';
+
+            if (behaviors.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">No behavior data found</td></tr>';
+            } else {
+                behaviors.forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-100';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-fls-navy">${b.behavior || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-right text-slate-700 font-semibold">${b.total_incidents.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-amber-600 font-medium">${b.iss_count.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-red-500 font-medium">${b.oss_count.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-amber-600">${b.iss_days.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-red-500">${b.oss_days.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-slate-700">${b.total_days.toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('behaviorsMobileCards');
+            mobileContainer.innerHTML = '';
+
+            if (behaviors.length === 0) {
+                mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">No behavior data found</div>';
+            } else {
+                behaviors.forEach(b => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 rounded-lg p-4';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-fls-navy">${b.behavior || 'Unknown'}</span>
+                            <span class="text-sm text-slate-500">${b.total_incidents} incidents</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div><span class="text-amber-600 font-medium">${b.iss_count}</span> <span class="text-slate-400">ISS</span></div>
+                            <div><span class="text-red-500 font-medium">${b.oss_count}</span> <span class="text-slate-400">OSS</span></div>
+                        </div>
+                    `;
+                    mobileContainer.appendChild(card);
+                });
+            }
+        }
+
+        // ============================================
+        // Level 2: Student Table
+        // ============================================
+        function drillToGrade(school, grade) {
+            currentSchool = school;
+            currentGrade = grade;
+            currentLevel = 2;
+            loadStudents(school, grade);
+        }
+
+        async function loadStudents(school, grade) {
+            showLevel(2);
+            showLoading(true);
+
+            try {
+                const params = getFilterParams();
+                params.set('school', school);
+                if (grade) params.set('grade', grade);
+                const response = await fetch(`/api/suspensions/students?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                studentsData = data.students || [];
+                sortField = 'total_incidents';
+                sortAsc = false;
+                renderStudentsTable();
+                showLoading(false);
+                document.getElementById('level2').classList.remove('hidden');
+                updateBreadcrumbs();
+            } catch (error) {
+                console.error('Error loading students:', error);
+                showError(error.message);
+            }
+        }
+
+        function sortStudents(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = field === 'name';
+            }
+            renderStudentsTable();
+        }
+
+        function renderStudentsTable() {
+            const sorted = [...studentsData].sort((a, b) => {
+                let aVal = a[sortField];
+                let bVal = b[sortField];
+                if (sortField === 'name') {
+                    aVal = (aVal || '').toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                    return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                if (sortField === 'last_incident') {
+                    aVal = aVal || '';
+                    bVal = bVal || '';
+                    return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                aVal = aVal || 0;
+                bVal = bVal || 0;
+                return sortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('.sort-header').forEach(th => {
+                const arrow = th.querySelector('.sort-arrow');
+                if (th.dataset.sort === sortField) {
+                    arrow.textContent = sortAsc ? ' \u25B2' : ' \u25BC';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = '';
+
+            sorted.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row border-b border-slate-100';
+                tr.onclick = () => openStudentModal(s.student_number, s.name);
+                const dateStr = s.last_incident ? new Date(s.last_incident).toLocaleDateString() : '-';
+                tr.innerHTML = `
+                    <td class="px-6 py-3 font-medium text-fls-navy">${s.name}</td>
+                    <td class="px-6 py-3 text-right text-slate-700">${s.grade || '-'}</td>
+                    <td class="px-6 py-3 text-right text-slate-700 font-semibold">${s.total_incidents}</td>
+                    <td class="px-6 py-3 text-right text-amber-600 font-medium">${s.iss_count}</td>
+                    <td class="px-6 py-3 text-right text-red-500 font-medium">${s.oss_count}</td>
+                    <td class="px-6 py-3 text-right text-slate-700">${s.total_days}</td>
+                    <td class="px-6 py-3 text-right text-slate-500">${dateStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Mobile cards
+            const mobileContainer = document.getElementById('studentsMobileCards');
+            mobileContainer.innerHTML = '';
+
+            sorted.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                card.onclick = () => openStudentModal(s.student_number, s.name);
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-fls-navy">${s.name}</span>
+                        <span class="text-sm text-slate-500">Grade ${s.grade || '-'}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-sm">
+                        <div><span class="text-amber-600 font-medium">${s.iss_count}</span> <span class="text-slate-400">ISS</span></div>
+                        <div><span class="text-red-500 font-medium">${s.oss_count}</span> <span class="text-slate-400">OSS</span></div>
+                        <div><span class="text-slate-700 font-medium">${s.total_days}</span> <span class="text-slate-400">days</span></div>
+                    </div>
+                `;
+                mobileContainer.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // Level 3: Student Detail Modal
+        // ============================================
+        async function openStudentModal(studentNumber, studentName) {
+            currentStudentNumber = studentNumber;
+
+            document.getElementById('studentModal').classList.remove('hidden');
+            document.getElementById('modalLoading').classList.remove('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalStudentName').textContent = studentName;
+            document.getElementById('modalStudentInfo').textContent = 'Loading...';
+            document.getElementById('modalStats').innerHTML = '';
+
+            try {
+                const params = getFilterParams();
+                params.set('student_number', studentNumber);
+                const response = await fetch(`/api/suspensions/incidents?${params}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const schoolFullName = SCHOOL_MAP[data.student_school] || data.student_school;
+                document.getElementById('modalStudentInfo').textContent = `Grade ${data.student_grade} | ${schoolFullName}`;
+
+                // Calculate summary stats
+                const incidents = data.incidents || [];
+                let issCount = 0, ossCount = 0, issDays = 0, ossDays = 0;
+                incidents.forEach(i => {
+                    if (i.type === 'ISS') { issCount++; issDays += i.days || 0; }
+                    if (i.type === 'OSS') { ossCount++; ossDays += i.days || 0; }
+                });
+
+                document.getElementById('modalStats').innerHTML = `
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">Total</p>
+                        <p class="text-lg font-semibold text-fls-navy">${incidents.length}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-amber-600">ISS</p>
+                        <p class="text-lg font-semibold text-amber-600">${issCount}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-red-500">OSS</p>
+                        <p class="text-lg font-semibold text-red-500">${ossCount}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">ISS Days</p>
+                        <p class="text-lg font-semibold text-amber-600">${issDays}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-500">OSS Days</p>
+                        <p class="text-lg font-semibold text-red-500">${ossDays}</p>
+                    </div>
+                `;
+
+                // Render incidents table
+                const tbody = document.getElementById('incidentsTableBody');
+                tbody.innerHTML = '';
+
+                incidents.forEach(i => {
+                    const tr = document.createElement('tr');
+                    const rowClass = i.type === 'ISS' ? 'row-iss' : 'row-oss';
+                    tr.className = `border-b border-slate-100 ${rowClass}`;
+                    const dateStr = i.date ? new Date(i.date).toLocaleDateString() : '-';
+                    const typeColor = i.type === 'ISS' ? 'text-amber-700 bg-amber-100' : 'text-red-700 bg-red-100';
+                    tr.innerHTML = `
+                        <td class="px-6 py-2 text-sm text-slate-700 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-6 py-2 text-sm"><span class="px-2 py-1 rounded-full text-xs font-medium ${typeColor}">${i.type}</span></td>
+                        <td class="px-6 py-2 text-sm text-slate-700">${i.behavior || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-slate-700">${i.title || '-'}</td>
+                        <td class="px-6 py-2 text-sm text-right font-medium text-slate-700">${i.days || 0}</td>
+                        <td class="px-6 py-2 text-sm text-slate-500">${i.creator || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('modalLoading').classList.add('hidden');
+                document.getElementById('modalContent').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading student incidents:', error);
+                document.getElementById('modalLoading').innerHTML = `<p class="text-red-500">Failed to load: ${error.message}</p>`;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').classList.add('hidden');
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('studentModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('studentModal')) closeModal();
+        });
+
+        // ============================================
+        // UI Helpers
+        // ============================================
+        function showLevel(level) {
+            ['level0', 'level1', 'level2'].forEach((id, i) => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            updateBreadcrumbs();
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingState').classList.toggle('hidden', !show);
+            document.getElementById('errorState').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorMessage').textContent = message || 'Failed to load data';
+            document.getElementById('errorState').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

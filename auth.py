@@ -12,6 +12,7 @@ from config import (
     ADMIN_EMAILS, EMAIL_ALIASES, SCHOOLS_DASHBOARD_ROLES,
     KICKBOARD_SCHOOL_MAP, KICKBOARD_ACL_RAW, KICKBOARD_REVERSE_MAP,
     KICKBOARD_SCHOOL_LEADER_TITLES,
+    SUSPENSIONS_SCHOOL_MAP, SUSPENSIONS_REVERSE_MAP,
     PROJECT_ID, DATASET_ID, TABLE_ID,
 )
 from extensions import bq_client
@@ -385,6 +386,86 @@ def get_kickboard_access(email):
 
     except Exception as e:
         logger.error(f"Error checking kickboard access for {email}: {e}")
+        return None
+
+
+def get_suspensions_access(email):
+    """
+    Suspensions dashboard access model (simplified from Kickboard):
+    1. Admins → all schools
+    2. School Leaders (Principal, AP, Dean) → their school only
+
+    Returns: dict with access details or None if no access.
+    """
+    if not email:
+        return None
+
+    # 1. Admins see everything
+    if is_admin(email):
+        return {
+            'has_access': True,
+            'access_type': 'admin',
+            'schools': list(SUSPENSIONS_SCHOOL_MAP.keys()),
+            'school_map': SUSPENSIONS_SCHOOL_MAP,
+            'label': 'Admin - All Schools'
+        }
+
+    if not bq_client:
+        return None
+
+    primary_email = resolve_email_alias(email)
+    schools_access = set()
+
+    try:
+        # Get user's job title and location
+        user_query = f"""
+            SELECT
+                Job_Title,
+                Location
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            AND Employment_Status IN ('Active', 'Leave of absence')
+            LIMIT 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
+            ]
+        )
+        user_results = list(bq_client.query(user_query, job_config=job_config).result())
+
+        if user_results:
+            job_title = user_results[0].Job_Title or ''
+            location = user_results[0].Location or ''
+
+            # 2. Check if school leader
+            is_school_leader = any(
+                title in job_title.lower()
+                for title in KICKBOARD_SCHOOL_LEADER_TITLES
+            )
+            if is_school_leader and location:
+                # Map location to school code
+                school_code = SUSPENSIONS_REVERSE_MAP.get(location)
+                if school_code:
+                    schools_access.add(school_code)
+                    logger.info(f"Suspensions: {email} is school leader at {location}")
+
+        if not schools_access:
+            logger.info(f"Suspensions: {email} has no access")
+            return None
+
+        school_names = [SUSPENSIONS_SCHOOL_MAP.get(s, s) for s in schools_access]
+
+        return {
+            'has_access': True,
+            'access_type': 'school_leader',
+            'schools': list(schools_access),
+            'school_map': SUSPENSIONS_SCHOOL_MAP,
+            'label': ', '.join(school_names)
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking suspensions access for {email}: {e}")
         return None
 
 

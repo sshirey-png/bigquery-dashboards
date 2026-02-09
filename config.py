@@ -78,3 +78,14 @@ KICKBOARD_SCHOOL_LEADER_TITLES = [
 
 # Current school year start date (first day of school)
 CURRENT_SY_START = '2025-08-04'
+
+# Suspensions Dashboard
+SUSPENSIONS_ISS_TABLE = 'fls-data-warehouse.suspensions.iss_rates_25_26'
+SUSPENSIONS_OSS_TABLE = 'fls-data-warehouse.suspensions.oss_rates_25_26'
+SUSPENSIONS_SCHOOL_MAP = {
+    'Ashe': 'Arthur Ashe Charter School',
+    'LHA': 'Langston Hughes Academy',
+    'Wheatley': 'Phillis Wheatley Community School',
+    'Green': 'Samuel J. Green Charter School',
+}
+SUSPENSIONS_REVERSE_MAP = {v: k for k, v in SUSPENSIONS_SCHOOL_MAP.items()}
