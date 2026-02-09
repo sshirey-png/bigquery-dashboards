@@ -18,16 +18,25 @@ bp = Blueprint('suspensions', __name__)
 
 HTML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Column name mapping - ISS has spaces, OSS has underscores
+ISS_COLS = {
+    'incident_date': '`Incident Date`',
+    'incident_creator': '`Incident Creator`',
+    'sub_category': '`Sub Category`',
+}
+OSS_COLS = {
+    'incident_date': 'incident_date',
+    'incident_creator': 'incident_creator',
+    'sub_category': 'sub_category',
+}
+
 
 def _get_access_condition(access):
     """
     Build access conditions based on user's access level.
-    - Admin: no filter (see all)
-    - School leader: filter by their school(s)
-
     Returns (conditions_list, params_list).
     """
-    conditions = ["Enroll_Status = 0"]  # Active students only
+    conditions = ["Enroll_Status = 0"]
     params = []
 
     if access.get('access_type') == 'admin':
@@ -43,6 +52,18 @@ def _get_access_condition(access):
     return conditions, params
 
 
+def _build_date_conditions(date_from, date_to, cols, params):
+    """Build date filter conditions using the correct column names."""
+    conditions = []
+    if date_from:
+        conditions.append(f"CAST({cols['incident_date']} AS DATE) >= @date_from")
+        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
+    if date_to:
+        conditions.append(f"CAST({cols['incident_date']} AS DATE) <= @date_to")
+        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
+    return conditions
+
+
 @bp.route('/suspensions-dashboard')
 def suspensions_dashboard():
     """Serve the Suspensions Dashboard HTML file"""
@@ -52,10 +73,7 @@ def suspensions_dashboard():
 @bp.route('/api/suspensions/summary', methods=['GET'])
 @login_required
 def suspensions_summary():
-    """
-    Network-level summary for the Suspensions dashboard.
-    Returns per-school ISS/OSS metrics and network totals.
-    """
+    """Network-level summary for the Suspensions dashboard."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -68,47 +86,50 @@ def suspensions_summary():
 
     acl_conds, acl_params = _get_access_condition(access)
 
-    # Optional filters
     school = request.args.get('school', '')
     grade = request.args.get('grade', '')
-    suspension_type = request.args.get('type', '')  # iss, oss, or blank for both
+    suspension_type = request.args.get('type', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    # Build conditions for ISS and OSS queries
-    iss_conditions = list(acl_conds)
-    oss_conditions = list(acl_conds)
+    # Build base conditions
+    base_conds = list(acl_conds)
     params = list(acl_params)
 
     if school:
-        iss_conditions.append("School_Short_Name = @school")
-        oss_conditions.append("School_Short_Name = @school")
+        base_conds.append("School_Short_Name = @school")
         params.append(bigquery.ScalarQueryParameter("school", "STRING", school))
     if grade:
-        iss_conditions.append("Grade_Level = @grade")
-        oss_conditions.append("Grade_Level = @grade")
+        base_conds.append("Grade_Level = @grade")
         params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
-    if date_from:
-        iss_conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        oss_conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
-    if date_to:
-        iss_conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        oss_conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
 
-    iss_where = " AND ".join(iss_conditions) if iss_conditions else "1=1"
-    oss_where = " AND ".join(oss_conditions) if oss_conditions else "1=1"
+    # Build ISS conditions with ISS column names
+    iss_conds = list(base_conds)
+    iss_params = list(params)
+    if date_from:
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) >= @iss_date_from")
+        iss_params.append(bigquery.ScalarQueryParameter("iss_date_from", "DATE", date_from))
+    if date_to:
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) <= @iss_date_to")
+        iss_params.append(bigquery.ScalarQueryParameter("iss_date_to", "DATE", date_to))
+
+    # Build OSS conditions with OSS column names
+    oss_conds = list(base_conds)
+    if date_from:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) >= @oss_date_from")
+        iss_params.append(bigquery.ScalarQueryParameter("oss_date_from", "DATE", date_from))
+    if date_to:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) <= @oss_date_to")
+        iss_params.append(bigquery.ScalarQueryParameter("oss_date_to", "DATE", date_to))
+
+    iss_where = " AND ".join(iss_conds) if iss_conds else "1=1"
+    oss_where = " AND ".join(oss_conds) if oss_conds else "1=1"
 
     try:
-        # Build query based on suspension type filter
         if suspension_type == 'iss':
             query = f"""
-                SELECT
-                    School_Short_Name as school,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
+                SELECT School_Short_Name as school, 'ISS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days,
                     COUNT(DISTINCT Student_Number) as students_affected
                 FROM `{SUSPENSIONS_ISS_TABLE}`
                 WHERE {iss_where}
@@ -116,46 +137,33 @@ def suspensions_summary():
             """
         elif suspension_type == 'oss':
             query = f"""
-                SELECT
-                    School_Short_Name as school,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
+                SELECT School_Short_Name as school, 'OSS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days,
                     COUNT(DISTINCT Student_Number) as students_affected
                 FROM `{SUSPENSIONS_OSS_TABLE}`
                 WHERE {oss_where}
                 GROUP BY School_Short_Name
             """
         else:
-            # Both ISS and OSS
             query = f"""
-                SELECT
-                    School_Short_Name as school,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
+                SELECT School_Short_Name as school, 'ISS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days,
                     COUNT(DISTINCT Student_Number) as students_affected
                 FROM `{SUSPENSIONS_ISS_TABLE}`
                 WHERE {iss_where}
                 GROUP BY School_Short_Name
-
                 UNION ALL
-
-                SELECT
-                    School_Short_Name as school,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
+                SELECT School_Short_Name as school, 'OSS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days,
                     COUNT(DISTINCT Student_Number) as students_affected
                 FROM `{SUSPENSIONS_OSS_TABLE}`
                 WHERE {oss_where}
                 GROUP BY School_Short_Name
             """
 
-        job_config = bigquery.QueryJobConfig(query_parameters=params)
+        job_config = bigquery.QueryJobConfig(query_parameters=iss_params)
         results = list(bq_client.query(query, job_config=job_config).result())
 
-        # Aggregate by school
         school_data = {}
         for row in results:
             school_code = row.school
@@ -163,24 +171,16 @@ def suspensions_summary():
                 school_data[school_code] = {
                     'school': school_code,
                     'full_name': SUSPENSIONS_SCHOOL_MAP.get(school_code, school_code),
-                    'iss_count': 0,
-                    'oss_count': 0,
-                    'iss_days': 0,
-                    'oss_days': 0,
-                    'iss_students': 0,
-                    'oss_students': 0,
+                    'iss_count': 0, 'oss_count': 0,
+                    'iss_days': 0, 'oss_days': 0,
                 }
-
             if row.type == 'ISS':
                 school_data[school_code]['iss_count'] = row.incident_count or 0
                 school_data[school_code]['iss_days'] = float(row.total_days or 0)
-                school_data[school_code]['iss_students'] = row.students_affected or 0
             else:
                 school_data[school_code]['oss_count'] = row.incident_count or 0
                 school_data[school_code]['oss_days'] = float(row.total_days or 0)
-                school_data[school_code]['oss_students'] = row.students_affected or 0
 
-        # Calculate totals for each school
         schools = []
         for code, data in school_data.items():
             data['total_incidents'] = data['iss_count'] + data['oss_count']
@@ -189,7 +189,6 @@ def suspensions_summary():
 
         schools.sort(key=lambda x: x['school'])
 
-        # Network totals
         network_totals = {
             'iss_count': sum(s['iss_count'] for s in schools),
             'oss_count': sum(s['oss_count'] for s in schools),
@@ -199,17 +198,12 @@ def suspensions_summary():
             'oss_days': sum(s['oss_days'] for s in schools),
         }
 
-        # Get unique students affected across network (need separate query)
+        # Get unique students
         students_query = f"""
-            SELECT COUNT(DISTINCT student_number) as unique_students
-            FROM (
-                SELECT Student_Number as student_number
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {iss_where}
+            SELECT COUNT(DISTINCT student_number) as unique_students FROM (
+                SELECT Student_Number as student_number FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where}
                 UNION DISTINCT
-                SELECT Student_Number as student_number
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {oss_where}
+                SELECT Student_Number as student_number FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where}
             )
         """
         students_result = list(bq_client.query(students_query, job_config=job_config).result())
@@ -226,7 +220,7 @@ def suspensions_summary():
 @bp.route('/api/suspensions/grades', methods=['GET'])
 @login_required
 def suspensions_grades():
-    """Grade breakdown for one school (drill-down level 1)."""
+    """Grade breakdown for one school."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -242,89 +236,66 @@ def suspensions_grades():
         return jsonify({'error': 'School is required.'}), 400
 
     acl_conds, acl_params = _get_access_condition(access)
-
     suspension_type = request.args.get('type', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conditions = acl_conds + ["School_Short_Name = @school"]
+    base_conds = acl_conds + ["School_Short_Name = @school"]
     params = list(acl_params) + [bigquery.ScalarQueryParameter("school", "STRING", school)]
 
+    # ISS conditions
+    iss_conds = list(base_conds)
     if date_from:
-        conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) >= @iss_date_from")
+        params.append(bigquery.ScalarQueryParameter("iss_date_from", "DATE", date_from))
     if date_to:
-        conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) <= @iss_date_to")
+        params.append(bigquery.ScalarQueryParameter("iss_date_to", "DATE", date_to))
 
-    where_clause = " AND ".join(conditions)
+    # OSS conditions
+    oss_conds = list(base_conds)
+    if date_from:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) >= @oss_date_from")
+        params.append(bigquery.ScalarQueryParameter("oss_date_from", "DATE", date_from))
+    if date_to:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) <= @oss_date_to")
+        params.append(bigquery.ScalarQueryParameter("oss_date_to", "DATE", date_to))
+
+    iss_where = " AND ".join(iss_conds)
+    oss_where = " AND ".join(oss_conds)
 
     try:
         if suspension_type == 'iss':
             query = f"""
-                SELECT
-                    Grade_Level as grade,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Grade_Level
+                SELECT Grade_Level as grade, 'ISS' as type, COUNT(*) as incident_count,
+                    COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where} GROUP BY Grade_Level
             """
         elif suspension_type == 'oss':
             query = f"""
-                SELECT
-                    Grade_Level as grade,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Grade_Level
+                SELECT Grade_Level as grade, 'OSS' as type, COUNT(*) as incident_count,
+                    COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where} GROUP BY Grade_Level
             """
         else:
             query = f"""
-                SELECT
-                    Grade_Level as grade,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Grade_Level
-
+                SELECT Grade_Level as grade, 'ISS' as type, COUNT(*) as incident_count,
+                    COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where} GROUP BY Grade_Level
                 UNION ALL
-
-                SELECT
-                    Grade_Level as grade,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Grade_Level
+                SELECT Grade_Level as grade, 'OSS' as type, COUNT(*) as incident_count,
+                    COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where} GROUP BY Grade_Level
             """
 
         job_config = bigquery.QueryJobConfig(query_parameters=params)
         results = list(bq_client.query(query, job_config=job_config).result())
 
-        # Aggregate by grade
         grade_data = {}
         for row in results:
             grade = row.grade
             if grade not in grade_data:
-                grade_data[grade] = {
-                    'grade': grade,
-                    'iss_count': 0,
-                    'oss_count': 0,
-                    'iss_days': 0,
-                    'oss_days': 0,
-                }
-
+                grade_data[grade] = {'grade': grade, 'iss_count': 0, 'oss_count': 0, 'iss_days': 0, 'oss_days': 0}
             if row.type == 'ISS':
                 grade_data[grade]['iss_count'] = row.incident_count or 0
                 grade_data[grade]['iss_days'] = float(row.total_days or 0)
@@ -339,8 +310,6 @@ def suspensions_grades():
             grades.append(data)
 
         grades.sort(key=lambda x: x['grade'] if x['grade'] is not None else -1)
-
-        logger.info(f"Suspensions grades: {len(grades)} grades for {school}")
         return jsonify({'grades': grades, 'school': school})
 
     except Exception as e:
@@ -351,7 +320,7 @@ def suspensions_grades():
 @bp.route('/api/suspensions/behaviors', methods=['GET'])
 @login_required
 def suspensions_behaviors():
-    """Behavior breakdown for one school (alternative drill-down level 1)."""
+    """Behavior breakdown for one school."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -367,89 +336,64 @@ def suspensions_behaviors():
         return jsonify({'error': 'School is required.'}), 400
 
     acl_conds, acl_params = _get_access_condition(access)
-
     suspension_type = request.args.get('type', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conditions = acl_conds + ["School_Short_Name = @school"]
+    base_conds = acl_conds + ["School_Short_Name = @school"]
     params = list(acl_params) + [bigquery.ScalarQueryParameter("school", "STRING", school)]
 
+    iss_conds = list(base_conds)
     if date_from:
-        conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) >= @iss_date_from")
+        params.append(bigquery.ScalarQueryParameter("iss_date_from", "DATE", date_from))
     if date_to:
-        conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) <= @iss_date_to")
+        params.append(bigquery.ScalarQueryParameter("iss_date_to", "DATE", date_to))
 
-    where_clause = " AND ".join(conditions)
+    oss_conds = list(base_conds)
+    if date_from:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) >= @oss_date_from")
+        params.append(bigquery.ScalarQueryParameter("oss_date_from", "DATE", date_from))
+    if date_to:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) <= @oss_date_to")
+        params.append(bigquery.ScalarQueryParameter("oss_date_to", "DATE", date_to))
+
+    iss_where = " AND ".join(iss_conds)
+    oss_where = " AND ".join(oss_conds)
 
     try:
         if suspension_type == 'iss':
             query = f"""
-                SELECT
-                    COALESCE(Behavior, 'Unknown') as behavior,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Behavior
+                SELECT COALESCE(Behavior, 'Unknown') as behavior, 'ISS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where} GROUP BY Behavior
             """
         elif suspension_type == 'oss':
             query = f"""
-                SELECT
-                    COALESCE(Behavior, 'Unknown') as behavior,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Behavior
+                SELECT COALESCE(Behavior, 'Unknown') as behavior, 'OSS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where} GROUP BY Behavior
             """
         else:
             query = f"""
-                SELECT
-                    COALESCE(Behavior, 'Unknown') as behavior,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Behavior
-
+                SELECT COALESCE(Behavior, 'Unknown') as behavior, 'ISS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where} GROUP BY Behavior
                 UNION ALL
-
-                SELECT
-                    COALESCE(Behavior, 'Unknown') as behavior,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    COUNT(DISTINCT Student_Number) as students_affected
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-                GROUP BY Behavior
+                SELECT COALESCE(Behavior, 'Unknown') as behavior, 'OSS' as type,
+                    COUNT(*) as incident_count, COALESCE(SUM(Days), 0) as total_days
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where} GROUP BY Behavior
             """
 
         job_config = bigquery.QueryJobConfig(query_parameters=params)
         results = list(bq_client.query(query, job_config=job_config).result())
 
-        # Aggregate by behavior
         behavior_data = {}
         for row in results:
             behavior = row.behavior
             if behavior not in behavior_data:
-                behavior_data[behavior] = {
-                    'behavior': behavior,
-                    'iss_count': 0,
-                    'oss_count': 0,
-                    'iss_days': 0,
-                    'oss_days': 0,
-                }
-
+                behavior_data[behavior] = {'behavior': behavior, 'iss_count': 0, 'oss_count': 0, 'iss_days': 0, 'oss_days': 0}
             if row.type == 'ISS':
                 behavior_data[behavior]['iss_count'] = row.incident_count or 0
                 behavior_data[behavior]['iss_days'] = float(row.total_days or 0)
@@ -464,8 +408,6 @@ def suspensions_behaviors():
             behaviors.append(data)
 
         behaviors.sort(key=lambda x: x['total_incidents'], reverse=True)
-
-        logger.info(f"Suspensions behaviors: {len(behaviors)} behaviors for {school}")
         return jsonify({'behaviors': behaviors, 'school': school})
 
     except Exception as e:
@@ -476,7 +418,7 @@ def suspensions_behaviors():
 @bp.route('/api/suspensions/students', methods=['GET'])
 @login_required
 def suspensions_students():
-    """Student list for one school (drill-down level 2)."""
+    """Student list for one school."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -492,98 +434,91 @@ def suspensions_students():
         return jsonify({'error': 'School is required.'}), 400
 
     acl_conds, acl_params = _get_access_condition(access)
-
     grade = request.args.get('grade', '')
     suspension_type = request.args.get('type', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conditions = acl_conds + ["School_Short_Name = @school"]
+    base_conds = acl_conds + ["School_Short_Name = @school"]
     params = list(acl_params) + [bigquery.ScalarQueryParameter("school", "STRING", school)]
 
     if grade:
-        conditions.append("Grade_Level = @grade")
+        base_conds.append("Grade_Level = @grade")
         params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
-    if date_from:
-        conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
-    if date_to:
-        conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
 
-    where_clause = " AND ".join(conditions)
+    behavior = request.args.get('behavior', '')
+    if behavior:
+        base_conds.append("Behavior = @behavior")
+        params.append(bigquery.ScalarQueryParameter("behavior", "STRING", behavior))
+
+    iss_conds = list(base_conds)
+    if date_from:
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) >= @iss_date_from")
+        params.append(bigquery.ScalarQueryParameter("iss_date_from", "DATE", date_from))
+    if date_to:
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) <= @iss_date_to")
+        params.append(bigquery.ScalarQueryParameter("iss_date_to", "DATE", date_to))
+
+    oss_conds = list(base_conds)
+    if date_from:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) >= @oss_date_from")
+        params.append(bigquery.ScalarQueryParameter("oss_date_from", "DATE", date_from))
+    if date_to:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) <= @oss_date_to")
+        params.append(bigquery.ScalarQueryParameter("oss_date_to", "DATE", date_to))
+
+    iss_where = " AND ".join(iss_conds)
+    oss_where = " AND ".join(oss_conds)
 
     try:
         if suspension_type == 'iss':
             query = f"""
-                SELECT
-                    Student_Number as student_number,
-                    LastFirst as name,
-                    Grade_Level as grade,
-                    Home_Room as home_room,
-                    'ISS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    MAX(Incident_Date) as last_incident
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
+                SELECT Student_Number as student_number, LastFirst as name, Grade_Level as grade,
+                    Home_Room as home_room, COUNT(*) as iss_count, 0 as oss_count,
+                    COALESCE(SUM(Days), 0) as iss_days, 0 as oss_days,
+                    MAX({ISS_COLS['incident_date']}) as last_incident
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where}
                 GROUP BY Student_Number, LastFirst, Grade_Level, Home_Room
             """
         elif suspension_type == 'oss':
             query = f"""
-                SELECT
-                    Student_Number as student_number,
-                    LastFirst as name,
-                    Grade_Level as grade,
-                    Home_Room as home_room,
-                    'OSS' as type,
-                    COUNT(*) as incident_count,
-                    COALESCE(SUM(Days), 0) as total_days,
-                    MAX(Incident_Date) as last_incident
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
+                SELECT Student_Number as student_number, LastFirst as name, Grade_Level as grade,
+                    Home_Room as home_room, 0 as iss_count, COUNT(*) as oss_count,
+                    0 as iss_days, COALESCE(SUM(Days), 0) as oss_days,
+                    MAX({OSS_COLS['incident_date']}) as last_incident
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where}
                 GROUP BY Student_Number, LastFirst, Grade_Level, Home_Room
             """
         else:
+            # Need to aggregate from both tables
             query = f"""
-                WITH combined AS (
-                    SELECT
-                        Student_Number,
-                        LastFirst,
-                        Grade_Level,
-                        Home_Room,
-                        'ISS' as type,
-                        Days,
-                        Incident_Date
-                    FROM `{SUSPENSIONS_ISS_TABLE}`
-                    WHERE {where_clause}
-
-                    UNION ALL
-
-                    SELECT
-                        Student_Number,
-                        LastFirst,
-                        Grade_Level,
-                        Home_Room,
-                        'OSS' as type,
-                        Days,
-                        Incident_Date
-                    FROM `{SUSPENSIONS_OSS_TABLE}`
-                    WHERE {where_clause}
+                WITH iss AS (
+                    SELECT Student_Number, LastFirst, Grade_Level, Home_Room,
+                        COUNT(*) as iss_count, COALESCE(SUM(Days), 0) as iss_days,
+                        MAX({ISS_COLS['incident_date']}) as last_iss
+                    FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where}
+                    GROUP BY Student_Number, LastFirst, Grade_Level, Home_Room
+                ),
+                oss AS (
+                    SELECT Student_Number, LastFirst, Grade_Level, Home_Room,
+                        COUNT(*) as oss_count, COALESCE(SUM(Days), 0) as oss_days,
+                        MAX({OSS_COLS['incident_date']}) as last_oss
+                    FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where}
+                    GROUP BY Student_Number, LastFirst, Grade_Level, Home_Room
                 )
                 SELECT
-                    Student_Number as student_number,
-                    LastFirst as name,
-                    Grade_Level as grade,
-                    Home_Room as home_room,
-                    COUNTIF(type = 'ISS') as iss_count,
-                    COUNTIF(type = 'OSS') as oss_count,
-                    COALESCE(SUM(CASE WHEN type = 'ISS' THEN Days ELSE 0 END), 0) as iss_days,
-                    COALESCE(SUM(CASE WHEN type = 'OSS' THEN Days ELSE 0 END), 0) as oss_days,
-                    MAX(Incident_Date) as last_incident
-                FROM combined
-                GROUP BY Student_Number, LastFirst, Grade_Level, Home_Room
-                ORDER BY (COUNTIF(type = 'ISS') + COUNTIF(type = 'OSS')) DESC
+                    COALESCE(iss.Student_Number, oss.Student_Number) as student_number,
+                    COALESCE(iss.LastFirst, oss.LastFirst) as name,
+                    COALESCE(iss.Grade_Level, oss.Grade_Level) as grade,
+                    COALESCE(iss.Home_Room, oss.Home_Room) as home_room,
+                    COALESCE(iss.iss_count, 0) as iss_count,
+                    COALESCE(oss.oss_count, 0) as oss_count,
+                    COALESCE(iss.iss_days, 0) as iss_days,
+                    COALESCE(oss.oss_days, 0) as oss_days,
+                    GREATEST(COALESCE(iss.last_iss, DATE('1900-01-01')), COALESCE(oss.last_oss, DATE('1900-01-01'))) as last_incident
+                FROM iss FULL OUTER JOIN oss
+                ON iss.Student_Number = oss.Student_Number
+                ORDER BY (COALESCE(iss.iss_count, 0) + COALESCE(oss.oss_count, 0)) DESC
             """
 
         job_config = bigquery.QueryJobConfig(query_parameters=params)
@@ -591,37 +526,23 @@ def suspensions_students():
 
         students = []
         for row in results:
-            if suspension_type in ('iss', 'oss'):
-                student_data = {
-                    'student_number': str(row.student_number),
-                    'name': row.name,
-                    'grade': row.grade,
-                    'home_room': row.home_room,
-                    'iss_count': row.incident_count if suspension_type == 'iss' else 0,
-                    'oss_count': row.incident_count if suspension_type == 'oss' else 0,
-                    'iss_days': float(row.total_days) if suspension_type == 'iss' else 0,
-                    'oss_days': float(row.total_days) if suspension_type == 'oss' else 0,
-                    'total_incidents': row.incident_count,
-                    'total_days': float(row.total_days),
-                    'last_incident': row.last_incident.isoformat() if row.last_incident else None,
-                }
-            else:
-                student_data = {
-                    'student_number': str(row.student_number),
-                    'name': row.name,
-                    'grade': row.grade,
-                    'home_room': row.home_room,
-                    'iss_count': row.iss_count or 0,
-                    'oss_count': row.oss_count or 0,
-                    'iss_days': float(row.iss_days or 0),
-                    'oss_days': float(row.oss_days or 0),
-                    'total_incidents': (row.iss_count or 0) + (row.oss_count or 0),
-                    'total_days': float(row.iss_days or 0) + float(row.oss_days or 0),
-                    'last_incident': row.last_incident.isoformat() if row.last_incident else None,
-                }
-            students.append(student_data)
+            last_incident = row.last_incident
+            if last_incident and str(last_incident) == '1900-01-01':
+                last_incident = None
+            students.append({
+                'student_number': str(row.student_number),
+                'name': row.name,
+                'grade': row.grade,
+                'home_room': row.home_room,
+                'iss_count': row.iss_count or 0,
+                'oss_count': row.oss_count or 0,
+                'iss_days': float(row.iss_days or 0),
+                'oss_days': float(row.oss_days or 0),
+                'total_incidents': (row.iss_count or 0) + (row.oss_count or 0),
+                'total_days': float(row.iss_days or 0) + float(row.oss_days or 0),
+                'last_incident': last_incident.isoformat() if last_incident else None,
+            })
 
-        logger.info(f"Suspensions students: {len(students)} students for {school}")
         return jsonify({'students': students, 'school': school})
 
     except Exception as e:
@@ -632,7 +553,7 @@ def suspensions_students():
 @bp.route('/api/suspensions/incidents', methods=['GET'])
 @login_required
 def suspensions_incidents():
-    """Individual incidents for one student (drill-down level 3)."""
+    """Individual incidents for one student."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -648,94 +569,64 @@ def suspensions_incidents():
         return jsonify({'error': 'student_number is required.'}), 400
 
     acl_conds, acl_params = _get_access_condition(access)
-
     suspension_type = request.args.get('type', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conditions = acl_conds + ["Student_Number = @student_number"]
+    base_conds = acl_conds + ["Student_Number = @student_number"]
     params = list(acl_params) + [bigquery.ScalarQueryParameter("student_number", "STRING", student_number)]
 
+    iss_conds = list(base_conds)
     if date_from:
-        conditions.append("CAST(Incident_Date AS DATE) >= @date_from")
-        params.append(bigquery.ScalarQueryParameter("date_from", "DATE", date_from))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) >= @iss_date_from")
+        params.append(bigquery.ScalarQueryParameter("iss_date_from", "DATE", date_from))
     if date_to:
-        conditions.append("CAST(Incident_Date AS DATE) <= @date_to")
-        params.append(bigquery.ScalarQueryParameter("date_to", "DATE", date_to))
+        iss_conds.append(f"CAST({ISS_COLS['incident_date']} AS DATE) <= @iss_date_to")
+        params.append(bigquery.ScalarQueryParameter("iss_date_to", "DATE", date_to))
 
-    where_clause = " AND ".join(conditions)
+    oss_conds = list(base_conds)
+    if date_from:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) >= @oss_date_from")
+        params.append(bigquery.ScalarQueryParameter("oss_date_from", "DATE", date_from))
+    if date_to:
+        oss_conds.append(f"CAST({OSS_COLS['incident_date']} AS DATE) <= @oss_date_to")
+        params.append(bigquery.ScalarQueryParameter("oss_date_to", "DATE", date_to))
+
+    iss_where = " AND ".join(iss_conds)
+    oss_where = " AND ".join(oss_conds)
 
     try:
         if suspension_type == 'iss':
             query = f"""
-                SELECT
-                    Incident_Date as date,
-                    'ISS' as type,
-                    Title as title,
-                    Behavior as behavior,
-                    Sub_Category as sub_category,
-                    Days as days,
-                    Incident_Creator as creator,
-                    Action as action,
-                    LastFirst as student_name,
-                    School_Short_Name as school,
-                    Grade_Level as grade
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-                ORDER BY Incident_Date DESC
+                SELECT {ISS_COLS['incident_date']} as date, 'ISS' as type, Title as title,
+                    Behavior as behavior, {ISS_COLS['sub_category']} as sub_category,
+                    Days as days, {ISS_COLS['incident_creator']} as creator, Action as action,
+                    LastFirst as student_name, School_Short_Name as school, Grade_Level as grade
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where}
+                ORDER BY {ISS_COLS['incident_date']} DESC
             """
         elif suspension_type == 'oss':
             query = f"""
-                SELECT
-                    Incident_Date as date,
-                    'OSS' as type,
-                    Title as title,
-                    Behavior as behavior,
-                    Sub_Category as sub_category,
-                    Days as days,
-                    Incident_Creator as creator,
-                    Action as action,
-                    LastFirst as student_name,
-                    School_Short_Name as school,
-                    Grade_Level as grade
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-                ORDER BY Incident_Date DESC
+                SELECT {OSS_COLS['incident_date']} as date, 'OSS' as type, Title as title,
+                    Behavior as behavior, {OSS_COLS['sub_category']} as sub_category,
+                    Days as days, {OSS_COLS['incident_creator']} as creator, Action as action,
+                    LastFirst as student_name, School_Short_Name as school, Grade_Level as grade
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where}
+                ORDER BY {OSS_COLS['incident_date']} DESC
             """
         else:
             query = f"""
-                SELECT
-                    Incident_Date as date,
-                    'ISS' as type,
-                    Title as title,
-                    Behavior as behavior,
-                    Sub_Category as sub_category,
-                    Days as days,
-                    Incident_Creator as creator,
-                    Action as action,
-                    LastFirst as student_name,
-                    School_Short_Name as school,
-                    Grade_Level as grade
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {where_clause}
-
+                SELECT {ISS_COLS['incident_date']} as date, 'ISS' as type, Title as title,
+                    Behavior as behavior, {ISS_COLS['sub_category']} as sub_category,
+                    Days as days, {ISS_COLS['incident_creator']} as creator, Action as action,
+                    LastFirst as student_name, School_Short_Name as school, Grade_Level as grade
+                FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {iss_where}
                 UNION ALL
-
-                SELECT
-                    Incident_Date as date,
-                    'OSS' as type,
-                    Title as title,
-                    Behavior as behavior,
-                    Sub_Category as sub_category,
-                    Days as days,
-                    Incident_Creator as creator,
-                    Action as action,
-                    LastFirst as student_name,
-                    School_Short_Name as school,
-                    Grade_Level as grade
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {where_clause}
-
+                SELECT {OSS_COLS['incident_date']} as date, 'OSS' as type, Title as title,
+                    Behavior as behavior, {OSS_COLS['sub_category']} as sub_category,
+                    Days as days, {OSS_COLS['incident_creator']} as creator, Action as action,
+                    LastFirst as student_name, School_Short_Name as school, Grade_Level as grade
+                FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {oss_where}
                 ORDER BY date DESC
             """
 
@@ -764,7 +655,6 @@ def suspensions_incidents():
                 'action': row.action,
             })
 
-        logger.info(f"Suspensions incidents: {len(incidents)} for student {student_number}")
         return jsonify({
             'incidents': incidents,
             'student_name': student_name,
@@ -780,7 +670,7 @@ def suspensions_incidents():
 @bp.route('/api/suspensions/filter-options', methods=['GET'])
 @login_required
 def suspensions_filter_options():
-    """Populate filter dropdowns for the Suspensions dashboard."""
+    """Populate filter dropdowns."""
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -797,33 +687,19 @@ def suspensions_filter_options():
     try:
         query = f"""
             WITH iss_data AS (
-                SELECT School_Short_Name, Grade_Level, Behavior
-                FROM `{SUSPENSIONS_ISS_TABLE}`
-                WHERE {acl_where}
+                SELECT School_Short_Name, Grade_Level, Behavior FROM `{SUSPENSIONS_ISS_TABLE}` WHERE {acl_where}
             ),
             oss_data AS (
-                SELECT School_Short_Name, Grade_Level, Behavior
-                FROM `{SUSPENSIONS_OSS_TABLE}`
-                WHERE {acl_where}
+                SELECT School_Short_Name, Grade_Level, Behavior FROM `{SUSPENSIONS_OSS_TABLE}` WHERE {acl_where}
             ),
             combined AS (
-                SELECT * FROM iss_data
-                UNION ALL
-                SELECT * FROM oss_data
+                SELECT * FROM iss_data UNION ALL SELECT * FROM oss_data
             )
-            SELECT 'school' as option_type, School_Short_Name as value
-            FROM combined
-            GROUP BY School_Short_Name
+            SELECT 'school' as option_type, School_Short_Name as value FROM combined GROUP BY School_Short_Name
             UNION ALL
-            SELECT 'grade' as option_type, CAST(Grade_Level AS STRING) as value
-            FROM combined
-            WHERE Grade_Level IS NOT NULL
-            GROUP BY Grade_Level
+            SELECT 'grade' as option_type, CAST(Grade_Level AS STRING) as value FROM combined WHERE Grade_Level IS NOT NULL GROUP BY Grade_Level
             UNION ALL
-            SELECT 'behavior' as option_type, Behavior as value
-            FROM combined
-            WHERE Behavior IS NOT NULL
-            GROUP BY Behavior
+            SELECT 'behavior' as option_type, Behavior as value FROM combined WHERE Behavior IS NOT NULL GROUP BY Behavior
             ORDER BY option_type, value
         """
 
@@ -840,7 +716,6 @@ def suspensions_filter_options():
                 elif row.option_type == 'behavior':
                     options['behaviors'].append(row.value)
 
-        logger.info(f"Suspensions filter options: {len(options['schools'])} schools, {len(options['grades'])} grades")
         return jsonify(options)
 
     except Exception as e:

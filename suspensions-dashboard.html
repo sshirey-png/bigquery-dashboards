@@ -201,6 +201,12 @@
                             <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
                             <span id="userDisplayName" class="text-sm text-white hidden"></span>
                         </div>
+                        <a href="/kickboard-dashboard" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Kickboard
+                        </a>
                         <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -382,13 +388,13 @@
                     <table class="w-full desktop-table">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grade</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS Days</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS Days</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Days</th>
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="grade" onclick="sortGrades('grade')">Grade <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="total_incidents" onclick="sortGrades('total_incidents')">Total <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="iss_count" onclick="sortGrades('iss_count')">ISS <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="oss_count" onclick="sortGrades('oss_count')">OSS <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="iss_days" onclick="sortGrades('iss_days')">ISS Days <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="oss_days" onclick="sortGrades('oss_days')">OSS Days <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="total_days" onclick="sortGrades('total_days')">Total Days <span class="grades-sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="gradesTableBody">
@@ -405,13 +411,13 @@
                     <table class="w-full desktop-table">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Behavior</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ISS Days</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">OSS Days</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Days</th>
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="behavior" onclick="sortBehaviors('behavior')">Behavior <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="total_incidents" onclick="sortBehaviors('total_incidents')">Total <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="iss_count" onclick="sortBehaviors('iss_count')">ISS <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="oss_count" onclick="sortBehaviors('oss_count')">OSS <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="iss_days" onclick="sortBehaviors('iss_days')">ISS Days <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="oss_days" onclick="sortBehaviors('oss_days')">OSS Days <span class="behaviors-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-behaviors="total_days" onclick="sortBehaviors('total_days')">Total Days <span class="behaviors-sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="behaviorsTableBody">
@@ -512,10 +518,17 @@
         let currentSchool = '';
         let currentGrade = '';
         let currentView = 'grades'; // 'grades' or 'behaviors'
+        let currentBehavior = '';
         let currentStudentNumber = '';
         let studentsData = [];
+        let gradesData = [];
+        let behaviorsData = [];
         let sortField = 'name';
         let sortAsc = true;
+        let gradesSortField = 'grade';
+        let gradesSortAsc = true;
+        let behaviorsSortField = 'total_incidents';
+        let behaviorsSortAsc = false;
         let isSingleSchool = false;
 
         const SCHOOL_MAP = {
@@ -674,7 +687,7 @@
                     loadGrades(currentSchool);
                 }
             } else if (currentLevel === 2) {
-                loadStudents(currentSchool, currentGrade);
+                loadStudents(currentSchool, currentGrade, currentBehavior);
             }
         }
 
@@ -721,7 +734,11 @@
             }
 
             if (currentLevel >= 2) {
-                crumbs.push({ label: `Grade ${currentGrade}`, action: null });
+                if (currentBehavior) {
+                    crumbs.push({ label: currentBehavior, action: null });
+                } else if (currentGrade) {
+                    crumbs.push({ label: `Grade ${currentGrade}`, action: null });
+                }
             }
 
             crumbs.forEach((crumb, i) => {
@@ -915,11 +932,38 @@
             `;
         }
 
-        function renderGradesTable(grades) {
+        function renderGradesTable(grades, skipDataStore = false) {
+            if (!skipDataStore) {
+                gradesData = grades;
+            }
+
+            // Sort the data
+            const sorted = [...grades].sort((a, b) => {
+                let aVal = a[gradesSortField];
+                let bVal = b[gradesSortField];
+                if (gradesSortField === 'grade') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                }
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+                return gradesSortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('[data-sort-grades]').forEach(th => {
+                const arrow = th.querySelector('.grades-sort-arrow');
+                if (th.dataset.sortGrades === gradesSortField) {
+                    arrow.textContent = gradesSortAsc ? ' ▲' : ' ▼';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
             const tbody = document.getElementById('gradesTableBody');
             tbody.innerHTML = '';
 
-            grades.forEach(g => {
+            sorted.forEach(g => {
                 const tr = document.createElement('tr');
                 tr.className = 'table-row border-b border-slate-100';
                 tr.onclick = () => drillToGrade(currentSchool, g.grade);
@@ -939,7 +983,7 @@
             const mobileContainer = document.getElementById('gradesMobileCards');
             mobileContainer.innerHTML = '';
 
-            grades.forEach(g => {
+            sorted.forEach(g => {
                 const card = document.createElement('div');
                 card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
                 card.onclick = () => drillToGrade(currentSchool, g.grade);
@@ -955,6 +999,16 @@
                 `;
                 mobileContainer.appendChild(card);
             });
+        }
+
+        function sortGrades(field) {
+            if (gradesSortField === field) {
+                gradesSortAsc = !gradesSortAsc;
+            } else {
+                gradesSortField = field;
+                gradesSortAsc = field === 'grade'; // default asc for grade, desc for numbers
+            }
+            renderGradesTable(gradesData, true);
         }
 
         // ============================================
@@ -1019,16 +1073,45 @@
             }
         }
 
-        function renderBehaviorsTable(behaviors) {
+        function renderBehaviorsTable(behaviors, skipDataStore = false) {
+            if (!skipDataStore) {
+                behaviorsData = behaviors;
+            }
+
+            // Sort the data
+            const sorted = [...behaviors].sort((a, b) => {
+                let aVal = a[behaviorsSortField];
+                let bVal = b[behaviorsSortField];
+                if (behaviorsSortField === 'behavior') {
+                    aVal = (aVal || '').toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                    return behaviorsSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+                return behaviorsSortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('[data-sort-behaviors]').forEach(th => {
+                const arrow = th.querySelector('.behaviors-sort-arrow');
+                if (th.dataset.sortBehaviors === behaviorsSortField) {
+                    arrow.textContent = behaviorsSortAsc ? ' ▲' : ' ▼';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
             const tbody = document.getElementById('behaviorsTableBody');
             tbody.innerHTML = '';
 
-            if (behaviors.length === 0) {
+            if (sorted.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">No behavior data found</td></tr>';
             } else {
-                behaviors.forEach(b => {
+                sorted.forEach(b => {
                     const tr = document.createElement('tr');
-                    tr.className = 'border-b border-slate-100';
+                    tr.className = 'table-row border-b border-slate-100';
+                    tr.onclick = () => drillToBehavior(currentSchool, b.behavior);
                     tr.innerHTML = `
                         <td class="px-6 py-4 font-medium text-fls-navy">${b.behavior || 'Unknown'}</td>
                         <td class="px-6 py-4 text-right text-slate-700 font-semibold">${b.total_incidents.toLocaleString()}</td>
@@ -1046,12 +1129,13 @@
             const mobileContainer = document.getElementById('behaviorsMobileCards');
             mobileContainer.innerHTML = '';
 
-            if (behaviors.length === 0) {
+            if (sorted.length === 0) {
                 mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">No behavior data found</div>';
             } else {
-                behaviors.forEach(b => {
+                sorted.forEach(b => {
                     const card = document.createElement('div');
-                    card.className = 'bg-slate-50 rounded-lg p-4';
+                    card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
+                    card.onclick = () => drillToBehavior(currentSchool, b.behavior);
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-2">
                             <span class="font-semibold text-fls-navy">${b.behavior || 'Unknown'}</span>
@@ -1067,17 +1151,36 @@
             }
         }
 
+        function sortBehaviors(field) {
+            if (behaviorsSortField === field) {
+                behaviorsSortAsc = !behaviorsSortAsc;
+            } else {
+                behaviorsSortField = field;
+                behaviorsSortAsc = field === 'behavior'; // default asc for name, desc for numbers
+            }
+            renderBehaviorsTable(behaviorsData, true);
+        }
+
         // ============================================
         // Level 2: Student Table
         // ============================================
         function drillToGrade(school, grade) {
             currentSchool = school;
             currentGrade = grade;
+            currentBehavior = '';
             currentLevel = 2;
-            loadStudents(school, grade);
+            loadStudents(school, grade, '');
         }
 
-        async function loadStudents(school, grade) {
+        function drillToBehavior(school, behavior) {
+            currentSchool = school;
+            currentGrade = '';
+            currentBehavior = behavior;
+            currentLevel = 2;
+            loadStudents(school, '', behavior);
+        }
+
+        async function loadStudents(school, grade, behavior) {
             showLevel(2);
             showLoading(true);
 
@@ -1085,6 +1188,7 @@
                 const params = getFilterParams();
                 params.set('school', school);
                 if (grade) params.set('grade', grade);
+                if (behavior) params.set('behavior', behavior);
                 const response = await fetch(`/api/suspensions/students?${params}`);
                 const data = await response.json();
 

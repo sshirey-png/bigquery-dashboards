@@ -74,6 +74,7 @@ KICKBOARD_SCHOOL_LEADER_TITLES = [
     'assistant principal',
     'dean',
     'head of school',
+    'director of culture',
 ]
 
 # Current school year start date (first day of school)

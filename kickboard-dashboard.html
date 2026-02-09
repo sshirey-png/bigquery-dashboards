@@ -216,6 +216,12 @@
                             <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
                             <span id="userDisplayName" class="text-sm text-white hidden"></span>
                         </div>
+                        <a href="/suspensions-dashboard" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                            </svg>
+                            Suspensions
+                        </a>
                         <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -401,14 +407,14 @@
                     <table class="w-full desktop-table">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grade</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ratio</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Earned</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Lost</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Students</th>
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="grade" onclick="sortGrades('grade')">Grade <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="interactions" onclick="sortGrades('interactions')">Interactions <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="positive_count" onclick="sortGrades('positive_count')">Positive <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="negative_count" onclick="sortGrades('negative_count')">Negative <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="ratio" onclick="sortGrades('ratio')">Ratio <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="total_earned" onclick="sortGrades('total_earned')">Earned <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="total_lost" onclick="sortGrades('total_lost')">Lost <span class="grades-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-grades="unique_students" onclick="sortGrades('unique_students')">Students <span class="grades-sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="gradesTableBody">
@@ -425,14 +431,14 @@
                     <table class="w-full desktop-table">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Teacher</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Interactions</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Positive</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Negative</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ratio</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Earned</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Lost</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Students</th>
+                                <th class="sort-header text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="staff" onclick="sortTeachers('staff')">Teacher <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="interactions" onclick="sortTeachers('interactions')">Interactions <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="positive_count" onclick="sortTeachers('positive_count')">Positive <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="negative_count" onclick="sortTeachers('negative_count')">Negative <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="ratio" onclick="sortTeachers('ratio')">Ratio <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="total_earned" onclick="sortTeachers('total_earned')">Earned <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="total_lost" onclick="sortTeachers('total_lost')">Lost <span class="teachers-sort-arrow"></span></th>
+                                <th class="sort-header text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide" data-sort-teachers="unique_students" onclick="sortTeachers('unique_students')">Students <span class="teachers-sort-arrow"></span></th>
                             </tr>
                         </thead>
                         <tbody id="teachersTableBody">
@@ -588,8 +594,14 @@
         let currentStudentNumber = '';
         let currentStudentName = '';
         let studentsData = [];
+        let gradesData = [];
+        let teachersData = [];
         let sortField = 'name';
         let sortAsc = true;
+        let gradesSortField = 'grade';
+        let gradesSortAsc = true;
+        let teachersSortField = 'staff';
+        let teachersSortAsc = true;
         let isSingleSchool = false;
 
         const SCHOOL_MAP = {
@@ -993,12 +1005,40 @@
             `;
         }
 
-        function renderGradesTable(grades) {
+        function renderGradesTable(grades, skipDataStore = false) {
+            if (!skipDataStore) {
+                gradesData = grades;
+            }
+
+            // Sort the data
+            const sorted = [...grades].sort((a, b) => {
+                let aVal = a[gradesSortField];
+                let bVal = b[gradesSortField];
+                if (gradesSortField === 'grade') {
+                    aVal = (aVal || '').toString().toLowerCase();
+                    bVal = (bVal || '').toString().toLowerCase();
+                    return gradesSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+                return gradesSortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('[data-sort-grades]').forEach(th => {
+                const arrow = th.querySelector('.grades-sort-arrow');
+                if (th.dataset.sortGrades === gradesSortField) {
+                    arrow.textContent = gradesSortAsc ? ' ▲' : ' ▼';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
             // Desktop table
             const tbody = document.getElementById('gradesTableBody');
             tbody.innerHTML = '';
 
-            grades.forEach(g => {
+            sorted.forEach(g => {
                 const tr = document.createElement('tr');
                 tr.className = 'table-row border-b border-slate-100';
                 tr.onclick = () => drillToGrade(currentSchool, g.grade);
@@ -1019,7 +1059,7 @@
             const mobileContainer = document.getElementById('gradesMobileCards');
             mobileContainer.innerHTML = '';
 
-            grades.forEach(g => {
+            sorted.forEach(g => {
                 const card = document.createElement('div');
                 card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
                 card.onclick = () => drillToGrade(currentSchool, g.grade);
@@ -1036,6 +1076,16 @@
                 `;
                 mobileContainer.appendChild(card);
             });
+        }
+
+        function sortGrades(field) {
+            if (gradesSortField === field) {
+                gradesSortAsc = !gradesSortAsc;
+            } else {
+                gradesSortField = field;
+                gradesSortAsc = field === 'grade'; // default asc for grade name, desc for numbers
+            }
+            renderGradesTable(gradesData, true);
         }
 
         // ============================================
@@ -1110,15 +1160,43 @@
             }
         }
 
-        function renderTeachersTable(teachers) {
+        function renderTeachersTable(teachers, skipDataStore = false) {
+            if (!skipDataStore) {
+                teachersData = teachers;
+            }
+
+            // Sort the data
+            const sorted = [...teachers].sort((a, b) => {
+                let aVal = a[teachersSortField];
+                let bVal = b[teachersSortField];
+                if (teachersSortField === 'staff') {
+                    aVal = (aVal || '').toLowerCase();
+                    bVal = (bVal || '').toLowerCase();
+                    return teachersSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                }
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+                return teachersSortAsc ? aVal - bVal : bVal - aVal;
+            });
+
+            // Update sort arrows
+            document.querySelectorAll('[data-sort-teachers]').forEach(th => {
+                const arrow = th.querySelector('.teachers-sort-arrow');
+                if (th.dataset.sortTeachers === teachersSortField) {
+                    arrow.textContent = teachersSortAsc ? ' ▲' : ' ▼';
+                } else {
+                    arrow.textContent = '';
+                }
+            });
+
             // Desktop table
             const tbody = document.getElementById('teachersTableBody');
             tbody.innerHTML = '';
 
-            if (teachers.length === 0) {
+            if (sorted.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-slate-500">No teacher data found</td></tr>';
             } else {
-                teachers.forEach(t => {
+                sorted.forEach(t => {
                     const tr = document.createElement('tr');
                     tr.className = 'table-row border-b border-slate-100';
                     tr.onclick = () => openTeacherModal(t.staff);
@@ -1140,10 +1218,10 @@
             const mobileContainer = document.getElementById('teachersMobileCards');
             mobileContainer.innerHTML = '';
 
-            if (teachers.length === 0) {
+            if (sorted.length === 0) {
                 mobileContainer.innerHTML = '<div class="text-center py-4 text-slate-500">No teacher data found</div>';
             } else {
-                teachers.forEach(t => {
+                sorted.forEach(t => {
                     const card = document.createElement('div');
                     card.className = 'bg-slate-50 rounded-lg p-4 cursor-pointer hover:bg-slate-100 transition-colors';
                     card.onclick = () => openTeacherModal(t.staff);
@@ -1162,6 +1240,16 @@
                     mobileContainer.appendChild(card);
                 });
             }
+        }
+
+        function sortTeachers(field) {
+            if (teachersSortField === field) {
+                teachersSortAsc = !teachersSortAsc;
+            } else {
+                teachersSortField = field;
+                teachersSortAsc = field === 'staff'; // default asc for name, desc for numbers
+            }
+            renderTeachersTable(teachersData, true);
         }
 
         // ============================================
