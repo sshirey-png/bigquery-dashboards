@@ -176,17 +176,24 @@ def get_salary_summary():
     }
 
     for row in results:
+        emp_count = row.employee_count or 1
+        current = row.current_total or 0
+        base = row.next_base_total or 0
+        opt1 = row.next_opt1_total or 0
+
         cat = {
             'category': row.salary_category,
             'employee_count': row.employee_count,
-            'current_total': row.current_total or 0,
-            'next_base_total': row.next_base_total or 0,
-            'next_opt1_total': row.next_opt1_total or 0,
+            'current_total': current,
+            'next_base_total': base,
+            'next_opt1_total': opt1,
             'next_opt2_total': row.next_opt2_total or 0,
             'avg_yoe': row.avg_yoe or 0,
             'above_20_years': row.above_20_years or 0,
             'above_15_years': row.above_15_years or 0,
-            'above_10_years': row.above_10_years or 0
+            'above_10_years': row.above_10_years or 0,
+            'avg_raise_base': round((base - current) / emp_count, 0) if emp_count else 0,
+            'avg_raise_opt1': round((opt1 - current) / emp_count, 0) if emp_count else 0,
         }
         categories.append(cat)
 
@@ -769,14 +776,19 @@ def custom_scenario():
     }
 
     for row in results:
+        emp_count = row.employee_count or 1
+        current = row.current_schedule_total or 0
+        next_custom = row.next_custom_total or 0
+
         cat = {
             'category': row.salary_category,
             'employee_count': row.employee_count,
-            'current_schedule_total': row.current_schedule_total or 0,
+            'current_schedule_total': current,
             'next_schedule_total': row.next_schedule_total or 0,
             'current_custom_total': row.current_custom_total or 0,
-            'next_custom_total': row.next_custom_total or 0,
-            'avg_yoe': row.avg_yoe or 0
+            'next_custom_total': next_custom,
+            'avg_yoe': row.avg_yoe or 0,
+            'avg_raise_custom': round((next_custom - current) / emp_count, 0) if emp_count else 0,
         }
         categories.append(cat)
 
