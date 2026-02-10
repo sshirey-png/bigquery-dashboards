@@ -1152,7 +1152,6 @@
                         }">${e.category.replace('_', ' ')}</span></td>
                         <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
                         <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
-                        <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
                         <td class="py-2 px-4 text-right text-green-600 font-semibold">${fmt.format(e.next_custom)}</td>
                     </tr>
                 `).join('');
