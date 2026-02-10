@@ -469,6 +469,61 @@ def get_suspensions_access(email):
         return None
 
 
+def get_salary_access(email):
+    """
+    Salary Projection Dashboard access - C-Team only.
+    Checks if user has 'Chief' or 'Ex. Dir' in their job title.
+    No admin bypass - strictly job title based.
+
+    Returns: dict with access details or None if no access.
+    """
+    if not email:
+        return None
+
+    if not bq_client:
+        return None
+
+    primary_email = resolve_email_alias(email)
+
+    try:
+        query = f"""
+            SELECT Job_Title
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            AND Employment_Status IN ('Active', 'Leave of absence')
+            LIMIT 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
+            ]
+        )
+        results = list(bq_client.query(query, job_config=job_config).result())
+
+        if not results:
+            return None
+
+        job_title = results[0].Job_Title or ''
+        job_title_lower = job_title.lower()
+
+        # Check for C-Team titles
+        if 'chief' in job_title_lower or 'ex. dir' in job_title_lower or 'ex dir' in job_title_lower:
+            logger.info(f"Salary access granted to {email} with title: {job_title}")
+            return {
+                'has_access': True,
+                'access_type': 'cteam',
+                'job_title': job_title,
+                'label': job_title
+            }
+
+        logger.info(f"Salary access denied to {email} with title: {job_title}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error checking salary access for {email}: {e}")
+        return None
+
+
 def compute_grade_band(grade_level_desc):
     """
     Map a Grade_Level_Desc value to a grade band bucket.

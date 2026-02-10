@@ -534,16 +534,36 @@
         const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
         const fmtK = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : `$${(n/1000).toFixed(0)}K`;
 
-        // Check auth on load
+        // Check auth and access on load
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const res = await fetch('/api/auth/status');
-                const data = await res.json();
-                if (data.authenticated) {
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('dashboardScreen').classList.remove('hidden');
-                    await loadSchools();
-                    await loadData();
+                const authRes = await fetch('/api/auth/status');
+                const authData = await authRes.json();
+                if (authData.authenticated) {
+                    // Check salary access (C-Team only)
+                    const accessRes = await fetch('/api/salary/access');
+                    const accessData = await accessRes.json();
+
+                    if (accessData.has_access) {
+                        document.getElementById('loginScreen').classList.add('hidden');
+                        document.getElementById('dashboardScreen').classList.remove('hidden');
+                        await loadSchools();
+                        await loadData();
+                    } else {
+                        // Show access denied message
+                        document.getElementById('loginScreen').innerHTML = `
+                            <div class="w-full max-w-md">
+                                <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+                                    <div class="flex items-center justify-center mb-6">
+                                        <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+                                    </div>
+                                    <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Access Restricted</h1>
+                                    <p class="text-slate-500 text-center mb-6">${accessData.reason || 'You do not have access to this dashboard.'}</p>
+                                    <a href="/" class="block text-center text-fls-orange hover:underline">Return to Home</a>
+                                </div>
+                            </div>
+                        `;
+                    }
                 }
             } catch (e) {
                 console.error('Auth check failed:', e);

@@ -4,6 +4,7 @@ Interactive salary scenario modeling for CEO presentations
 """
 
 from flask import Blueprint, request, jsonify, send_from_directory, session
+from functools import wraps
 from google.cloud import bigquery
 import os
 
@@ -14,7 +15,24 @@ client = bigquery.Client()
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import PROJECT_ID
-from auth import login_required
+from auth import login_required, get_salary_access
+
+
+def salary_access_required(f):
+    """Decorator to protect salary routes - requires C-Team access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+
+        email = session.get('user', {}).get('email', '')
+        access = get_salary_access(email)
+
+        if not access or not access.get('has_access'):
+            return jsonify({'error': 'Access denied. This dashboard is restricted to C-Team.'}), 403
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 HTML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -28,8 +46,30 @@ def serve_dashboard():
     return send_from_directory(HTML_DIR, 'salary-dashboard.html')
 
 
+@bp.route('/api/salary/access')
+def check_salary_access():
+    """Check if user has access to salary dashboard."""
+    if 'user' not in session:
+        return jsonify({'has_access': False, 'reason': 'Not authenticated'})
+
+    email = session.get('user', {}).get('email', '')
+    access = get_salary_access(email)
+
+    if access and access.get('has_access'):
+        return jsonify({
+            'has_access': True,
+            'access_type': access.get('access_type'),
+            'label': access.get('label')
+        })
+
+    return jsonify({
+        'has_access': False,
+        'reason': 'This dashboard is restricted to C-Team (Chief and Ex. Dir titles only).'
+    })
+
+
 @bp.route('/api/salary/summary')
-@login_required
+@salary_access_required
 def get_salary_summary():
     """
     Get salary projections with configurable parameters.
@@ -161,7 +201,7 @@ def get_salary_summary():
 
 
 @bp.route('/api/salary/distribution')
-@login_required
+@salary_access_required
 def get_yoe_distribution():
     """Get distribution of years of experience."""
     school = request.args.get('school', '')
@@ -205,7 +245,7 @@ def get_yoe_distribution():
 
 
 @bp.route('/api/salary/employees')
-@login_required
+@salary_access_required
 def get_employees():
     """Get employee list with salary details, including custom scenario if provided."""
     step_cap = int(request.args.get('step_cap', 30))
@@ -367,7 +407,7 @@ def get_employees():
 
 
 @bp.route('/api/salary/schools')
-@login_required
+@salary_access_required
 def get_schools():
     """Get list of schools for filter dropdown."""
     query = f"""
@@ -385,7 +425,7 @@ def get_schools():
 
 
 @bp.route('/api/salary/schedule')
-@login_required
+@salary_access_required
 def get_salary_schedule():
     """Get the full salary schedule for reference."""
     query = f"""
@@ -413,7 +453,7 @@ def get_salary_schedule():
 
 
 @bp.route('/api/salary/compare-caps')
-@login_required
+@salary_access_required
 def compare_step_caps():
     """Compare different step cap scenarios side by side."""
     caps = request.args.get('caps', '15,20,25,30').split(',')
@@ -497,7 +537,7 @@ def compare_step_caps():
 
 
 @bp.route('/api/salary/custom-scenario')
-@login_required
+@salary_access_required
 def custom_scenario():
     """
     Model custom salary scenarios with adjustable parameters.
