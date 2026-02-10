@@ -1174,7 +1174,7 @@
                 competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false, teacher50k: false },
                 hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5, teacher50k: false },
                 hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5, teacher50k: false },
-                teacher_50k: { rate: 0, para: 28850, asst: 31900, teacher: 50000, hybrid: false, teacher50k: true, paraSchedule: true, asstSchedule: true }
+                teacher_50k: { rate: 0, para: 28850, asst: 31900, teacher: 50000, hybrid: false, teacher50k: true, paraSchedule: true, asstSchedule: true, teacherSchedule: false }
             };
 
             const p = presets[preset];
@@ -1204,7 +1204,7 @@
             document.getElementById('baseAsstInput').value = p.asst;
             document.getElementById('baseTeacherInput').value = p.teacher;
 
-            // Handle schedule checkboxes for teacher_50k preset
+            // Handle schedule checkboxes for presets
             if (p.paraSchedule !== undefined) {
                 document.getElementById('paraUseSchedule').checked = p.paraSchedule;
                 toggleCategorySchedule('para');
@@ -1212,6 +1212,10 @@
             if (p.asstSchedule !== undefined) {
                 document.getElementById('asstUseSchedule').checked = p.asstSchedule;
                 toggleCategorySchedule('asst');
+            }
+            if (p.teacherSchedule !== undefined) {
+                document.getElementById('teacherUseSchedule').checked = p.teacherSchedule;
+                toggleCategorySchedule('teacher');
             }
 
             const hybridToggle = document.getElementById('teacherHybridToggle');
