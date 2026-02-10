@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Projection Dashboard | FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', system-ui, -apple-system, sans-serif; }
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #e47727;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        .table-row { transition: all 0.15s ease; }
+        .table-row:hover { background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        .slider-track {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            outline: none;
+        }
+        .slider-track::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #e47727;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-8">
+                <div class="flex items-center justify-center mb-6">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-16">
+                </div>
+                <h1 class="text-2xl font-semibold text-fls-navy text-center mb-2">Salary Projection Dashboard</h1>
+                <p class="text-slate-500 text-center mb-8">Compensation scenario modeling</p>
+                <div id="authLoading" class="hidden mb-6 text-center">
+                    <div class="loading mx-auto mb-3"></div>
+                    <p class="text-sm text-slate-500">Checking authentication...</p>
+                </div>
+                <a href="/login?next=/salary-dashboard" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign in with Google
+                </a>
+                <p class="text-xs text-slate-400 text-center mt-4">Only @firstlineschools.org accounts are allowed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center gap-4">
+                        <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                        <div>
+                            <h1 class="text-lg font-semibold text-white">Salary Projection Dashboard</h1>
+                            <p class="text-xs text-orange-200">Compensation Modeling</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="loadData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                        <a href="/logout" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Filter Bar -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                            Years of Experience Cap
+                            <span id="stepCapValue" class="ml-2 px-2 py-0.5 bg-fls-orange text-white rounded text-xs font-bold">30</span>
+                        </label>
+                        <input type="range" id="stepCapSlider" min="10" max="30" value="30"
+                               class="slider-track w-full" oninput="updateStepCap(this.value)">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">School</label>
+                        <select id="schoolFilter" onchange="loadData()"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fls-orange">
+                            <option value="">All Schools</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="showCapComparison()"
+                                class="px-4 py-2 bg-fls-navy text-white text-sm font-medium rounded-lg hover:bg-fls-blue transition-colors">
+                            Compare Caps
+                        </button>
+                    </div>
+                    <div>
+                        <button onclick="toggleCustomScenario()"
+                                class="px-4 py-2 bg-fls-orange text-white text-sm font-medium rounded-lg hover:bg-fls-orange-dark transition-colors">
+                            Custom Scenario
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Scenario Panel (Hidden by default) -->
+            <div id="customScenarioPanel" class="hidden bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-fls-navy">Custom Scenario Builder</h3>
+                    <button onclick="toggleCustomScenario()" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                            Annual Increase %
+                            <span id="annualRateValue" class="ml-1 text-fls-orange font-bold">2.0%</span>
+                        </label>
+                        <input type="range" id="annualRateSlider" min="0" max="5" step="0.5" value="2"
+                               class="slider-track w-full" oninput="updateAnnualRate(this.value)">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Para Base</label>
+                            <label class="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                                <input type="checkbox" id="paraUseSchedule" class="w-3 h-3" onchange="toggleCategorySchedule('para')">
+                                Schedule
+                            </label>
+                        </div>
+                        <input type="number" id="baseParaInput" value="28850" step="500"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Asst Teacher Base</label>
+                            <label class="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                                <input type="checkbox" id="asstUseSchedule" class="w-3 h-3" onchange="toggleCategorySchedule('asst')">
+                                Schedule
+                            </label>
+                        </div>
+                        <input type="number" id="baseAsstInput" value="31900" step="500"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Teacher Base</label>
+                            <label class="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                                <input type="checkbox" id="teacherUseSchedule" class="w-3 h-3" onchange="toggleCategorySchedule('teacher')">
+                                Schedule
+                            </label>
+                        </div>
+                        <input type="number" id="baseTeacherInput" value="48000" step="1000"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mb-4">
+                    <button id="clearCustomBtn" onclick="clearCustomScenario()"
+                            class="hidden px-4 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-300 transition-colors">
+                        Clear Custom
+                    </button>
+                    <button onclick="loadCustomScenario()"
+                            class="px-6 py-2 bg-fls-orange text-white text-sm font-medium rounded-lg hover:bg-fls-orange-dark transition-colors">
+                        Calculate Custom Scenario
+                    </button>
+                </div>
+
+                <!-- Hybrid Rate Toggle -->
+                <div class="border-t border-slate-200 pt-4">
+                    <div class="flex items-center gap-4 mb-3">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="teacherHybridToggle" class="sr-only peer" onchange="toggleHybridMode()">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-fls-orange rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fls-orange"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-700">Teacher Hybrid Rate</span>
+                        <span class="text-xs text-slate-500">(Optional - for teachers only)</span>
+                        <!-- Tooltip -->
+                        <div class="relative group">
+                            <svg class="w-4 h-4 text-slate-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-fls-navy text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-lg">
+                                <p class="font-semibold mb-1">How it works:</p>
+                                <p class="mb-2"><strong>OFF:</strong> All categories use the flat "Annual Increase %" rate uniformly.</p>
+                                <p><strong>ON:</strong> Teachers get a two-tier rate (higher early, lower later). Para and Asst Teacher still use the flat rate.</p>
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-fls-navy"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="hybridControls" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 rounded-lg p-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Early Rate % <span id="hybridRate1Value" class="text-fls-orange">2.0%</span>
+                            </label>
+                            <input type="range" id="hybridRate1Slider" min="0.5" max="4" step="0.25" value="2"
+                                   class="slider-track w-full" oninput="updateHybridRate1(this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Switch at Year <span id="hybridThresholdValue" class="text-fls-orange">10</span>
+                            </label>
+                            <input type="range" id="hybridThresholdSlider" min="5" max="20" step="1" value="10"
+                                   class="slider-track w-full" oninput="updateHybridThreshold(this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Later Rate % <span id="hybridRate2Value" class="text-fls-orange">1.5%</span>
+                            </label>
+                            <input type="range" id="hybridRate2Slider" min="0.5" max="3" step="0.25" value="1.5"
+                                   class="slider-track w-full" oninput="updateHybridRate2(this.value)">
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-white rounded-lg p-3 w-full border border-slate-200">
+                                <p class="text-xs text-slate-500">Formula:</p>
+                                <p id="hybridFormula" class="text-sm font-medium text-fls-navy">2.0% for yrs 0-10, then 1.5%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="border-t border-slate-200 pt-4 mt-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Quick Presets</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="preset-minimal" onclick="applyPreset('minimal')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">Flat 1%</button>
+                        <button id="preset-conservative" onclick="applyPreset('conservative')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">Flat 1.5%</button>
+                        <button id="preset-moderate" onclick="applyPreset('moderate')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">Flat 2%</button>
+                        <button id="preset-aggressive" onclick="applyPreset('aggressive')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">Flat 3%</button>
+                        <button id="preset-hybrid" onclick="applyPreset('hybrid')" class="preset-btn px-3 py-1.5 bg-fls-orange/10 text-fls-orange text-sm rounded-lg hover:bg-fls-orange/20 border-2 border-transparent">Hybrid 2%→1.5%</button>
+                        <button id="preset-hybrid_aggressive" onclick="applyPreset('hybrid_aggressive')" class="preset-btn px-3 py-1.5 bg-fls-orange/10 text-fls-orange text-sm rounded-lg hover:bg-fls-orange/20 border-2 border-transparent">Hybrid 2.5%→1.5%</button>
+                        <button id="preset-competitive" onclick="applyPreset('competitive')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">+$2K Base</button>
+                    </div>
+                </div>
+
+                <!-- Custom Results -->
+                <div id="customResults" class="hidden border-t border-slate-200 pt-4 mt-4">
+                    <h4 class="text-sm font-semibold text-fls-navy mb-3">Custom Scenario Results</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <p class="text-xs text-slate-500">Current (Schedule)</p>
+                            <p id="customCurrentSchedule" class="text-lg font-bold text-slate-800">--</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <p class="text-xs text-slate-500">Next Year (Schedule)</p>
+                            <p id="customNextSchedule" class="text-lg font-bold text-fls-blue">--</p>
+                        </div>
+                        <div class="bg-fls-orange/10 rounded-lg p-3 border border-fls-orange/30">
+                            <p class="text-xs text-slate-500">Next Year (Custom)</p>
+                            <p id="customNextCustom" class="text-lg font-bold text-fls-orange">--</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-3">
+                            <p class="text-xs text-slate-500">Custom vs Schedule</p>
+                            <p id="customDifference" class="text-lg font-bold">--</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-200">
+                                    <th class="text-left py-2 px-3 font-semibold text-slate-600">Category</th>
+                                    <th class="text-right py-2 px-3 font-semibold text-slate-600">Employees</th>
+                                    <th class="text-right py-2 px-3 font-semibold text-slate-600">Current</th>
+                                    <th class="text-right py-2 px-3 font-semibold text-slate-600">Next (Schedule)</th>
+                                    <th class="text-right py-2 px-3 font-semibold text-slate-600">Next (Custom)</th>
+                                    <th class="text-right py-2 px-3 font-semibold text-slate-600">Difference</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Options Legend -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+                <div class="flex flex-wrap items-start gap-6 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-slate-500"></span>
+                        <div>
+                            <span class="font-semibold text-slate-700">Current</span>
+                            <span class="text-slate-500 ml-1">= This year's salary on current schedule</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-fls-blue"></span>
+                        <div>
+                            <span class="font-semibold text-fls-blue">Base (+1 yr)</span>
+                            <span class="text-slate-500 ml-1">= Next year on current schedule (everyone moves up 1 step)</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-fls-orange"></span>
+                        <div>
+                            <span class="font-semibold text-fls-orange">Option 1</span>
+                            <span class="text-slate-500 ml-1">= Increased base + 2% annual raise (Teachers: 2% first 10 yrs, then 1.5%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Staff</p>
+                    <p id="statEmployees" class="text-2xl font-bold text-fls-navy mt-1">--</p>
+                    <p id="statAbove20" class="text-xs text-slate-500 mt-1">-- above 20 years</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Current Total</p>
+                    <p id="statCurrent" class="text-2xl font-bold text-slate-700 mt-1">--</p>
+                    <p class="text-xs text-slate-500 mt-1">This year</p>
+                </div>
+                <div class="bg-white rounded-xl border-l-4 border-l-fls-blue border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Base Scenario</p>
+                    <p id="statBase" class="text-2xl font-bold text-fls-blue mt-1">--</p>
+                    <p id="statBaseIncrease" class="text-xs text-green-600 mt-1">--</p>
+                </div>
+                <div class="bg-white rounded-xl border-l-4 border-l-fls-orange border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Option 1</p>
+                    <p id="statOpt1" class="text-2xl font-bold text-fls-orange mt-1">--</p>
+                    <p id="statOpt1Increase" class="text-xs text-fls-orange mt-1">--</p>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Cost Comparison Chart -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="text-lg font-semibold text-fls-navy mb-4">Scenario Cost Comparison</h3>
+                    <div class="h-72">
+                        <canvas id="costChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- YOE Distribution -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="text-lg font-semibold text-fls-navy mb-4">Years of Experience Distribution</h3>
+                    <div class="h-72">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 mt-4">
+                        <div class="bg-slate-50 rounded-lg p-2 text-center">
+                            <p class="text-xs text-slate-500">Above 10 yrs</p>
+                            <p id="above10Count" class="text-lg font-bold text-fls-navy">--</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-2 text-center">
+                            <p class="text-xs text-slate-500">Above 15 yrs</p>
+                            <p id="above15Count" class="text-lg font-bold text-fls-orange">--</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-2 text-center">
+                            <p class="text-xs text-slate-500">Above 20 yrs</p>
+                            <p id="above20Count" class="text-lg font-bold text-red-600">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Summary Table -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-fls-navy">Category Summary</h3>
+                    <button onclick="exportEmployees()" class="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">
+                        Export CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-slate-200">
+                                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg YOE</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Above 20</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base (+1 yr)</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Option 1</th>
+                                <th id="summaryLastCol" class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Opt 1 vs Base</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody"></tbody>
+                        <tfoot id="summaryTableFoot" class="bg-slate-100 font-semibold"></tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Employee List -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                    <h3 class="text-lg font-semibold text-fls-navy">Employee Details</h3>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Category Filter Buttons -->
+                        <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+                            <button onclick="setCategory('')" id="catAll" class="cat-btn px-3 py-1.5 text-sm font-medium bg-fls-navy text-white">All</button>
+                            <button onclick="setCategory('Paraprofessional')" id="catPara" class="cat-btn px-3 py-1.5 text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border-l border-slate-200">Para</button>
+                            <button onclick="setCategory('Asst_Teacher')" id="catAsst" class="cat-btn px-3 py-1.5 text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border-l border-slate-200">Asst Teacher</button>
+                            <button onclick="setCategory('Teacher')" id="catTeacher" class="cat-btn px-3 py-1.5 text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border-l border-slate-200">Teacher</button>
+                        </div>
+                        <input type="number" id="empMinYoe" placeholder="Min YOE"
+                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="loadEmployees()">
+                        <span class="text-slate-400">-</span>
+                        <input type="number" id="empMaxYoe" placeholder="Max YOE"
+                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="loadEmployees()">
+                        <button onclick="exportEmployees()" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200">
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto max-h-[500px]">
+                    <table class="w-full text-sm">
+                        <thead class="sticky top-0 bg-white z-10">
+                            <tr class="border-b-2 border-slate-200">
+                                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Name</th>
+                                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">School</th>
+                                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Job Title</th>
+                                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">YOE</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base</th>
+                                <th id="empLastCol" class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Option 1</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody"></tbody>
+                    </table>
+                </div>
+                <p id="employeeCount" class="text-xs text-slate-500 mt-3"></p>
+                <input type="hidden" id="empCategory" value="">
+            </div>
+        </main>
+    </div>
+
+    <!-- Cap Comparison Modal -->
+    <div id="capModal" class="fixed inset-0 modal-backdrop hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto">
+            <div class="p-6 border-b border-slate-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-fls-navy">Step Cap Comparison</h2>
+                    <button onclick="closeCapModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="h-64 mb-6">
+                    <canvas id="capCompareChart"></canvas>
+                </div>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-slate-200">
+                            <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Step Cap</th>
+                            <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
+                            <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Capped Staff</th>
+                            <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base Total</th>
+                            <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Option 1 Total</th>
+                            <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Savings vs 30</th>
+                        </tr>
+                    </thead>
+                    <tbody id="capCompareBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentStepCap = 30;
+        let summaryData = null;
+        let employeesData = [];
+        let charts = {};
+        let customScenarioActive = false;
+        let customScenarioData = null;
+        let customParams = {};
+
+        // Formatters
+        const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+        const fmtK = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : `$${(n/1000).toFixed(0)}K`;
+
+        // Check auth on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/auth/status');
+                const data = await res.json();
+                if (data.authenticated) {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboardScreen').classList.remove('hidden');
+                    await loadSchools();
+                    await loadData();
+                }
+            } catch (e) {
+                console.error('Auth check failed:', e);
+            }
+        });
+
+        async function loadSchools() {
+            try {
+                const res = await fetch('/api/salary/schools');
+                const data = await res.json();
+                const select = document.getElementById('schoolFilter');
+                data.schools.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Error loading schools:', e);
+            }
+        }
+
+        function updateStepCap(value) {
+            currentStepCap = parseInt(value);
+            document.getElementById('stepCapValue').textContent = value;
+            loadData();
+        }
+
+        async function loadData() {
+            const school = document.getElementById('schoolFilter').value;
+            const url = `/api/salary/summary?step_cap=${currentStepCap}&school=${encodeURIComponent(school)}`;
+
+            try {
+                const res = await fetch(url);
+                summaryData = await res.json();
+                updateStats();
+                loadDistribution();
+
+                // If custom scenario is active, reload custom data
+                if (customScenarioActive) {
+                    await loadCustomScenario();
+                } else {
+                    updateCharts();
+                    updateSummaryTable();
+                    loadEmployees();
+                }
+            } catch (e) {
+                console.error('Error loading data:', e);
+            }
+        }
+
+        function updateStats() {
+            const t = summaryData.totals;
+            document.getElementById('statEmployees').textContent = t.employee_count.toLocaleString();
+            document.getElementById('statAbove20').textContent = `${t.above_20_years} above 20 years`;
+            document.getElementById('statCurrent').textContent = fmtK(t.current_total);
+            document.getElementById('statBase').textContent = fmtK(t.next_base_total);
+            document.getElementById('statOpt1').textContent = fmtK(t.next_opt1_total);
+
+            const baseIncrease = t.next_base_total - t.current_total;
+            const opt1VsBase = t.next_opt1_total - t.next_base_total;
+
+            document.getElementById('statBaseIncrease').textContent = `+${fmtK(baseIncrease)} vs current`;
+            document.getElementById('statOpt1Increase').textContent = `+${fmtK(opt1VsBase)} vs base`;
+
+            document.getElementById('above10Count').textContent = t.above_10_years;
+            document.getElementById('above15Count').textContent = t.above_15_years;
+            document.getElementById('above20Count').textContent = t.above_20_years;
+        }
+
+        function updateCharts() {
+            // Cost comparison chart
+            if (charts.cost) charts.cost.destroy();
+            const costCtx = document.getElementById('costChart').getContext('2d');
+
+            charts.cost = new Chart(costCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current', 'Base (+1 yr)', 'Option 1'],
+                    datasets: [{
+                        label: 'Total Salary Cost',
+                        data: [
+                            summaryData.totals.current_total,
+                            summaryData.totals.next_base_total,
+                            summaryData.totals.next_opt1_total
+                        ],
+                        backgroundColor: ['#64748b', '#094aad', '#e47727'],
+                        borderColor: ['#475569', '#002f60', '#c9621c'],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: (ctx) => fmt.format(ctx.raw) }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#e2e8f0' },
+                            ticks: { callback: (v) => fmtK(v) }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadDistribution() {
+            const school = document.getElementById('schoolFilter').value;
+            const url = `/api/salary/distribution?school=${encodeURIComponent(school)}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (charts.distribution) charts.distribution.destroy();
+                const ctx = document.getElementById('distributionChart').getContext('2d');
+
+                const buckets = {};
+                for (let i = 0; i <= 30; i++) buckets[i] = 0;
+                data.distribution.forEach(d => {
+                    const yoe = Math.min(d.yoe, 30);
+                    buckets[yoe] = (buckets[yoe] || 0) + d.count;
+                });
+
+                charts.distribution = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(buckets),
+                        datasets: [{
+                            label: 'Employees',
+                            data: Object.values(buckets),
+                            backgroundColor: Object.keys(buckets).map(y =>
+                                parseInt(y) > currentStepCap ? '#ef4444' : '#094aad'
+                            ),
+                            borderColor: Object.keys(buckets).map(y =>
+                                parseInt(y) > currentStepCap ? '#dc2626' : '#002f60'
+                            ),
+                            borderWidth: 1,
+                            borderRadius: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: `Red = above ${currentStepCap} yr cap`,
+                                font: { size: 11 },
+                                color: '#64748b'
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Years of Experience', font: { size: 11 } },
+                                grid: { display: false }
+                            },
+                            y: {
+                                title: { display: true, text: 'Count', font: { size: 11 } },
+                                grid: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading distribution:', e);
+            }
+        }
+
+        function updateSummaryTable() {
+            const tbody = document.getElementById('summaryTableBody');
+            const tfoot = document.getElementById('summaryTableFoot');
+
+            tbody.innerHTML = summaryData.categories.map(c => `
+                <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
+                    <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
+                    <td class="py-3 px-4 text-right">${c.employee_count}</td>
+                    <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
+                    <td class="py-3 px-4 text-right ${c.above_20_years > 0 ? 'text-red-600 font-medium' : ''}">${c.above_20_years}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-orange">${fmt.format(c.next_opt1_total)}</td>
+                    <td class="py-3 px-4 text-right text-green-600 font-medium">+${fmt.format(c.next_opt1_total - c.next_base_total)}</td>
+                </tr>
+            `).join('');
+
+            const t = summaryData.totals;
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="py-3 px-4">TOTAL</td>
+                    <td class="py-3 px-4 text-right">${t.employee_count}</td>
+                    <td class="py-3 px-4 text-right">-</td>
+                    <td class="py-3 px-4 text-right">${t.above_20_years}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-orange">${fmt.format(t.next_opt1_total)}</td>
+                    <td class="py-3 px-4 text-right text-green-600">+${fmt.format(t.next_opt1_total - t.next_base_total)}</td>
+                </tr>
+            `;
+        }
+
+        async function loadEmployees() {
+            const school = document.getElementById('schoolFilter').value;
+            const category = document.getElementById('empCategory').value;
+            const minYoe = document.getElementById('empMinYoe').value;
+            const maxYoe = document.getElementById('empMaxYoe').value;
+
+            let url = `/api/salary/employees?step_cap=${currentStepCap}`;
+            if (school) url += `&school=${encodeURIComponent(school)}`;
+            if (category) url += `&category=${encodeURIComponent(category)}`;
+            if (minYoe) url += `&min_yoe=${minYoe}`;
+            if (maxYoe) url += `&max_yoe=${maxYoe}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                employeesData = data.employees;
+
+                const tbody = document.getElementById('employeeTableBody');
+                tbody.innerHTML = employeesData.map(e => `
+                    <tr class="table-row border-b border-slate-100">
+                        <td class="py-2 px-4 font-medium">${e.name}</td>
+                        <td class="py-2 px-4 text-slate-600">${e.school}</td>
+                        <td class="py-2 px-4 text-slate-600 text-xs">${e.job_title}</td>
+                        <td class="py-2 px-4"><span class="px-2 py-0.5 text-xs rounded-full ${
+                            e.category === 'Teacher' ? 'bg-blue-100 text-blue-700' :
+                            e.category === 'Asst_Teacher' ? 'bg-purple-100 text-purple-700' :
+                            'bg-amber-100 text-amber-700'
+                        }">${e.category.replace('_', ' ')}</span></td>
+                        <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
+                        <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
+                        <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
+                        <td class="py-2 px-4 text-right">${fmt.format(e.next_opt1)}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('employeeCount').textContent =
+                    `Showing ${employeesData.length} employees`;
+            } catch (e) {
+                console.error('Error loading employees:', e);
+            }
+        }
+
+        function filterByCategory(category) {
+            setCategory(category);
+        }
+
+        function setCategory(category) {
+            document.getElementById('empCategory').value = category;
+
+            // Update button styles
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('bg-fls-navy', 'text-white');
+                btn.classList.add('bg-slate-50', 'text-slate-600');
+            });
+
+            const activeBtn = category === '' ? 'catAll' :
+                              category === 'Paraprofessional' ? 'catPara' :
+                              category === 'Asst_Teacher' ? 'catAsst' : 'catTeacher';
+            const btn = document.getElementById(activeBtn);
+            btn.classList.remove('bg-slate-50', 'text-slate-600');
+            btn.classList.add('bg-fls-navy', 'text-white');
+
+            if (customScenarioActive) {
+                loadEmployeesWithCustom();
+            } else {
+                loadEmployees();
+            }
+        }
+
+        // Custom Scenario Functions
+        function toggleCustomScenario() {
+            document.getElementById('customScenarioPanel').classList.toggle('hidden');
+        }
+
+        function updateAnnualRate(value) {
+            document.getElementById('annualRateValue').textContent = `${value}%`;
+        }
+
+        const defaultBases = { para: 28850, asst: 31900, teacher: 48000 };
+
+        function toggleCategorySchedule(category) {
+            const inputId = category === 'para' ? 'baseParaInput' :
+                           category === 'asst' ? 'baseAsstInput' : 'baseTeacherInput';
+            const checkboxId = category + 'UseSchedule';
+            const input = document.getElementById(inputId);
+            const checkbox = document.getElementById(checkboxId);
+
+            if (checkbox.checked) {
+                input.value = defaultBases[category];
+                input.disabled = true;
+                input.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                input.disabled = false;
+                input.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function toggleHybridMode() {
+            const toggle = document.getElementById('teacherHybridToggle');
+            document.getElementById('hybridControls').classList.toggle('hidden', !toggle.checked);
+            if (toggle.checked) updateHybridFormula();
+        }
+
+        function updateHybridRate1(value) {
+            document.getElementById('hybridRate1Value').textContent = `${value}%`;
+            updateHybridFormula();
+        }
+
+        function updateHybridThreshold(value) {
+            document.getElementById('hybridThresholdValue').textContent = value;
+            updateHybridFormula();
+        }
+
+        function updateHybridRate2(value) {
+            document.getElementById('hybridRate2Value').textContent = `${value}%`;
+            updateHybridFormula();
+        }
+
+        function updateHybridFormula() {
+            const rate1 = document.getElementById('hybridRate1Slider').value;
+            const threshold = document.getElementById('hybridThresholdSlider').value;
+            const rate2 = document.getElementById('hybridRate2Slider').value;
+            document.getElementById('hybridFormula').textContent = `${rate1}% for yrs 0-${threshold}, then ${rate2}%`;
+        }
+
+        async function loadCustomScenario() {
+            const school = document.getElementById('schoolFilter').value;
+            const annualRate = document.getElementById('annualRateSlider').value;
+
+            // Check which categories should use schedule vs custom
+            const paraUseSchedule = document.getElementById('paraUseSchedule').checked;
+            const asstUseSchedule = document.getElementById('asstUseSchedule').checked;
+            const teacherUseSchedule = document.getElementById('teacherUseSchedule').checked;
+
+            const basePara = paraUseSchedule ? '' : document.getElementById('baseParaInput').value;
+            const baseAsst = asstUseSchedule ? '' : document.getElementById('baseAsstInput').value;
+            const baseTeacher = teacherUseSchedule ? '' : document.getElementById('baseTeacherInput').value;
+
+            const teacherHybrid = !teacherUseSchedule && document.getElementById('teacherHybridToggle').checked;
+            const hybridRate1 = document.getElementById('hybridRate1Slider').value;
+            const hybridThreshold = document.getElementById('hybridThresholdSlider').value;
+            const hybridRate2 = document.getElementById('hybridRate2Slider').value;
+
+            // Store custom params for reuse
+            customParams = {
+                annualRate, paraUseSchedule, asstUseSchedule, teacherUseSchedule,
+                basePara, baseAsst, baseTeacher, teacherHybrid,
+                hybridRate1, hybridThreshold, hybridRate2
+            };
+
+            let url = `/api/salary/custom-scenario?step_cap=${currentStepCap}`;
+            url += `&annual_increase=${annualRate}`;
+            url += `&para_schedule=${paraUseSchedule}&asst_schedule=${asstUseSchedule}&teacher_schedule=${teacherUseSchedule}`;
+            if (!paraUseSchedule) url += `&base_para=${basePara}`;
+            if (!asstUseSchedule) url += `&base_asst=${baseAsst}`;
+            if (!teacherUseSchedule) url += `&base_teacher=${baseTeacher}`;
+            if (teacherHybrid) {
+                url += `&teacher_hybrid=true&hybrid_rate_1=${hybridRate1}&hybrid_threshold=${hybridThreshold}&hybrid_rate_2=${hybridRate2}`;
+            }
+            if (school) url += `&school=${encodeURIComponent(school)}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                customScenarioActive = true;
+                customScenarioData = data;
+
+                document.getElementById('customResults').classList.remove('hidden');
+                document.getElementById('clearCustomBtn').classList.remove('hidden');
+
+                const t = data.totals;
+                document.getElementById('customCurrentSchedule').textContent = fmtK(t.current_schedule_total);
+                document.getElementById('customNextSchedule').textContent = fmtK(t.next_schedule_total);
+                document.getElementById('customNextCustom').textContent = fmtK(t.next_custom_total);
+
+                const diff = t.next_custom_total - t.next_schedule_total;
+                const diffEl = document.getElementById('customDifference');
+                diffEl.textContent = (diff >= 0 ? '+' : '') + fmtK(diff);
+                diffEl.className = `text-lg font-bold ${diff >= 0 ? 'text-red-600' : 'text-green-600'}`;
+
+                const tbody = document.getElementById('customTableBody');
+                tbody.innerHTML = data.categories.map(c => {
+                    const diff = c.next_custom_total - c.next_schedule_total;
+                    return `
+                        <tr class="border-b border-slate-100">
+                            <td class="py-2 px-3 font-medium">${c.category.replace('_', ' ')}</td>
+                            <td class="py-2 px-3 text-right">${c.employee_count}</td>
+                            <td class="py-2 px-3 text-right">${fmt.format(c.current_schedule_total)}</td>
+                            <td class="py-2 px-3 text-right">${fmt.format(c.next_schedule_total)}</td>
+                            <td class="py-2 px-3 text-right text-fls-orange font-medium">${fmt.format(c.next_custom_total)}</td>
+                            <td class="py-2 px-3 text-right ${diff >= 0 ? 'text-red-600' : 'text-green-600'}">${(diff >= 0 ? '+' : '') + fmt.format(diff)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const totalDiff = t.next_custom_total - t.next_schedule_total;
+                tbody.innerHTML += `
+                    <tr class="bg-slate-100 font-semibold">
+                        <td class="py-2 px-3">TOTAL</td>
+                        <td class="py-2 px-3 text-right">${t.employee_count}</td>
+                        <td class="py-2 px-3 text-right">${fmt.format(t.current_schedule_total)}</td>
+                        <td class="py-2 px-3 text-right">${fmt.format(t.next_schedule_total)}</td>
+                        <td class="py-2 px-3 text-right text-fls-orange">${fmt.format(t.next_custom_total)}</td>
+                        <td class="py-2 px-3 text-right ${totalDiff >= 0 ? 'text-red-600' : 'text-green-600'}">${(totalDiff >= 0 ? '+' : '') + fmt.format(totalDiff)}</td>
+                    </tr>
+                `;
+
+                // Update the main chart and tables with custom data
+                updateChartsWithCustom();
+                updateSummaryTableWithCustom();
+                loadEmployeesWithCustom();
+            } catch (e) {
+                console.error('Error loading custom scenario:', e);
+            }
+        }
+
+        function clearCustomScenario() {
+            customScenarioActive = false;
+            customScenarioData = null;
+            customParams = {};
+
+            document.getElementById('customResults').classList.add('hidden');
+            document.getElementById('clearCustomBtn').classList.add('hidden');
+
+            // Reset headers
+            document.getElementById('summaryLastCol').textContent = 'Opt 1 vs Base';
+            document.getElementById('summaryLastCol').classList.remove('text-green-600');
+            document.getElementById('empLastCol').textContent = 'Option 1';
+            document.getElementById('empLastCol').classList.remove('text-green-600');
+
+            // Clear preset highlights
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'ring-2', 'ring-offset-1');
+                btn.classList.add('border-transparent');
+            });
+            activePreset = null;
+
+            // Reload original data
+            updateCharts();
+            updateSummaryTable();
+            loadEmployees();
+        }
+
+        function updateChartsWithCustom() {
+            if (!customScenarioData) return;
+
+            if (charts.cost) charts.cost.destroy();
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            const t = customScenarioData.totals;
+
+            charts.cost = new Chart(costCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current', 'Base (+1 yr)', 'Option 1', 'Custom'],
+                    datasets: [{
+                        label: 'Total Salary Cost',
+                        data: [
+                            summaryData.totals.current_total,
+                            summaryData.totals.next_base_total,
+                            summaryData.totals.next_opt1_total,
+                            t.next_custom_total
+                        ],
+                        backgroundColor: ['#64748b', '#094aad', '#e47727', '#22c55e'],
+                        borderColor: ['#475569', '#002f60', '#c9621c', '#16a34a'],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: (ctx) => fmt.format(ctx.raw) }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#e2e8f0' },
+                            ticks: { callback: (v) => fmtK(v) }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSummaryTableWithCustom() {
+            if (!customScenarioData) return;
+
+            // Update header to show "Custom"
+            document.getElementById('summaryLastCol').textContent = 'Custom';
+            document.getElementById('summaryLastCol').classList.add('text-green-600');
+            document.getElementById('empLastCol').textContent = 'Custom';
+            document.getElementById('empLastCol').classList.add('text-green-600');
+
+            const tbody = document.getElementById('summaryTableBody');
+            const tfoot = document.getElementById('summaryTableFoot');
+
+            // Map custom data by category for lookup
+            const customByCategory = {};
+            customScenarioData.categories.forEach(c => {
+                customByCategory[c.category] = c;
+            });
+
+            tbody.innerHTML = summaryData.categories.map(c => {
+                const custom = customByCategory[c.category];
+                const customTotal = custom ? custom.next_custom_total : c.next_base_total;
+                const diff = customTotal - c.next_base_total;
+                return `
+                <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
+                    <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
+                    <td class="py-3 px-4 text-right">${c.employee_count}</td>
+                    <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
+                    <td class="py-3 px-4 text-right ${c.above_20_years > 0 ? 'text-red-600 font-medium' : ''}">${c.above_20_years}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-orange">${fmt.format(c.next_opt1_total)}</td>
+                    <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(customTotal)}</td>
+                </tr>
+            `}).join('');
+
+            const t = summaryData.totals;
+            const customTotal = customScenarioData.totals.next_custom_total;
+
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="py-3 px-4">TOTAL</td>
+                    <td class="py-3 px-4 text-right">${t.employee_count}</td>
+                    <td class="py-3 px-4 text-right">-</td>
+                    <td class="py-3 px-4 text-right">${t.above_20_years}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
+                    <td class="py-3 px-4 text-right text-fls-orange">${fmt.format(t.next_opt1_total)}</td>
+                    <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(customTotal)}</td>
+                </tr>
+            `;
+        }
+
+        async function loadEmployeesWithCustom() {
+            const school = document.getElementById('schoolFilter').value;
+            const category = document.getElementById('empCategory').value;
+            const minYoe = document.getElementById('empMinYoe').value;
+            const maxYoe = document.getElementById('empMaxYoe').value;
+
+            let url = `/api/salary/employees?step_cap=${currentStepCap}&custom_mode=true`;
+            url += `&annual_increase=${customParams.annualRate}`;
+            url += `&para_schedule=${customParams.paraUseSchedule}&asst_schedule=${customParams.asstUseSchedule}&teacher_schedule=${customParams.teacherUseSchedule}`;
+            if (!customParams.paraUseSchedule) url += `&base_para=${customParams.basePara}`;
+            if (!customParams.asstUseSchedule) url += `&base_asst=${customParams.baseAsst}`;
+            if (!customParams.teacherUseSchedule) url += `&base_teacher=${customParams.baseTeacher}`;
+            if (customParams.teacherHybrid) {
+                url += `&teacher_hybrid=true&hybrid_rate_1=${customParams.hybridRate1}&hybrid_threshold=${customParams.hybridThreshold}&hybrid_rate_2=${customParams.hybridRate2}`;
+            }
+            if (school) url += `&school=${encodeURIComponent(school)}`;
+            if (category) url += `&category=${encodeURIComponent(category)}`;
+            if (minYoe) url += `&min_yoe=${minYoe}`;
+            if (maxYoe) url += `&max_yoe=${maxYoe}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                employeesData = data.employees;
+
+                const tbody = document.getElementById('employeeTableBody');
+                tbody.innerHTML = employeesData.map(e => `
+                    <tr class="table-row border-b border-slate-100">
+                        <td class="py-2 px-4 font-medium">${e.name}</td>
+                        <td class="py-2 px-4 text-slate-600">${e.school}</td>
+                        <td class="py-2 px-4 text-slate-600 text-xs">${e.job_title}</td>
+                        <td class="py-2 px-4"><span class="px-2 py-0.5 text-xs rounded-full ${
+                            e.category === 'Teacher' ? 'bg-blue-100 text-blue-700' :
+                            e.category === 'Asst_Teacher' ? 'bg-purple-100 text-purple-700' :
+                            'bg-amber-100 text-amber-700'
+                        }">${e.category.replace('_', ' ')}</span></td>
+                        <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
+                        <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
+                        <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
+                        <td class="py-2 px-4 text-right text-green-600 font-semibold">${fmt.format(e.next_custom)}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('employeeCount').textContent =
+                    `Showing ${employeesData.length} employees (Custom Scenario)`;
+            } catch (e) {
+                console.error('Error loading employees with custom:', e);
+            }
+        }
+
+        let activePreset = null;
+
+        function applyPreset(preset) {
+            const presets = {
+                minimal: { rate: 1.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
+                conservative: { rate: 1.5, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
+                moderate: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
+                aggressive: { rate: 3.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
+                competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false },
+                hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5 },
+                hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5 }
+            };
+
+            const p = presets[preset];
+            if (!p) return;
+
+            // Clear all preset highlights
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'ring-2', 'ring-offset-1');
+                btn.classList.add('border-transparent');
+            });
+
+            // Highlight selected preset
+            activePreset = preset;
+            const btn = document.getElementById(`preset-${preset}`);
+            btn.classList.remove('border-transparent');
+            if (preset.includes('hybrid')) {
+                btn.classList.add('border-fls-orange', 'ring-2', 'ring-fls-orange', 'ring-offset-1');
+            } else {
+                btn.classList.add('border-fls-navy', 'ring-2', 'ring-fls-navy', 'ring-offset-1');
+            }
+
+            document.getElementById('annualRateSlider').value = p.rate;
+            document.getElementById('annualRateValue').textContent = `${p.rate}%`;
+            document.getElementById('baseParaInput').value = p.para;
+            document.getElementById('baseAsstInput').value = p.asst;
+            document.getElementById('baseTeacherInput').value = p.teacher;
+
+            const hybridToggle = document.getElementById('teacherHybridToggle');
+            hybridToggle.checked = p.hybrid;
+            document.getElementById('hybridControls').classList.toggle('hidden', !p.hybrid);
+
+            if (p.hybrid) {
+                document.getElementById('hybridRate1Slider').value = p.rate1;
+                document.getElementById('hybridRate1Value').textContent = `${p.rate1}%`;
+                document.getElementById('hybridThresholdSlider').value = p.threshold;
+                document.getElementById('hybridThresholdValue').textContent = p.threshold;
+                document.getElementById('hybridRate2Slider').value = p.rate2;
+                document.getElementById('hybridRate2Value').textContent = `${p.rate2}%`;
+                updateHybridFormula();
+            }
+
+            loadCustomScenario();
+        }
+
+        // Cap Comparison Modal
+        async function showCapComparison() {
+            const modal = document.getElementById('capModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const school = document.getElementById('schoolFilter').value;
+            const url = `/api/salary/compare-caps?caps=15,20,25,30&school=${encodeURIComponent(school)}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                const baseline = data.comparisons.find(c => c.step_cap === 30);
+
+                const tbody = document.getElementById('capCompareBody');
+                tbody.innerHTML = data.comparisons.map(c => {
+                    const savings = baseline.base_total - c.base_total;
+                    return `
+                        <tr class="border-b border-slate-100">
+                            <td class="py-3 px-4 font-medium">${c.step_cap} years</td>
+                            <td class="py-3 px-4 text-right">${c.employee_count}</td>
+                            <td class="py-3 px-4 text-right ${c.capped_count > 0 ? 'text-red-600 font-medium' : ''}">${c.capped_count}</td>
+                            <td class="py-3 px-4 text-right">${fmt.format(c.base_total)}</td>
+                            <td class="py-3 px-4 text-right">${fmt.format(c.opt1_total)}</td>
+                            <td class="py-3 px-4 text-right ${savings > 0 ? 'text-green-600 font-semibold' : ''}">${savings > 0 ? fmt.format(savings) : '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                if (charts.capCompare) charts.capCompare.destroy();
+                const ctx = document.getElementById('capCompareChart').getContext('2d');
+
+                charts.capCompare = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.comparisons.map(c => `${c.step_cap} yr cap`),
+                        datasets: [
+                            {
+                                label: 'Base Scenario',
+                                data: data.comparisons.map(c => c.base_total),
+                                backgroundColor: '#094aad',
+                                borderColor: '#002f60',
+                                borderWidth: 2,
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Option 1',
+                                data: data.comparisons.map(c => c.opt1_total),
+                                backgroundColor: '#e47727',
+                                borderColor: '#c9621c',
+                                borderWidth: 2,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt.format(ctx.raw)}` }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: { color: '#e2e8f0' },
+                                ticks: { callback: (v) => fmtK(v) }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading cap comparison:', e);
+            }
+        }
+
+        function closeCapModal() {
+            const modal = document.getElementById('capModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function exportEmployees() {
+            if (!employeesData.length) return;
+            let headers, rows;
+            if (customScenarioActive) {
+                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'Current', 'Base', 'Custom'];
+                rows = employeesData.map(e => [
+                    e.name, e.school, e.job_title, e.category, e.current_yoe,
+                    e.current_salary, e.next_base, e.next_custom
+                ]);
+            } else {
+                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'Current', 'Base', 'Option 1'];
+                rows = employeesData.map(e => [
+                    e.name, e.school, e.job_title, e.category, e.current_yoe,
+                    e.current_salary, e.next_base, e.next_opt1
+                ]);
+            }
+            const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const suffix = customScenarioActive ? '_custom' : '';
+            a.download = `salary_projections_${currentStepCap}yr_cap${suffix}.csv`;
+            a.click();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCapModal();
+        });
+    </script>
+</body>
+</html>

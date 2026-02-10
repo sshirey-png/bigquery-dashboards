@@ -25,6 +25,7 @@ COPY orgchart.html .
 COPY kickboard-dashboard.html .
 COPY staff-list-dashboard.html .
 COPY suspensions-dashboard.html .
+COPY salary-dashboard.html .
 
 # Cloud Run uses PORT environment variable
 ENV PORT=8080
