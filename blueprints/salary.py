@@ -39,6 +39,14 @@ HTML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STAFF_TABLE = f'{PROJECT_ID}.talent_grow_observations.staff_master_list_with_function'
 SALARY_SCHEDULE_TABLE = f'{PROJECT_ID}.Salary.salary_schedule'
 
+# Teacher $50K Schedule - specific step values (step 0-30)
+TEACHER_50K_SCHEDULE = [
+    50000, 51000, 53040, 53575, 54115, 58445, 59030, 59625, 60225, 62635,
+    63265, 63900, 64540, 65190, 65845, 66505, 67175, 67850, 68530, 69220,
+    69915, 70615, 71325, 72040, 72765, 73495, 74230, 74975, 75725, 76485,
+    77250
+]
+
 
 @bp.route('/salary-dashboard')
 def serve_dashboard():
@@ -274,6 +282,7 @@ def get_employees():
     hybrid_threshold = int(request.args.get('hybrid_threshold', 10))
     hybrid_rate_1 = float(request.args.get('hybrid_rate_1', 2.0))
     hybrid_rate_2 = float(request.args.get('hybrid_rate_2', 1.5))
+    teacher_50k = request.args.get('teacher_50k', 'false').lower() == 'true'
 
     conditions = ['Employment_Status IN ("Active", "Leave of absence")']
     if school:
@@ -282,7 +291,7 @@ def get_employees():
     where_clause = ' AND '.join(conditions)
 
     # Build custom salary formulas if in custom mode
-    if custom_mode and (annual_increase > 0 or teacher_hybrid):
+    if custom_mode and (annual_increase > 0 or teacher_hybrid or teacher_50k):
         base_para = float(base_para) if base_para else 28850
         base_asst = float(base_asst) if base_asst else 31900
         base_teacher = float(base_teacher) if base_teacher else 48000
@@ -305,6 +314,10 @@ def get_employees():
         # Teacher formula
         if teacher_schedule:
             teacher_next_formula = "next.teacher"
+        elif teacher_50k:
+            # Use the $50K schedule lookup table
+            schedule_cases = " ".join([f"WHEN s.next_year_step = {i} THEN {v}" for i, v in enumerate(TEACHER_50K_SCHEDULE)])
+            teacher_next_formula = f"CASE {schedule_cases} ELSE {TEACHER_50K_SCHEDULE[-1]} END"
         elif teacher_hybrid:
             teacher_next_formula = f"""
               CASE
@@ -584,6 +597,9 @@ def custom_scenario():
     hybrid_rate_1 = float(request.args.get('hybrid_rate_1', 2.0))
     hybrid_rate_2 = float(request.args.get('hybrid_rate_2', 1.5))
 
+    # Teacher $50K schedule option
+    teacher_50k = request.args.get('teacher_50k', 'false').lower() == 'true'
+
     school_filter = ""
     if school:
         school_filter = f'AND Location_Name = "{school}"'
@@ -592,7 +608,7 @@ def custom_scenario():
     any_custom = (not para_schedule or not asst_schedule or not teacher_schedule) and annual_increase > 0
 
     # If custom bases provided, calculate dynamically
-    if any_custom or teacher_hybrid:
+    if any_custom or teacher_hybrid or teacher_50k:
         # Use defaults from step 0 if not provided
         base_para = float(base_para) if base_para else 28850
         base_asst = float(base_asst) if base_asst else 31900
@@ -618,10 +634,16 @@ def custom_scenario():
             asst_current_formula = f"{base_asst} * POWER({rate}, s.capped_yoe)"
             asst_next_formula = f"{base_asst} * POWER({rate}, s.next_year_step)"
 
-        # Build teacher salary formula based on hybrid mode or schedule
+        # Build teacher salary formula based on hybrid mode, $50K schedule, or regular schedule
         if teacher_schedule:
             teacher_current_formula = "curr.teacher"
             teacher_next_formula = "next.teacher"
+        elif teacher_50k:
+            # Use the $50K schedule lookup table
+            schedule_cases_current = " ".join([f"WHEN s.capped_yoe = {i} THEN {v}" for i, v in enumerate(TEACHER_50K_SCHEDULE)])
+            schedule_cases_next = " ".join([f"WHEN s.next_year_step = {i} THEN {v}" for i, v in enumerate(TEACHER_50K_SCHEDULE)])
+            teacher_current_formula = f"CASE {schedule_cases_current} ELSE {TEACHER_50K_SCHEDULE[-1]} END"
+            teacher_next_formula = f"CASE {schedule_cases_next} ELSE {TEACHER_50K_SCHEDULE[-1]} END"
         elif teacher_hybrid:
             # Hybrid: 2% for first N years, then 1.5%
             # Formula: IF step <= threshold: base * rate1^step

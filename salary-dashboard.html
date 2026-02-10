@@ -291,6 +291,7 @@
                         <button id="preset-hybrid" onclick="applyPreset('hybrid')" class="preset-btn px-3 py-1.5 bg-fls-orange/10 text-fls-orange text-sm rounded-lg hover:bg-fls-orange/20 border-2 border-transparent">Hybrid 2%→1.5%</button>
                         <button id="preset-hybrid_aggressive" onclick="applyPreset('hybrid_aggressive')" class="preset-btn px-3 py-1.5 bg-fls-orange/10 text-fls-orange text-sm rounded-lg hover:bg-fls-orange/20 border-2 border-transparent">Hybrid 2.5%→1.5%</button>
                         <button id="preset-competitive" onclick="applyPreset('competitive')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">+$2K Base</button>
+                        <button id="preset-teacher_50k" onclick="applyPreset('teacher_50k')" class="preset-btn px-3 py-1.5 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200 border-2 border-transparent">Teacher $50K Schedule</button>
                     </div>
                 </div>
 
@@ -901,11 +902,14 @@
             const hybridThreshold = document.getElementById('hybridThresholdSlider').value;
             const hybridRate2 = document.getElementById('hybridRate2Slider').value;
 
+            // Check for teacher $50K schedule (set by preset)
+            const teacher50k = customParams.teacher50k || false;
+
             // Store custom params for reuse
             customParams = {
                 annualRate, paraUseSchedule, asstUseSchedule, teacherUseSchedule,
                 basePara, baseAsst, baseTeacher, teacherHybrid,
-                hybridRate1, hybridThreshold, hybridRate2
+                hybridRate1, hybridThreshold, hybridRate2, teacher50k
             };
 
             let url = `/api/salary/custom-scenario?step_cap=${currentStepCap}`;
@@ -914,7 +918,9 @@
             if (!paraUseSchedule) url += `&base_para=${basePara}`;
             if (!asstUseSchedule) url += `&base_asst=${baseAsst}`;
             if (!teacherUseSchedule) url += `&base_teacher=${baseTeacher}`;
-            if (teacherHybrid) {
+            if (teacher50k) {
+                url += `&teacher_50k=true`;
+            } else if (teacherHybrid) {
                 url += `&teacher_hybrid=true&hybrid_rate_1=${hybridRate1}&hybrid_threshold=${hybridThreshold}&hybrid_rate_2=${hybridRate2}`;
             }
             if (school) url += `&school=${encodeURIComponent(school)}`;
@@ -991,10 +997,18 @@
 
             // Clear preset highlights
             document.querySelectorAll('.preset-btn').forEach(btn => {
-                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'ring-2', 'ring-offset-1');
+                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'border-blue-500', 'ring-2', 'ring-offset-1');
                 btn.classList.add('border-transparent');
             });
             activePreset = null;
+
+            // Reset schedule checkboxes
+            document.getElementById('paraUseSchedule').checked = false;
+            document.getElementById('asstUseSchedule').checked = false;
+            document.getElementById('teacherUseSchedule').checked = false;
+            toggleCategorySchedule('para');
+            toggleCategorySchedule('asst');
+            toggleCategorySchedule('teacher');
 
             // Reload original data
             updateCharts();
@@ -1110,7 +1124,9 @@
             if (!customParams.paraUseSchedule) url += `&base_para=${customParams.basePara}`;
             if (!customParams.asstUseSchedule) url += `&base_asst=${customParams.baseAsst}`;
             if (!customParams.teacherUseSchedule) url += `&base_teacher=${customParams.baseTeacher}`;
-            if (customParams.teacherHybrid) {
+            if (customParams.teacher50k) {
+                url += `&teacher_50k=true`;
+            } else if (customParams.teacherHybrid) {
                 url += `&teacher_hybrid=true&hybrid_rate_1=${customParams.hybridRate1}&hybrid_threshold=${customParams.hybridThreshold}&hybrid_rate_2=${customParams.hybridRate2}`;
             }
             if (school) url += `&school=${encodeURIComponent(school)}`;
@@ -1152,13 +1168,14 @@
 
         function applyPreset(preset) {
             const presets = {
-                minimal: { rate: 1.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
-                conservative: { rate: 1.5, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
-                moderate: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
-                aggressive: { rate: 3.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false },
-                competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false },
-                hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5 },
-                hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5 }
+                minimal: { rate: 1.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
+                conservative: { rate: 1.5, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
+                moderate: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
+                aggressive: { rate: 3.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
+                competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false, teacher50k: false },
+                hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5, teacher50k: false },
+                hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5, teacher50k: false },
+                teacher_50k: { rate: 0, para: 28850, asst: 31900, teacher: 50000, hybrid: false, teacher50k: true, paraSchedule: true, asstSchedule: true }
             };
 
             const p = presets[preset];
@@ -1166,7 +1183,7 @@
 
             // Clear all preset highlights
             document.querySelectorAll('.preset-btn').forEach(btn => {
-                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'ring-2', 'ring-offset-1');
+                btn.classList.remove('border-fls-navy', 'border-fls-orange', 'border-blue-500', 'ring-2', 'ring-offset-1');
                 btn.classList.add('border-transparent');
             });
 
@@ -1174,7 +1191,9 @@
             activePreset = preset;
             const btn = document.getElementById(`preset-${preset}`);
             btn.classList.remove('border-transparent');
-            if (preset.includes('hybrid')) {
+            if (preset === 'teacher_50k') {
+                btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'ring-offset-1');
+            } else if (preset.includes('hybrid')) {
                 btn.classList.add('border-fls-orange', 'ring-2', 'ring-fls-orange', 'ring-offset-1');
             } else {
                 btn.classList.add('border-fls-navy', 'ring-2', 'ring-fls-navy', 'ring-offset-1');
@@ -1185,6 +1204,16 @@
             document.getElementById('baseParaInput').value = p.para;
             document.getElementById('baseAsstInput').value = p.asst;
             document.getElementById('baseTeacherInput').value = p.teacher;
+
+            // Handle schedule checkboxes for teacher_50k preset
+            if (p.paraSchedule !== undefined) {
+                document.getElementById('paraUseSchedule').checked = p.paraSchedule;
+                toggleCategorySchedule('para');
+            }
+            if (p.asstSchedule !== undefined) {
+                document.getElementById('asstUseSchedule').checked = p.asstSchedule;
+                toggleCategorySchedule('asst');
+            }
 
             const hybridToggle = document.getElementById('teacherHybridToggle');
             hybridToggle.checked = p.hybrid;
@@ -1199,6 +1228,9 @@
                 document.getElementById('hybridRate2Value').textContent = `${p.rate2}%`;
                 updateHybridFormula();
             }
+
+            // Store teacher50k flag for use in loadCustomScenario
+            customParams.teacher50k = p.teacher50k;
 
             loadCustomScenario();
         }
