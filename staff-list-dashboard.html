@@ -434,6 +434,7 @@ let tempColumns = [];
 
 // Column filter state: { columnKey: Set of selected values }
 let columnFilters = {};
+let openFilterDropdown = null; // Track which filter dropdown is open
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -544,27 +545,40 @@ function toggleHeaderFilter(columnKey, event) {
     });
 
     if (dropdown.classList.contains('hidden')) {
-        // Build dropdown content
-        const values = getColumnUniqueValues(columnKey);
-        const selected = columnFilters[columnKey] || new Set();
-
-        dropdown.innerHTML = `
-            <input type="text" class="filter-search" placeholder="Search..." oninput="filterDropdownSearch('${columnKey}', this.value)">
-            <div class="filter-options">
-                <label class="border-b border-slate-100 font-medium text-slate-600">
-                    <input type="checkbox" ${selected.size === 0 ? 'checked' : ''} onchange="headerFilterSelectAll('${columnKey}', this.checked)"> (All)
-                </label>
-                ${values.map(v => `
-                    <label data-value="${escHTML(String(v)).toLowerCase()}">
-                        <input type="checkbox" value="${escHTML(String(v))}" ${selected.has(v) ? 'checked' : ''} onchange="headerFilterToggle('${columnKey}', '${escHTML(String(v))}', this.checked)"> ${escHTML(String(v))}
-                    </label>
-                `).join('')}
-            </div>
-        `;
+        openFilterDropdown = columnKey; // Track open dropdown
+        buildFilterDropdown(columnKey);
         dropdown.classList.remove('hidden');
     } else {
+        openFilterDropdown = null;
         dropdown.classList.add('hidden');
     }
+}
+
+// Build/rebuild the filter dropdown content
+function buildFilterDropdown(columnKey) {
+    const dropdown = document.getElementById(`headerFilter_${columnKey}`);
+    if (!dropdown) return;
+
+    const values = getColumnUniqueValues(columnKey);
+    const selected = columnFilters[columnKey] || new Set();
+    const searchValue = dropdown.querySelector('.filter-search')?.value || '';
+
+    dropdown.innerHTML = `
+        <input type="text" class="filter-search" placeholder="Search..." value="${escHTML(searchValue)}" oninput="filterDropdownSearch('${columnKey}', this.value)">
+        <div class="filter-options">
+            <label class="border-b border-slate-100 font-medium text-slate-600">
+                <input type="checkbox" ${selected.size === 0 ? 'checked' : ''} onchange="headerFilterSelectAll('${columnKey}', this.checked)"> (All)
+            </label>
+            ${values.map(v => {
+                const strVal = String(v);
+                const hidden = searchValue && !strVal.toLowerCase().includes(searchValue.toLowerCase());
+                return `
+                <label data-value="${escHTML(strVal).toLowerCase()}" ${hidden ? 'style="display:none"' : ''}>
+                    <input type="checkbox" value="${escHTML(strVal)}" ${selected.has(v) || selected.has(strVal) ? 'checked' : ''} onchange="headerFilterToggle('${columnKey}', this.value, this.checked)"> ${escHTML(strVal)}
+                </label>
+            `}).join('')}
+        </div>
+    `;
 }
 
 // Search within dropdown
@@ -581,28 +595,62 @@ function filterDropdownSearch(columnKey, searchText) {
 function headerFilterSelectAll(columnKey, checked) {
     if (checked) {
         columnFilters[columnKey] = new Set();
-        document.querySelectorAll(`#headerFilter_${columnKey} input[type="checkbox"][value]`).forEach(cb => cb.checked = false);
     }
     currentPage = 1;
-    applyFilters();
-    renderTable(); // Re-render to update filter icon state
+    applyFiltersKeepDropdown();
 }
 
 // Toggle single value in header filter
 function headerFilterToggle(columnKey, value, checked) {
     if (!columnFilters[columnKey]) columnFilters[columnKey] = new Set();
 
-    const allCheckbox = document.querySelector(`#headerFilter_${columnKey} input[type="checkbox"]:not([value])`);
     if (checked) {
         columnFilters[columnKey].add(value);
-        if (allCheckbox) allCheckbox.checked = false;
     } else {
         columnFilters[columnKey].delete(value);
-        if (columnFilters[columnKey].size === 0 && allCheckbox) allCheckbox.checked = true;
     }
     currentPage = 1;
-    applyFilters();
-    renderTable(); // Re-render to update filter icon state
+    applyFiltersKeepDropdown();
+}
+
+// Apply filters but keep the dropdown open
+function applyFiltersKeepDropdown() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    filteredData = allData.filter(row => {
+        for (const [colKey, selectedValues] of Object.entries(columnFilters)) {
+            if (selectedValues.size > 0) {
+                const rowValue = row[colKey];
+                if (!selectedValues.has(rowValue) && !selectedValues.has(String(rowValue))) {
+                    return false;
+                }
+            }
+        }
+        if (search) {
+            const haystack = [
+                row.First_Name, row.Last_Name, row.Preferred_First_Name,
+                row.Email_Address, row.Job_Title, row.Job_Function, row.Location_Name,
+                row.Dept, row.Supervisor, row.Employee_Number
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (!haystack.includes(search)) return false;
+        }
+        return true;
+    });
+
+    if (sortColumn) sortData();
+    updateStats();
+    updateFilterBadges();
+
+    // Render table but preserve and reopen the dropdown
+    const wasOpen = openFilterDropdown;
+    renderTable();
+    if (wasOpen) {
+        const dropdown = document.getElementById(`headerFilter_${wasOpen}`);
+        if (dropdown) {
+            buildFilterDropdown(wasOpen);
+            dropdown.classList.remove('hidden');
+        }
+    }
 }
 
 // ========== FILTERING ==========
@@ -615,6 +663,7 @@ document.getElementById('searchInput').addEventListener('input', () => {
 // Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.header-filter')) {
+        openFilterDropdown = null;
         document.querySelectorAll('.header-filter-dropdown').forEach(d => d.classList.add('hidden'));
     }
 });
