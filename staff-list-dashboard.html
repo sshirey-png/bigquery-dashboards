@@ -613,7 +613,7 @@ function headerFilterToggle(columnKey, value, checked) {
     applyFiltersKeepDropdown();
 }
 
-// Apply filters but keep the dropdown open
+// Apply filters but keep the dropdown open and preserve scroll
 function applyFiltersKeepDropdown() {
     const search = document.getElementById('searchInput').value.toLowerCase().trim();
 
@@ -641,6 +641,9 @@ function applyFiltersKeepDropdown() {
     updateStats();
     updateFilterBadges();
 
+    // Save scroll position
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
     // Render table but preserve and reopen the dropdown
     const wasOpen = openFilterDropdown;
     renderTable();
@@ -651,6 +654,9 @@ function applyFiltersKeepDropdown() {
             dropdown.classList.remove('hidden');
         }
     }
+
+    // Restore scroll position
+    window.scrollTo(0, scrollTop);
 }
 
 // ========== FILTERING ==========
