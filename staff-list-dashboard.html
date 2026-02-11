@@ -671,6 +671,8 @@ function applyFiltersKeepDropdown() {
 
     // Save scroll position
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const tableWrapper = document.getElementById('tableWrapper');
+    const wrapperScrollTop = tableWrapper ? tableWrapper.scrollTop : 0;
 
     // Render table but preserve and reopen the dropdown
     const wasOpen = openFilterDropdown;
@@ -683,8 +685,11 @@ function applyFiltersKeepDropdown() {
         }
     }
 
-    // Restore scroll position
-    window.scrollTo(0, scrollTop);
+    // Restore scroll position after render completes
+    requestAnimationFrame(() => {
+        window.scrollTo(0, scrollTop);
+        if (tableWrapper) tableWrapper.scrollTop = wrapperScrollTop;
+    });
 }
 
 // ========== FILTERING ==========
