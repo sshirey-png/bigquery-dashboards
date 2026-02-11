@@ -1236,8 +1236,8 @@
                 return sortAsc ? aVal - bVal : bVal - aVal;
             });
 
-            // Update sort arrows
-            document.querySelectorAll('.sort-header').forEach(th => {
+            // Update sort arrows (only for students table - use [data-sort] to avoid selecting grades/behaviors headers)
+            document.querySelectorAll('[data-sort]').forEach(th => {
                 const arrow = th.querySelector('.sort-arrow');
                 if (th.dataset.sort === sortField) {
                     arrow.textContent = sortAsc ? ' \u25B2' : ' \u25BC';
