@@ -567,18 +567,28 @@ function toggleHeaderFilter(columnKey, event) {
     const dropdownId = `headerFilter_${columnKey}`;
     const dropdown = document.getElementById(dropdownId);
 
-    // Close all other dropdowns
+    // Close all other dropdowns and apply their filters
+    const wasOtherOpen = openFilterDropdown && openFilterDropdown !== columnKey;
     document.querySelectorAll('.header-filter-dropdown').forEach(d => {
         if (d.id !== dropdownId) d.classList.add('hidden');
     });
 
     if (dropdown.classList.contains('hidden')) {
-        openFilterDropdown = columnKey; // Track open dropdown
+        // Opening this dropdown
+        if (wasOtherOpen) {
+            // Apply filters from previously open dropdown first
+            currentPage = 1;
+            applyFilters();
+        }
+        openFilterDropdown = columnKey;
         buildFilterDropdown(columnKey);
         dropdown.classList.remove('hidden');
     } else {
+        // Closing this dropdown - apply filters
         openFilterDropdown = null;
         dropdown.classList.add('hidden');
+        currentPage = 1;
+        applyFilters();
     }
 }
 
@@ -624,8 +634,14 @@ function headerFilterSelectAll(columnKey, checked) {
     if (checked) {
         columnFilters[columnKey] = new Set();
     }
-    currentPage = 1;
-    applyFiltersKeepDropdown();
+    // Update the (All) checkbox visual state
+    const allCb = document.querySelector(`#headerFilter_${columnKey} input[type="checkbox"]:not([value])`);
+    if (allCb) allCb.checked = checked;
+    // Uncheck all value checkboxes if "All" is selected
+    if (checked) {
+        document.querySelectorAll(`#headerFilter_${columnKey} input[type="checkbox"][value]`).forEach(cb => cb.checked = false);
+    }
+    // Don't re-render yet - wait for dropdown close
 }
 
 // Toggle single value in header filter
@@ -637,8 +653,13 @@ function headerFilterToggle(columnKey, value, checked) {
     } else {
         columnFilters[columnKey].delete(value);
     }
-    currentPage = 1;
-    applyFiltersKeepDropdown();
+
+    // Update the (All) checkbox - uncheck if any value is selected
+    const allCb = document.querySelector(`#headerFilter_${columnKey} input[type="checkbox"]:not([value])`);
+    if (allCb) {
+        allCb.checked = columnFilters[columnKey].size === 0;
+    }
+    // Don't re-render yet - wait for dropdown close
 }
 
 // Apply filters but keep the dropdown open and preserve scroll
@@ -702,8 +723,13 @@ document.getElementById('searchInput').addEventListener('input', () => {
 // Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.header-filter')) {
-        openFilterDropdown = null;
-        document.querySelectorAll('.header-filter-dropdown').forEach(d => d.classList.add('hidden'));
+        if (openFilterDropdown) {
+            // Apply filters when closing dropdown
+            openFilterDropdown = null;
+            document.querySelectorAll('.header-filter-dropdown').forEach(d => d.classList.add('hidden'));
+            currentPage = 1;
+            applyFilters();
+        }
     }
     // Close email menus
     if (!e.target.closest('#emailMenu') && !e.target.closest('button[onclick*="toggleEmailMenu"]')) {
