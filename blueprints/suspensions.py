@@ -100,8 +100,8 @@ def suspensions_summary():
         base_conds.append("School_Short_Name = @school")
         params.append(bigquery.ScalarQueryParameter("school", "STRING", school))
     if grade:
-        base_conds.append("Grade_Level = @grade")
-        params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
+        base_conds.append("CAST(Grade_Level AS STRING) = @grade")
+        params.append(bigquery.ScalarQueryParameter("grade", "STRING", str(grade)))
 
     # Build ISS conditions with ISS column names
     iss_conds = list(base_conds)
@@ -443,8 +443,8 @@ def suspensions_students():
     params = list(acl_params) + [bigquery.ScalarQueryParameter("school", "STRING", school)]
 
     if grade:
-        base_conds.append("Grade_Level = @grade")
-        params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
+        base_conds.append("CAST(Grade_Level AS STRING) = @grade")
+        params.append(bigquery.ScalarQueryParameter("grade", "STRING", str(grade)))
 
     behavior = request.args.get('behavior', '')
     if behavior:

@@ -104,8 +104,8 @@ def kickboard_summary():
         conditions.append("School = @school")
         params.append(bigquery.ScalarQueryParameter("school", "STRING", school))
     if grade:
-        conditions.append("Grade_Level = @grade")
-        params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
+        conditions.append("CAST(Grade_Level AS STRING) = @grade")
+        params.append(bigquery.ScalarQueryParameter("grade", "STRING", str(grade)))
     if category:
         conditions.append("Category = @category")
         params.append(bigquery.ScalarQueryParameter("category", "STRING", category))
@@ -126,7 +126,7 @@ def kickboard_summary():
     if school:
         deposit_conditions.append("School = @school")
     if grade:
-        deposit_conditions.append("Grade_Level = @grade")
+        deposit_conditions.append("CAST(Grade_Level AS STRING) = @grade")
     if category:
         deposit_conditions.append("Category = @category")
     if date_from:
@@ -269,8 +269,8 @@ def kickboard_grades():
     params = [bigquery.ScalarQueryParameter("school", "STRING", school)] + list(acl_params)
 
     if grade:
-        conditions.append("Grade_Level = @grade")
-        params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
+        conditions.append("CAST(Grade_Level AS STRING) = @grade")
+        params.append(bigquery.ScalarQueryParameter("grade", "STRING", str(grade)))
     if category:
         conditions.append("Category = @category")
         params.append(bigquery.ScalarQueryParameter("category", "STRING", category))
@@ -372,8 +372,8 @@ def kickboard_teachers():
     params = [bigquery.ScalarQueryParameter("school", "STRING", school)] + list(acl_params)
 
     if grade:
-        conditions.append("Grade_Level = @grade")
-        params.append(bigquery.ScalarQueryParameter("grade", "INT64", int(grade)))
+        conditions.append("CAST(Grade_Level AS STRING) = @grade")
+        params.append(bigquery.ScalarQueryParameter("grade", "STRING", str(grade)))
     if category:
         conditions.append("Category = @category")
         params.append(bigquery.ScalarQueryParameter("category", "STRING", category))
@@ -474,10 +474,10 @@ def kickboard_students():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conditions = ["School = @school", "Grade_Level = @grade", "Staff != 'System Administrator'"] + acl_conds
+    conditions = ["School = @school", "CAST(Grade_Level AS STRING) = @grade", "Staff != 'System Administrator'"] + acl_conds
     params = [
         bigquery.ScalarQueryParameter("school", "STRING", school),
-        bigquery.ScalarQueryParameter("grade", "INT64", int(grade)),
+        bigquery.ScalarQueryParameter("grade", "STRING", str(grade)),
     ] + list(acl_params)
 
     if category:
