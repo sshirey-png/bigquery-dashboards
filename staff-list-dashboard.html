@@ -83,6 +83,13 @@
         /* Filter badge */
         .filter-badge { font-size:10px; min-width:18px; height:18px; line-height:18px; }
 
+        /* Multi-select dropdown */
+        .multi-select-btn { position: relative; }
+        .multi-select-dropdown { position: absolute; top: 100%; left: 0; margin-top: 4px; min-width: 200px; max-height: 280px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 100; }
+        .multi-select-dropdown label { display: flex; align-items: center; padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.875rem; }
+        .multi-select-dropdown label:hover { background: #f8fafc; }
+        .multi-select-dropdown input[type="checkbox"] { margin-right: 0.5rem; }
+
         /* Print styles */
         @media print {
             header, .no-print { display:none !important; }
@@ -198,22 +205,8 @@
                     <input type="text" id="searchInput" placeholder="Search by name, email, title…" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange/50 focus:border-fls-orange transition-all">
                 </div>
 
-                <!-- Filter Dropdowns -->
-                <select id="filterLocation" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
-                    <option value="">All Locations</option>
-                </select>
-                <select id="filterStatus" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
-                    <option value="">All Statuses</option>
-                </select>
-                <select id="filterDept" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
-                    <option value="">All Departments</option>
-                </select>
-                <select id="filterSupervisor" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
-                    <option value="">All Supervisors</option>
-                </select>
-                <select id="filterFunction" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50">
-                    <option value="">All Functions</option>
-                </select>
+                <!-- Dynamic Filter Dropdowns (based on visible columns) -->
+                <div id="dynamicFilters" class="contents"></div>
 
                 <!-- Actions -->
                 <button onclick="openColumnChooser()" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-fls-navy bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" title="Choose & reorder columns">
@@ -424,6 +417,15 @@ const ALL_COLUMNS = [
     { key: 'Termination_Date', label: 'Term Date',        default: false },
 ];
 
+// Column-to-filter mapping: which columns enable which filters
+const COLUMN_FILTERS = {
+    'Location_Name':     { id: 'filterLocation',   field: 'Location_Name',     label: 'Location',   allLabel: 'All Locations',   dataKey: 'locations' },
+    'Employment_Status': { id: 'filterStatus',     field: 'Employment_Status', label: 'Status',     allLabel: 'All Statuses',    dataKey: 'statuses' },
+    'Dept':              { id: 'filterDept',       field: 'Dept',              label: 'Department', allLabel: 'All Departments', dataKey: 'departments' },
+    'Supervisor':        { id: 'filterSupervisor', field: 'Supervisor',        label: 'Supervisor', allLabel: 'All Supervisors', dataKey: 'supervisors' },
+    'Job_Function':      { id: 'filterFunction',   field: 'Job_Function',      label: 'Function',   allLabel: 'All Functions',   dataKey: 'job_functions' },
+};
+
 // ========== STATE ==========
 let allData = [];
 let filteredData = [];
@@ -436,6 +438,10 @@ let selectedRows = new Set(); // Set of Employee_Number values that are checked
 
 // Temp state for column chooser
 let tempColumns = [];
+
+// Multi-select filter state: { filterId: Set of selected values }
+let filterSelections = {};
+let filterData = {}; // Stores available options for each filter (from API)
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -521,45 +527,136 @@ async function loadData() {
 }
 
 function populateFilterDropdowns(filters) {
-    populateSelect('filterLocation', filters.locations || [], 'All Locations');
-    populateSelect('filterStatus', filters.statuses || [], 'All Statuses');
-    populateSelect('filterDept', filters.departments || [], 'All Departments');
-    populateSelect('filterSupervisor', filters.supervisors || [], 'All Supervisors');
-    populateSelect('filterFunction', filters.job_functions || [], 'All Functions');
+    // Store filter data for dynamic rendering
+    filterData = filters;
+    // Initialize filter selections for each filter type
+    Object.values(COLUMN_FILTERS).forEach(f => {
+        if (!filterSelections[f.id]) filterSelections[f.id] = new Set();
+    });
+    // Render dynamic filters based on visible columns
+    renderDynamicFilters();
 }
 
-function populateSelect(id, values, allLabel) {
-    const sel = document.getElementById(id);
-    const current = sel.value;
-    sel.innerHTML = `<option value="">${allLabel}</option>`;
-    values.forEach(v => {
-        if (v) sel.innerHTML += `<option value="${escHTML(v)}">${escHTML(v)}</option>`;
+function renderDynamicFilters() {
+    const container = document.getElementById('dynamicFilters');
+    container.innerHTML = '';
+
+    // Find which filters should be shown based on visible columns
+    const activeFilters = [];
+    visibleColumns.forEach(colKey => {
+        if (COLUMN_FILTERS[colKey]) {
+            activeFilters.push(COLUMN_FILTERS[colKey]);
+        }
     });
-    sel.value = current; // preserve selection on refresh
+
+    // Render each active filter as a multi-select dropdown
+    activeFilters.forEach(filter => {
+        const values = filterData[filter.dataKey] || [];
+        const selected = filterSelections[filter.id] || new Set();
+        const btnText = selected.size === 0 ? filter.allLabel :
+                        selected.size === 1 ? [...selected][0] :
+                        `${selected.size} selected`;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'relative multi-select-btn';
+        wrapper.innerHTML = `
+            <button type="button" onclick="toggleFilterDropdown('${filter.id}')"
+                    class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-fls-orange/50 flex items-center gap-2 min-w-[140px] justify-between">
+                <span id="${filter.id}BtnText">${escHTML(btnText)}</span>
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div id="${filter.id}Dropdown" class="hidden multi-select-dropdown">
+                <label class="border-b border-slate-100">
+                    <input type="checkbox" ${selected.size === 0 ? 'checked' : ''} onchange="filterSelectAll('${filter.id}', this.checked)"> ${filter.allLabel}
+                </label>
+                ${values.filter(v => v).map(v => `
+                    <label>
+                        <input type="checkbox" value="${escHTML(v)}" ${selected.has(v) ? 'checked' : ''} onchange="filterToggleValue('${filter.id}', '${escHTML(v)}', this.checked)"> ${escHTML(v)}
+                    </label>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(wrapper);
+    });
+}
+
+function toggleFilterDropdown(filterId) {
+    // Close all other dropdowns first
+    document.querySelectorAll('.multi-select-dropdown').forEach(d => {
+        if (d.id !== filterId + 'Dropdown') d.classList.add('hidden');
+    });
+    document.getElementById(filterId + 'Dropdown').classList.toggle('hidden');
+}
+
+function filterSelectAll(filterId, checked) {
+    if (checked) {
+        filterSelections[filterId] = new Set();
+        // Uncheck all value checkboxes
+        document.querySelectorAll(`#${filterId}Dropdown input[type="checkbox"][value]`).forEach(cb => cb.checked = false);
+    }
+    updateFilterButtonText(filterId);
+    currentPage = 1;
+    applyFilters();
+}
+
+function filterToggleValue(filterId, value, checked) {
+    const allCheckbox = document.querySelector(`#${filterId}Dropdown input[type="checkbox"]:not([value])`);
+    if (checked) {
+        filterSelections[filterId].add(value);
+        if (allCheckbox) allCheckbox.checked = false;
+    } else {
+        filterSelections[filterId].delete(value);
+        // If nothing selected, check "All"
+        if (filterSelections[filterId].size === 0 && allCheckbox) allCheckbox.checked = true;
+    }
+    updateFilterButtonText(filterId);
+    currentPage = 1;
+    applyFilters();
+}
+
+function updateFilterButtonText(filterId) {
+    const filter = Object.values(COLUMN_FILTERS).find(f => f.id === filterId);
+    if (!filter) return;
+    const selected = filterSelections[filterId] || new Set();
+    const btn = document.getElementById(filterId + 'BtnText');
+    if (btn) {
+        btn.textContent = selected.size === 0 ? filter.allLabel :
+                          selected.size === 1 ? [...selected][0] :
+                          `${selected.size} selected`;
+    }
 }
 
 // ========== FILTERING ==========
-['searchInput','filterLocation','filterStatus','filterDept','filterSupervisor','filterFunction'].forEach(id => {
-    document.getElementById(id).addEventListener(id === 'searchInput' ? 'input' : 'change', () => {
-        currentPage = 1;
-        applyFilters();
-    });
+// Search input listener
+document.getElementById('searchInput').addEventListener('input', () => {
+    currentPage = 1;
+    applyFilters();
+});
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select-btn')) {
+        document.querySelectorAll('.multi-select-dropdown').forEach(d => d.classList.add('hidden'));
+    }
 });
 
 function applyFilters() {
     const search = document.getElementById('searchInput').value.toLowerCase().trim();
-    const loc    = document.getElementById('filterLocation').value;
-    const status = document.getElementById('filterStatus').value;
-    const dept   = document.getElementById('filterDept').value;
-    const sup    = document.getElementById('filterSupervisor').value;
-    const func   = document.getElementById('filterFunction').value;
+
+    // Get selected values for each filter (multi-select)
+    const locSet    = filterSelections['filterLocation'] || new Set();
+    const statusSet = filterSelections['filterStatus'] || new Set();
+    const deptSet   = filterSelections['filterDept'] || new Set();
+    const supSet    = filterSelections['filterSupervisor'] || new Set();
+    const funcSet   = filterSelections['filterFunction'] || new Set();
 
     filteredData = allData.filter(row => {
-        if (loc && row.Location_Name !== loc) return false;
-        if (status && row.Employment_Status !== status) return false;
-        if (dept && row.Dept !== dept) return false;
-        if (sup && row.Supervisor !== sup) return false;
-        if (func && row.Job_Function !== func) return false;
+        // Multi-select: if set has values, row must match one of them
+        if (locSet.size > 0 && !locSet.has(row.Location_Name)) return false;
+        if (statusSet.size > 0 && !statusSet.has(row.Employment_Status)) return false;
+        if (deptSet.size > 0 && !deptSet.has(row.Dept)) return false;
+        if (supSet.size > 0 && !supSet.has(row.Supervisor)) return false;
+        if (funcSet.size > 0 && !funcSet.has(row.Job_Function)) return false;
         if (search) {
             const haystack = [
                 row.First_Name, row.Last_Name, row.Preferred_First_Name,
@@ -582,16 +679,15 @@ function applyFilters() {
 
 function clearAllFilters() {
     document.getElementById('searchInput').value = '';
-    document.getElementById('filterLocation').value = '';
-    document.getElementById('filterStatus').value = '';
-    document.getElementById('filterDept').value = '';
-    document.getElementById('filterSupervisor').value = '';
-    document.getElementById('filterFunction').value = '';
+    // Clear all multi-select filter selections
+    Object.keys(filterSelections).forEach(key => filterSelections[key] = new Set());
     sortColumn = null;
     sortDirection = 'asc';
     currentPage = 1;
     selectedRows.clear();
     document.getElementById('selectionBanner').classList.add('hidden');
+    // Re-render filters to reset UI
+    renderDynamicFilters();
     applyFilters();
 }
 
@@ -599,18 +695,24 @@ function updateFilterBadges() {
     const container = document.getElementById('filterBadges');
     const badges = [];
     const search = document.getElementById('searchInput').value;
-    const loc = document.getElementById('filterLocation').value;
-    const status = document.getElementById('filterStatus').value;
-    const dept = document.getElementById('filterDept').value;
-    const sup = document.getElementById('filterSupervisor').value;
-    const func = document.getElementById('filterFunction').value;
 
     if (search) badges.push({ label: `Search: "${search}"`, clear: () => { document.getElementById('searchInput').value = ''; }});
-    if (loc)    badges.push({ label: `Location: ${loc}`, clear: () => { document.getElementById('filterLocation').value = ''; }});
-    if (status) badges.push({ label: `Status: ${status}`, clear: () => { document.getElementById('filterStatus').value = ''; }});
-    if (dept)   badges.push({ label: `Dept: ${dept}`, clear: () => { document.getElementById('filterDept').value = ''; }});
-    if (sup)    badges.push({ label: `Supervisor: ${sup}`, clear: () => { document.getElementById('filterSupervisor').value = ''; }});
-    if (func)   badges.push({ label: `Function: ${func}`, clear: () => { document.getElementById('filterFunction').value = ''; }});
+
+    // Build badges for multi-select filters
+    Object.entries(COLUMN_FILTERS).forEach(([colKey, filter]) => {
+        const selected = filterSelections[filter.id];
+        if (selected && selected.size > 0) {
+            const values = [...selected];
+            const label = values.length === 1 ? `${filter.label}: ${values[0]}` : `${filter.label}: ${values.length} selected`;
+            badges.push({
+                label: label,
+                clear: () => {
+                    filterSelections[filter.id] = new Set();
+                    renderDynamicFilters();
+                }
+            });
+        }
+    });
 
     if (!badges.length) {
         container.classList.add('hidden');
@@ -834,6 +936,8 @@ function applyColumns() {
     visibleColumns = [...tempColumns];
     localStorage.setItem('stafflist_columns', JSON.stringify(visibleColumns));
     closeColumnChooser();
+    // Re-render filters based on new visible columns
+    renderDynamicFilters();
     renderTable();
 }
 
