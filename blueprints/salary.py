@@ -9,12 +9,12 @@ from google.cloud import bigquery
 import os
 
 bp = Blueprint('salary', __name__)
-client = bigquery.Client()
 
 # Import config
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import PROJECT_ID
+from extensions import bq_client
 from auth import login_required, get_salary_access
 
 
@@ -114,9 +114,11 @@ def get_salary_summary():
     yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
     yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
 
+    query_params = []
     school_filter = ""
     if school:
-        school_filter = f'AND Location_Name = "{school}"'
+        school_filter = "AND Location_Name = @school_param"
+        query_params.append(bigquery.ScalarQueryParameter("school_param", "STRING", school))
 
     # Build YOS bonus formulas
     if yos_bonus:
@@ -231,7 +233,8 @@ def get_salary_summary():
     ORDER BY salary_category
     """
 
-    results = client.query(query).result()
+    job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+    results = bq_client.query(query, job_config=job_config).result()
 
     categories = []
     totals = {
@@ -298,9 +301,11 @@ def get_yoe_distribution():
     school = request.args.get('school', '')
     category = request.args.get('category', '')
 
+    query_params = []
     conditions = ['Employment_Status IN ("Active", "Leave of absence")']
     if school:
-        conditions.append(f'Location_Name = "{school}"')
+        conditions.append('Location_Name = @school_param')
+        query_params.append(bigquery.ScalarQueryParameter("school_param", "STRING", school))
 
     category_case = """
     CASE
@@ -312,7 +317,8 @@ def get_yoe_distribution():
     """
 
     if category:
-        conditions.append(f'({category_case}) = "{category}"')
+        conditions.append(f'({category_case}) = @category_param')
+        query_params.append(bigquery.ScalarQueryParameter("category_param", "STRING", category))
     else:
         conditions.append(f'({category_case}) IS NOT NULL')
 
@@ -328,7 +334,8 @@ def get_yoe_distribution():
     ORDER BY yoe
     """
 
-    results = client.query(query).result()
+    job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+    results = bq_client.query(query, job_config=job_config).result()
 
     distribution = [{'yoe': row.yoe, 'count': row.count} for row in results]
 
@@ -370,9 +377,11 @@ def get_employees():
     yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
     yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
 
+    query_params = []
     conditions = ['Employment_Status IN ("Active", "Leave of absence")']
     if school:
-        conditions.append(f'Location_Name = "{school}"')
+        conditions.append('Location_Name = @school_param')
+        query_params.append(bigquery.ScalarQueryParameter("school_param", "STRING", school))
 
     where_clause = ' AND '.join(conditions)
 
@@ -447,6 +456,16 @@ def get_employees():
     else:
         custom_salary_select = "NULL as next_custom, 0 as yos_bonus, FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,"
 
+    # Build extra filters with parameterized queries
+    extra_filters = ""
+    if category:
+        extra_filters += "\n    AND salary_category = @category_param"
+        query_params.append(bigquery.ScalarQueryParameter("category_param", "STRING", category))
+    if min_yoe:
+        extra_filters += f"\n    AND current_yoe >= {int(min_yoe)}"
+    if max_yoe:
+        extra_filters += f"\n    AND current_yoe <= {int(max_yoe)}"
+
     query = f"""
     WITH
     staff AS (
@@ -506,13 +525,12 @@ def get_employees():
     SELECT *
     FROM projections
     WHERE 1=1
-    {"AND salary_category = '" + category + "'" if category else ""}
-    {"AND current_yoe >= " + min_yoe if min_yoe else ""}
-    {"AND current_yoe <= " + max_yoe if max_yoe else ""}
+    {extra_filters}
     ORDER BY salary_category, current_yoe DESC, name
     """
 
-    results = client.query(query).result()
+    job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+    results = bq_client.query(query, job_config=job_config).result()
 
     employees = []
     for row in results:
@@ -550,7 +568,7 @@ def get_schools():
     ORDER BY school
     """
 
-    results = client.query(query).result()
+    results = bq_client.query(query).result()
     schools = [row.school for row in results]
 
     return jsonify({'schools': schools})
@@ -566,7 +584,7 @@ def get_salary_schedule():
     ORDER BY step
     """
 
-    results = client.query(query).result()
+    results = bq_client.query(query).result()
 
     schedule = []
     for row in results:
@@ -591,9 +609,11 @@ def compare_step_caps():
     caps = request.args.get('caps', '15,20,25,30').split(',')
     school = request.args.get('school', '')
 
+    query_params = []
     school_filter = ""
     if school:
-        school_filter = f'AND Location_Name = "{school}"'
+        school_filter = "AND Location_Name = @school_param"
+        query_params.append(bigquery.ScalarQueryParameter("school_param", "STRING", school))
 
     results = []
 
@@ -655,7 +675,8 @@ def compare_step_caps():
         FROM projections
         """
 
-        row = list(client.query(query).result())[0]
+        job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+        row = list(bq_client.query(query, job_config=job_config).result())[0]
 
         results.append({
             'step_cap': cap,
@@ -730,9 +751,11 @@ def custom_scenario():
     yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
     yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
 
+    query_params = []
     school_filter = ""
     if school:
-        school_filter = f'AND Location_Name = "{school}"'
+        school_filter = "AND Location_Name = @school_param"
+        query_params.append(bigquery.ScalarQueryParameter("school_param", "STRING", school))
 
     # Build YOS bonus formula if enabled
     if yos_bonus:
@@ -952,7 +975,8 @@ def custom_scenario():
         ORDER BY salary_category
         """
 
-    results = client.query(query).result()
+    job_config = bigquery.QueryJobConfig(query_parameters=query_params)
+    results = bq_client.query(query, job_config=job_config).result()
 
     categories = []
     totals = {

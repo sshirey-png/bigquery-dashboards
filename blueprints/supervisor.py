@@ -16,6 +16,35 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('supervisor', __name__)
 
+
+def _check_employee_access(email):
+    """Check if the current user has permission to view data for the given employee email."""
+    user = session.get('user', {})
+    if user.get('is_admin'):
+        return True
+
+    accessible_supervisors = user.get('accessible_supervisors', [])
+    if not accessible_supervisors:
+        return False
+
+    # Check if the employee's supervisor is in the user's accessible list
+    query = f"""
+        SELECT Supervisor_Name
+        FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
+        WHERE LOWER(Email_Address) = LOWER(@email)
+        LIMIT 1
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("email", "STRING", email)
+        ]
+    )
+    results = list(bq_client.query(query, job_config=job_config).result())
+    if not results:
+        return False
+
+    return results[0].Supervisor_Name in accessible_supervisors
+
 HTML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -264,6 +293,9 @@ def get_itr_detail(email):
     Get Intent to Return detail for a specific employee by email.
     Returns detailed ITR survey response data from native table.
     """
+    if not _check_employee_access(email):
+        return jsonify({'error': 'Access denied. You do not have permission to view this employee.'}), 403
+
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -422,6 +454,9 @@ def get_cert_detail(email):
     Get detailed certification information for a specific staff member.
     Returns all certifications (active and expired) for the popup modal.
     """
+    if not _check_employee_access(email):
+        return jsonify({'error': 'Access denied. You do not have permission to view this employee.'}), 403
+
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
@@ -520,6 +555,9 @@ def get_observations(email):
     Get observation history for a specific staff member.
     Returns a list of observations with details.
     """
+    if not _check_employee_access(email):
+        return jsonify({'error': 'Access denied. You do not have permission to view this employee.'}), 403
+
     if not bq_client:
         return jsonify({'error': 'BigQuery client not initialized'}), 500
 
