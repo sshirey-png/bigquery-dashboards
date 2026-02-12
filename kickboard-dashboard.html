@@ -664,8 +664,7 @@
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('dashboardScreen').classList.remove('hidden');
 
-                    // Set default date range: school year start to today
-                    document.getElementById('dateFromFilter').value = '2025-08-04';
+                    // Set default date range (will be updated with actual school start after filter load)
                     document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
 
                     // Load filter options, then data
@@ -698,6 +697,8 @@
         // ============================================
         // Filter Management
         // ============================================
+        let schoolStartDate = null;
+
         async function loadFilterOptions() {
             try {
                 const response = await fetch('/api/kickboard/filter-options');
@@ -707,6 +708,12 @@
                 populateSelect('gradeFilter', data.grades || [], 'All Grades');
                 populateSelect('categoryFilter', data.categories || [], 'All Categories');
                 populateSelect('staffFilter', data.staff || [], 'All Staff');
+
+                // Set date_from to actual first day of school from ADA table
+                if (data.school_start_date) {
+                    schoolStartDate = data.school_start_date;
+                    document.getElementById('dateFromFilter').value = schoolStartDate;
+                }
             } catch (error) {
                 console.error('Error loading filter options:', error);
             }
@@ -763,8 +770,10 @@
             document.getElementById('gradeFilter').value = '';
             document.getElementById('categoryFilter').value = '';
             document.getElementById('staffFilter').value = '';
-            // Reset dates to school year defaults
-            document.getElementById('dateFromFilter').value = '2025-08-04';
+            // Reset dates to school year defaults (first day of school to today)
+            if (schoolStartDate) {
+                document.getElementById('dateFromFilter').value = schoolStartDate;
+            }
             document.getElementById('dateToFilter').value = new Date().toISOString().split('T')[0];
             applyFilters();
         }

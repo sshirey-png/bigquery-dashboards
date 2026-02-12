@@ -5,6 +5,7 @@ No project imports — this is a leaf module.
 
 import os
 import secrets
+from datetime import date, datetime
 
 # Flask session
 SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
@@ -77,8 +78,13 @@ KICKBOARD_SCHOOL_LEADER_TITLES = [
     'director of culture',
 ]
 
-# Current school year start date (first day of school)
-CURRENT_SY_START = '2025-08-04'
+# Dynamic school year calculation (July 1 - June 30)
+# If today is before July, we're in last year's school year; otherwise this year's
+_today = date.today()
+_sy_year = _today.year if _today.month >= 7 else _today.year - 1
+CURRENT_SY_START = f'{_sy_year}-07-01'
+CURRENT_SY_LABEL = f'{_sy_year}-{str(_sy_year + 1)[-2:]}'
+CURRENT_SY_END = f'{_sy_year + 1}-06-30'
 
 # Suspensions Dashboard
 SUSPENSIONS_ISS_TABLE = 'fls-data-warehouse.suspensions.iss_rates_25_26'

@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, jsonify, request, session, send_from_directory
 from google.cloud import bigquery
 
-from config import PROJECT_ID, DATASET_ID, TABLE_ID, ADMIN_EMAILS
+from config import PROJECT_ID, DATASET_ID, TABLE_ID, ADMIN_EMAILS, CURRENT_SY_START
 from extensions import bq_client
 from auth import login_required
 
@@ -106,7 +106,7 @@ def get_all_staff():
                     FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
                     WHERE teacher_internal_id IS NOT NULL
                     AND is_published = 1
-                    AND observed_at >= '2025-07-01'
+                    AND observed_at >= '{CURRENT_SY_START}'
                 )
                 GROUP BY teacher_internal_id
             )
@@ -295,7 +295,7 @@ def get_all_action_steps():
                 ON LOWER(a.user_email) = LOWER(s.Email_Address)
             WHERE s.Employment_Status IN ('Active', 'Leave of absence')
             AND a.archivedAt IS NULL
-            AND a.created >= '2025-07-01'
+            AND a.created >= '{CURRENT_SY_START}'
             ORDER BY a.user_email, a.created DESC
         """
 

@@ -5,7 +5,7 @@ import logging
 from flask import Blueprint, jsonify, request, session, send_from_directory
 from google.cloud import bigquery
 
-from config import PROJECT_ID, DATASET_ID, TABLE_ID
+from config import PROJECT_ID, DATASET_ID, TABLE_ID, CURRENT_SY_START
 from extensions import bq_client
 from auth import (
     login_required, is_admin,
@@ -196,7 +196,7 @@ def get_staff(supervisor_name):
                     FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
                     WHERE teacher_internal_id IS NOT NULL
                     AND is_published = 1
-                    AND observed_at >= '2025-07-01'
+                    AND observed_at >= '{CURRENT_SY_START}'
                 )
                 GROUP BY teacher_internal_id
             )
@@ -574,7 +574,7 @@ def get_observations(email):
                 MAX(observation_link) as observation_link
             FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
             WHERE LOWER(teacher_email) = LOWER(@email)
-            AND observed_at >= '2025-07-01'
+            AND observed_at >= '{CURRENT_SY_START}'
             AND is_published = 1
             GROUP BY teacher_email, teacher_name, observer_name, observation_type, observed_at, rubric_form, school_when_observed
             ORDER BY observed_at DESC
@@ -649,7 +649,7 @@ def get_action_steps(supervisor_name):
                 ON LOWER(a.user_email) = LOWER(s.Email_Address)
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor_name
             AND a.archivedAt IS NULL
-            AND a.created >= '2025-07-01'
+            AND a.created >= '{CURRENT_SY_START}'
             ORDER BY a.user_email, a.created DESC
         """
 
@@ -730,7 +730,7 @@ def get_meetings(supervisor_name):
                     LOWER(TRIM(pe)) as staff_email
                 FROM `{PROJECT_ID}.{DATASET_ID}.ldg_meetings` m,
                 UNNEST(SPLIT(m.participant_emails, ', ')) as pe
-                WHERE m.created >= '2025-07-01'
+                WHERE m.created >= '{CURRENT_SY_START}'
                 AND m.archivedAt IS NULL
             )
             SELECT

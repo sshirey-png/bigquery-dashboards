@@ -9,7 +9,7 @@ from config import (
     KICKBOARD_TABLE, KICKBOARD_ACL_TABLE, KICKBOARD_SCHOOL_MAP,
     CURRENT_SY_START, PROJECT_ID, DATASET_ID,
 )
-from extensions import bq_client
+from extensions import bq_client, get_school_start_date
 from auth import login_required, is_admin, get_kickboard_access, resolve_email_alias
 
 logger = logging.getLogger(__name__)
@@ -789,6 +789,8 @@ def kickboard_filter_options():
                     options['categories'].append(row.value)
                 elif row.option_type == 'staff':
                     options['staff'].append(row.value)
+
+        options['school_start_date'] = get_school_start_date()
 
         logger.info(f"Kickboard filter options: {len(options['schools'])} schools, {len(options['grades'])} grades")
         return jsonify(options)

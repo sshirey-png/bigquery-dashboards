@@ -40,8 +40,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# School year filter - only sync records created on or after this date
-SCHOOL_YEAR_START = datetime(2025, 7, 1, tzinfo=timezone.utc)
+# Dynamic school year filter (July 1 - June 30)
+_today = datetime.now(timezone.utc)
+_sy_year = _today.year if _today.month >= 7 else _today.year - 1
+SCHOOL_YEAR_START = datetime(_sy_year, 7, 1, tzinfo=timezone.utc)
 
 # BigQuery table schema
 TABLE_SCHEMA = [

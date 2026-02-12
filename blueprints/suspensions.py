@@ -9,7 +9,7 @@ from config import (
     SUSPENSIONS_ISS_TABLE, SUSPENSIONS_OSS_TABLE, SUSPENSIONS_SCHOOL_MAP,
     CURRENT_SY_START,
 )
-from extensions import bq_client
+from extensions import bq_client, get_school_start_date
 from auth import login_required, get_suspensions_access
 
 logger = logging.getLogger(__name__)
@@ -715,6 +715,8 @@ def suspensions_filter_options():
                     options['grades'].append(row.value)
                 elif row.option_type == 'behavior':
                     options['behaviors'].append(row.value)
+
+        options['school_start_date'] = get_school_start_date()
 
         return jsonify(options)
 
