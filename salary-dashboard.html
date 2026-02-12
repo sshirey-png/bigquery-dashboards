@@ -146,6 +146,20 @@
                             <option value="">All Schools</option>
                         </select>
                     </div>
+                    <!-- YOS Bonus Toggle for Base Comparison -->
+                    <div class="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="baseYosBonusToggle" class="sr-only peer" onchange="toggleBaseYosBonus()">
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                        <span class="text-xs font-medium text-slate-700">YOS Bonus</span>
+                        <button onclick="toggleYosSettings()" class="text-green-600 hover:text-green-800" title="Adjust YOS tiers">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <div>
                         <button onclick="showCapComparison()"
                                 class="px-4 py-2 bg-fls-navy text-white text-sm font-medium rounded-lg hover:bg-fls-blue transition-colors">
@@ -158,6 +172,40 @@
                             Custom Scenario
                         </button>
                     </div>
+                </div>
+                <!-- YOS Settings Panel (hidden by default) -->
+                <div id="yosSettingsPanel" class="hidden mt-4 pt-4 border-t border-slate-200">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Years of Service Bonus Tiers</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tier 1: Years 1-<span id="baseYosTier1MaxLabel">2</span></label>
+                            <div class="flex gap-2">
+                                <input type="number" id="baseYosTier1Max" value="2" min="1" max="30" class="w-14 px-2 py-1 bg-white border border-slate-200 rounded text-sm" onchange="updateBaseYosTierLabel()">
+                                <input type="number" id="baseYosTier1Amount" value="500" step="50" class="flex-1 px-2 py-1 bg-white border border-slate-200 rounded text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tier 2: Years <span id="baseYosTier2MinLabel">3</span>-<span id="baseYosTier2MaxLabel">5</span></label>
+                            <div class="flex gap-2">
+                                <input type="number" id="baseYosTier2Max" value="5" min="1" max="30" class="w-14 px-2 py-1 bg-white border border-slate-200 rounded text-sm" onchange="updateBaseYosTierLabel()">
+                                <input type="number" id="baseYosTier2Amount" value="750" step="50" class="flex-1 px-2 py-1 bg-white border border-slate-200 rounded text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tier 3: Years <span id="baseYosTier3MinLabel">6</span>-<span id="baseYosTier3MaxLabel">9</span></label>
+                            <div class="flex gap-2">
+                                <input type="number" id="baseYosTier3Max" value="9" min="1" max="30" class="w-14 px-2 py-1 bg-white border border-slate-200 rounded text-sm" onchange="updateBaseYosTierLabel()">
+                                <input type="number" id="baseYosTier3Amount" value="1000" step="50" class="flex-1 px-2 py-1 bg-white border border-slate-200 rounded text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tier 4: Years <span id="baseYosTier4MinLabel">10</span>+</label>
+                            <input type="number" id="baseYosTier4Amount" value="1250" step="50" class="w-full px-2 py-1 bg-white border border-slate-200 rounded text-sm" placeholder="$">
+                        </div>
+                    </div>
+                    <button onclick="loadData()" class="mt-3 px-4 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors">
+                        Apply Changes
+                    </button>
                 </div>
             </div>
 
@@ -226,8 +274,68 @@
                     </button>
                 </div>
 
-                <!-- Hybrid Rate Toggle -->
+                <!-- Years of Service Bonus -->
                 <div class="border-t border-slate-200 pt-4">
+                    <div class="flex items-center gap-4 mb-3">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="yosBonusToggle" class="sr-only peer" onchange="toggleYosBonus()">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-fls-orange rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-700">Years of Service Bonus</span>
+                        <span class="text-xs text-slate-500">(Based on hire date, not experience)</span>
+                        <!-- Tooltip -->
+                        <div class="relative group">
+                            <svg class="w-4 h-4 text-slate-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-fls-navy text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-lg">
+                                <p class="font-semibold mb-1">Years of Service Bonus:</p>
+                                <p class="mb-2">Adds a bonus based on years since hire date. Adjust the tier breakpoints and amounts below.</p>
+                                <p><strong>Default tiers:</strong><br>Yr 0: $0 | Yrs 1-2: $500 | Yrs 3-5: $750 | Yrs 6-9: $1,000 | Yrs 10+: $1,250</p>
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-fls-navy"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="yosBonusControls" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 bg-green-50 rounded-lg p-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Tier 1: Years 1-<span id="yosTier1MaxLabel">2</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="yosTier1Max" value="2" min="1" max="30" class="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" onchange="updateYosTierLabel(1)">
+                                <input type="number" id="yosTier1Amount" value="500" step="50" class="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Tier 2: Years <span id="yosTier2MinLabel">3</span>-<span id="yosTier2MaxLabel">5</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="yosTier2Max" value="5" min="1" max="30" class="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" onchange="updateYosTierLabel(2)">
+                                <input type="number" id="yosTier2Amount" value="750" step="50" class="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Tier 3: Years <span id="yosTier3MinLabel">6</span>-<span id="yosTier3MaxLabel">9</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="yosTier3Max" value="9" min="1" max="30" class="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" onchange="updateYosTierLabel(3)">
+                                <input type="number" id="yosTier3Amount" value="1000" step="50" class="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="$">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Tier 4: Years <span id="yosTier4MinLabel">10</span>+
+                            </label>
+                            <input type="number" id="yosTier4Amount" value="1250" step="50" class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="$">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hybrid Rate Toggle -->
+                <div class="border-t border-slate-200 pt-4 mt-4">
                     <div class="flex items-center gap-4 mb-3">
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="teacherHybridToggle" class="sr-only peer" onchange="toggleHybridMode()">
@@ -292,13 +400,14 @@
                         <button id="preset-hybrid_aggressive" onclick="applyPreset('hybrid_aggressive')" class="preset-btn px-3 py-1.5 bg-fls-orange/10 text-fls-orange text-sm rounded-lg hover:bg-fls-orange/20 border-2 border-transparent">Hybrid 2.5%→1.5%</button>
                         <button id="preset-competitive" onclick="applyPreset('competitive')" class="preset-btn px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 border-2 border-transparent">+$2K Base</button>
                         <button id="preset-teacher_50k" onclick="applyPreset('teacher_50k')" class="preset-btn px-3 py-1.5 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200 border-2 border-transparent">Teacher $50K Schedule</button>
+                        <button id="preset-yos_bonus" onclick="applyPreset('yos_bonus')" class="preset-btn px-3 py-1.5 bg-green-100 text-green-700 text-sm rounded-lg hover:bg-green-200 border-2 border-transparent">+ YOS Bonus</button>
                     </div>
                 </div>
 
                 <!-- Custom Results -->
                 <div id="customResults" class="hidden border-t border-slate-200 pt-4 mt-4">
                     <h4 class="text-sm font-semibold text-fls-navy mb-3">Custom Scenario Results</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                         <div class="bg-slate-50 rounded-lg p-3">
                             <p class="text-xs text-slate-500">Current (Schedule)</p>
                             <p id="customCurrentSchedule" class="text-lg font-bold text-slate-800">--</p>
@@ -310,6 +419,10 @@
                         <div class="bg-fls-orange/10 rounded-lg p-3 border border-fls-orange/30">
                             <p class="text-xs text-slate-500">Next Year (Custom)</p>
                             <p id="customNextCustom" class="text-lg font-bold text-fls-orange">--</p>
+                        </div>
+                        <div id="yosBonusTotalBox" class="hidden bg-green-50 rounded-lg p-3 border border-green-200">
+                            <p class="text-xs text-slate-500">YOS Bonus Total</p>
+                            <p id="customYosBonus" class="text-lg font-bold text-green-600">--</p>
                         </div>
                         <div class="bg-slate-50 rounded-lg p-3">
                             <p class="text-xs text-slate-500">Custom vs Schedule</p>
@@ -362,7 +475,7 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
+            <div id="statsCardsContainer" class="grid grid-cols-3 gap-4 mb-6">
                 <div class="bg-white rounded-xl border border-slate-200 p-4">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Staff</p>
                     <p id="statEmployees" class="text-2xl font-bold text-fls-navy mt-1">--</p>
@@ -377,6 +490,29 @@
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Base Scenario</p>
                     <p id="statBase" class="text-2xl font-bold text-fls-blue mt-1">--</p>
                     <p id="statBaseIncrease" class="text-xs text-green-600 mt-1">--</p>
+                </div>
+            </div>
+            <!-- YOS Bonus Stats (shown when YOS enabled) -->
+            <div id="yosBonusStats" class="hidden grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Staff</p>
+                    <p id="statEmployees2" class="text-2xl font-bold text-fls-navy mt-1">--</p>
+                    <p id="statAbove202" class="text-xs text-slate-500 mt-1">-- above 20 years</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Current Total</p>
+                    <p id="statCurrent2" class="text-2xl font-bold text-slate-700 mt-1">--</p>
+                    <p class="text-xs text-slate-500 mt-1">This year (schedule)</p>
+                </div>
+                <div class="bg-white rounded-xl border-l-4 border-l-fls-blue border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Base Scenario</p>
+                    <p id="statBase2" class="text-2xl font-bold text-fls-blue mt-1">--</p>
+                    <p id="statBaseIncrease2" class="text-xs text-fls-blue mt-1">--</p>
+                </div>
+                <div class="bg-white rounded-xl border-l-4 border-l-green-500 border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Base + YOS Bonus</p>
+                    <p id="statBaseWithYos" class="text-2xl font-bold text-green-600 mt-1">--</p>
+                    <p id="statYosBonus" class="text-xs text-green-600 mt-1">-- YOS bonus</p>
                 </div>
             </div>
 
@@ -521,6 +657,7 @@
         let customScenarioActive = false;
         let customScenarioData = null;
         let customParams = {};
+        let baseYosBonusEnabled = false;
 
         // Formatters
         const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -584,9 +721,43 @@
             loadData();
         }
 
+        function toggleBaseYosBonus() {
+            baseYosBonusEnabled = document.getElementById('baseYosBonusToggle').checked;
+            loadData();
+        }
+
+        function toggleYosSettings() {
+            document.getElementById('yosSettingsPanel').classList.toggle('hidden');
+        }
+
+        function updateBaseYosTierLabel() {
+            const tier1Max = parseInt(document.getElementById('baseYosTier1Max').value) || 2;
+            const tier2Max = parseInt(document.getElementById('baseYosTier2Max').value) || 5;
+            const tier3Max = parseInt(document.getElementById('baseYosTier3Max').value) || 9;
+
+            document.getElementById('baseYosTier1MaxLabel').textContent = tier1Max;
+            document.getElementById('baseYosTier2MinLabel').textContent = tier1Max + 1;
+            document.getElementById('baseYosTier2MaxLabel').textContent = tier2Max;
+            document.getElementById('baseYosTier3MinLabel').textContent = tier2Max + 1;
+            document.getElementById('baseYosTier3MaxLabel').textContent = tier3Max;
+            document.getElementById('baseYosTier4MinLabel').textContent = tier3Max + 1;
+        }
+
         async function loadData() {
             const school = document.getElementById('schoolFilter').value;
-            const url = `/api/salary/summary?step_cap=${currentStepCap}&school=${encodeURIComponent(school)}`;
+            let url = `/api/salary/summary?step_cap=${currentStepCap}&school=${encodeURIComponent(school)}`;
+
+            // Add YOS bonus params if enabled
+            if (baseYosBonusEnabled) {
+                url += `&yos_bonus=true`;
+                url += `&yos_tier1_max=${document.getElementById('baseYosTier1Max').value}`;
+                url += `&yos_tier1_amount=${document.getElementById('baseYosTier1Amount').value}`;
+                url += `&yos_tier2_max=${document.getElementById('baseYosTier2Max').value}`;
+                url += `&yos_tier2_amount=${document.getElementById('baseYosTier2Amount').value}`;
+                url += `&yos_tier3_max=${document.getElementById('baseYosTier3Max').value}`;
+                url += `&yos_tier3_amount=${document.getElementById('baseYosTier3Amount').value}`;
+                url += `&yos_tier4_amount=${document.getElementById('baseYosTier4Amount').value}`;
+            }
 
             try {
                 const res = await fetch(url);
@@ -609,13 +780,35 @@
 
         function updateStats() {
             const t = summaryData.totals;
-            document.getElementById('statEmployees').textContent = t.employee_count.toLocaleString();
-            document.getElementById('statAbove20').textContent = `${t.above_20_years} above 20 years`;
-            document.getElementById('statCurrent').textContent = fmtK(t.current_total);
-            document.getElementById('statBase').textContent = fmtK(t.next_base_total);
 
-            const baseIncrease = t.next_base_total - t.current_total;
-            document.getElementById('statBaseIncrease').textContent = `+${fmtK(baseIncrease)} vs current`;
+            // Show/hide appropriate stats cards based on YOS bonus
+            if (baseYosBonusEnabled && summaryData.yos_bonus_enabled) {
+                document.getElementById('statsCardsContainer').classList.add('hidden');
+                document.getElementById('yosBonusStats').classList.remove('hidden');
+
+                document.getElementById('statEmployees2').textContent = t.employee_count.toLocaleString();
+                document.getElementById('statAbove202').textContent = `${t.above_20_years} above 20 years`;
+                document.getElementById('statCurrent2').textContent = fmtK(t.current_total);
+                document.getElementById('statBase2').textContent = fmtK(t.next_base_total);
+
+                const baseIncrease = t.next_base_total - t.current_total;
+                document.getElementById('statBaseIncrease2').textContent = `+${fmtK(baseIncrease)} schedule`;
+
+                const baseWithYos = t.next_base_total + t.next_yos_bonus_total;
+                document.getElementById('statBaseWithYos').textContent = fmtK(baseWithYos);
+                document.getElementById('statYosBonus').textContent = `+${fmtK(t.next_yos_bonus_total)} YOS bonus`;
+            } else {
+                document.getElementById('statsCardsContainer').classList.remove('hidden');
+                document.getElementById('yosBonusStats').classList.add('hidden');
+
+                document.getElementById('statEmployees').textContent = t.employee_count.toLocaleString();
+                document.getElementById('statAbove20').textContent = `${t.above_20_years} above 20 years`;
+                document.getElementById('statCurrent').textContent = fmtK(t.current_total);
+                document.getElementById('statBase').textContent = fmtK(t.next_base_total);
+
+                const baseIncrease = t.next_base_total - t.current_total;
+                document.getElementById('statBaseIncrease').textContent = `+${fmtK(baseIncrease)} vs current`;
+            }
 
             document.getElementById('above10Count').textContent = t.above_10_years;
             document.getElementById('above15Count').textContent = t.above_15_years;
@@ -627,18 +820,35 @@
             if (charts.cost) charts.cost.destroy();
             const costCtx = document.getElementById('costChart').getContext('2d');
 
+            const t = summaryData.totals;
+            let labels, data, colors, borderColors;
+
+            if (baseYosBonusEnabled && summaryData.yos_bonus_enabled) {
+                // Show YOS bonus breakdown
+                labels = ['Current', 'Base (+1 yr)', 'Base + YOS'];
+                data = [
+                    t.current_total,
+                    t.next_base_total,
+                    t.next_base_total + t.next_yos_bonus_total
+                ];
+                colors = ['#64748b', '#094aad', '#22c55e'];
+                borderColors = ['#475569', '#002f60', '#16a34a'];
+            } else {
+                labels = ['Current', 'Base (+1 yr)'];
+                data = [t.current_total, t.next_base_total];
+                colors = ['#64748b', '#094aad'];
+                borderColors = ['#475569', '#002f60'];
+            }
+
             charts.cost = new Chart(costCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Current', 'Base (+1 yr)'],
+                    labels: labels,
                     datasets: [{
                         label: 'Total Salary Cost',
-                        data: [
-                            summaryData.totals.current_total,
-                            summaryData.totals.next_base_total
-                        ],
-                        backgroundColor: ['#64748b', '#094aad'],
-                        borderColor: ['#475569', '#002f60'],
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: borderColors,
                         borderWidth: 2,
                         borderRadius: 6
                     }]
@@ -733,31 +943,86 @@
         function updateSummaryTable() {
             const tbody = document.getElementById('summaryTableBody');
             const tfoot = document.getElementById('summaryTableFoot');
+            const headerRow = document.querySelector('#summaryTableBody').closest('table').querySelector('thead tr');
 
-            tbody.innerHTML = summaryData.categories.map(c => `
-                <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
-                    <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
-                    <td class="py-3 px-4 text-right">${c.employee_count}</td>
-                    <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
-                    <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
-                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
-                    <td class="py-3 px-4 text-right text-fls-blue">+${fmt.format(c.avg_raise_base || 0)}</td>
-                </tr>
-            `).join('');
+            if (baseYosBonusEnabled && summaryData.yos_bonus_enabled) {
+                // Update header to show YOS bonus column
+                headerRow.innerHTML = `
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg YOE</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base (+1 yr)</th>
+                    <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">YOS Bonus</th>
+                    <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">Total w/ YOS</th>
+                `;
 
-            const t = summaryData.totals;
-            const avgRaiseBase = t.employee_count ? Math.round((t.next_base_total - t.current_total) / t.employee_count) : 0;
+                tbody.innerHTML = summaryData.categories.map(c => {
+                    const yosBonus = c.next_yos_bonus_total || 0;
+                    const totalWithYos = c.next_base_total + yosBonus;
+                    return `
+                    <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
+                        <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
+                        <td class="py-3 px-4 text-right">${c.employee_count}</td>
+                        <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
+                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(yosBonus)}</td>
+                        <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(totalWithYos)}</td>
+                    </tr>
+                `}).join('');
 
-            tfoot.innerHTML = `
-                <tr>
-                    <td class="py-3 px-4">TOTAL</td>
-                    <td class="py-3 px-4 text-right">${t.employee_count}</td>
-                    <td class="py-3 px-4 text-right">-</td>
-                    <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
-                    <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
-                    <td class="py-3 px-4 text-right text-fls-blue">+${fmt.format(avgRaiseBase)}</td>
-                </tr>
-            `;
+                const t = summaryData.totals;
+                const yosBonusTotal = t.next_yos_bonus_total || 0;
+                const totalWithYos = t.next_base_total + yosBonusTotal;
+
+                tfoot.innerHTML = `
+                    <tr>
+                        <td class="py-3 px-4">TOTAL</td>
+                        <td class="py-3 px-4 text-right">${t.employee_count}</td>
+                        <td class="py-3 px-4 text-right">-</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
+                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(yosBonusTotal)}</td>
+                        <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(totalWithYos)}</td>
+                    </tr>
+                `;
+            } else {
+                // Standard view without YOS bonus
+                headerRow.innerHTML = `
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg YOE</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base (+1 yr)</th>
+                    <th id="summaryLastCol" class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg Raise (Base)</th>
+                `;
+
+                tbody.innerHTML = summaryData.categories.map(c => `
+                    <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
+                        <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
+                        <td class="py-3 px-4 text-right">${c.employee_count}</td>
+                        <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">+${fmt.format(c.avg_raise_base || 0)}</td>
+                    </tr>
+                `).join('');
+
+                const t = summaryData.totals;
+                const avgRaiseBase = t.employee_count ? Math.round((t.next_base_total - t.current_total) / t.employee_count) : 0;
+
+                tfoot.innerHTML = `
+                    <tr>
+                        <td class="py-3 px-4">TOTAL</td>
+                        <td class="py-3 px-4 text-right">${t.employee_count}</td>
+                        <td class="py-3 px-4 text-right">-</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
+                        <td class="py-3 px-4 text-right text-fls-blue">+${fmt.format(avgRaiseBase)}</td>
+                    </tr>
+                `;
+            }
         }
 
         async function loadEmployees() {
@@ -772,27 +1037,87 @@
             if (minYoe) url += `&min_yoe=${minYoe}`;
             if (maxYoe) url += `&max_yoe=${maxYoe}`;
 
+            // Add YOS bonus params if enabled
+            if (baseYosBonusEnabled) {
+                url += `&yos_bonus=true`;
+                url += `&yos_tier1_max=${document.getElementById('baseYosTier1Max').value}`;
+                url += `&yos_tier1_amount=${document.getElementById('baseYosTier1Amount').value}`;
+                url += `&yos_tier2_max=${document.getElementById('baseYosTier2Max').value}`;
+                url += `&yos_tier2_amount=${document.getElementById('baseYosTier2Amount').value}`;
+                url += `&yos_tier3_max=${document.getElementById('baseYosTier3Max').value}`;
+                url += `&yos_tier3_amount=${document.getElementById('baseYosTier3Amount').value}`;
+                url += `&yos_tier4_amount=${document.getElementById('baseYosTier4Amount').value}`;
+            }
+
             try {
                 const res = await fetch(url);
                 const data = await res.json();
                 employeesData = data.employees;
 
+                const headerRow = document.querySelector('#employeeTableBody').closest('table').querySelector('thead tr');
                 const tbody = document.getElementById('employeeTableBody');
-                tbody.innerHTML = employeesData.map(e => `
-                    <tr class="table-row border-b border-slate-100">
-                        <td class="py-2 px-4 font-medium">${e.name}</td>
-                        <td class="py-2 px-4 text-slate-600">${e.school}</td>
-                        <td class="py-2 px-4 text-slate-600 text-xs">${e.job_title}</td>
-                        <td class="py-2 px-4"><span class="px-2 py-0.5 text-xs rounded-full ${
-                            e.category === 'Teacher' ? 'bg-blue-100 text-blue-700' :
-                            e.category === 'Asst_Teacher' ? 'bg-purple-100 text-purple-700' :
-                            'bg-amber-100 text-amber-700'
-                        }">${e.category.replace('_', ' ')}</span></td>
-                        <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
-                        <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
-                        <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
-                    </tr>
-                `).join('');
+
+                if (baseYosBonusEnabled && data.yos_bonus_enabled) {
+                    // Show YOS columns
+                    headerRow.innerHTML = `
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Name</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">School</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Job Title</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">YOE</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">YOS</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base</th>
+                        <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">YOS Bonus</th>
+                        <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">Total</th>
+                    `;
+
+                    tbody.innerHTML = employeesData.map(e => `
+                        <tr class="table-row border-b border-slate-100">
+                            <td class="py-2 px-4 font-medium">${e.name}</td>
+                            <td class="py-2 px-4 text-slate-600">${e.school}</td>
+                            <td class="py-2 px-4 text-slate-600 text-xs">${e.job_title}</td>
+                            <td class="py-2 px-4"><span class="px-2 py-0.5 text-xs rounded-full ${
+                                e.category === 'Teacher' ? 'bg-blue-100 text-blue-700' :
+                                e.category === 'Asst_Teacher' ? 'bg-purple-100 text-purple-700' :
+                                'bg-amber-100 text-amber-700'
+                            }">${e.category.replace('_', ' ')}</span></td>
+                            <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
+                            <td class="py-2 px-4 text-right text-slate-500">${e.years_of_service}</td>
+                            <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
+                            <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
+                            <td class="py-2 px-4 text-right text-green-600">${e.yos_bonus > 0 ? '+' + fmt.format(e.yos_bonus) : '-'}</td>
+                            <td class="py-2 px-4 text-right text-green-600 font-semibold">${fmt.format(e.next_base + e.yos_bonus)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    // Standard view
+                    headerRow.innerHTML = `
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Name</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">School</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Job Title</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">YOE</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                        <th id="empLastCol" class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base</th>
+                    `;
+
+                    tbody.innerHTML = employeesData.map(e => `
+                        <tr class="table-row border-b border-slate-100">
+                            <td class="py-2 px-4 font-medium">${e.name}</td>
+                            <td class="py-2 px-4 text-slate-600">${e.school}</td>
+                            <td class="py-2 px-4 text-slate-600 text-xs">${e.job_title}</td>
+                            <td class="py-2 px-4"><span class="px-2 py-0.5 text-xs rounded-full ${
+                                e.category === 'Teacher' ? 'bg-blue-100 text-blue-700' :
+                                e.category === 'Asst_Teacher' ? 'bg-purple-100 text-purple-700' :
+                                'bg-amber-100 text-amber-700'
+                            }">${e.category.replace('_', ' ')}</span></td>
+                            <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
+                            <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
+                            <td class="py-2 px-4 text-right">${fmt.format(e.next_base)}</td>
+                        </tr>
+                    `).join('');
+                }
 
                 document.getElementById('employeeCount').textContent =
                     `Showing ${employeesData.length} employees`;
@@ -856,6 +1181,24 @@
             }
         }
 
+        function toggleYosBonus() {
+            const toggle = document.getElementById('yosBonusToggle');
+            document.getElementById('yosBonusControls').classList.toggle('hidden', !toggle.checked);
+        }
+
+        function updateYosTierLabel(tier) {
+            const tier1Max = parseInt(document.getElementById('yosTier1Max').value) || 2;
+            const tier2Max = parseInt(document.getElementById('yosTier2Max').value) || 5;
+            const tier3Max = parseInt(document.getElementById('yosTier3Max').value) || 9;
+
+            document.getElementById('yosTier1MaxLabel').textContent = tier1Max;
+            document.getElementById('yosTier2MinLabel').textContent = tier1Max + 1;
+            document.getElementById('yosTier2MaxLabel').textContent = tier2Max;
+            document.getElementById('yosTier3MinLabel').textContent = tier2Max + 1;
+            document.getElementById('yosTier3MaxLabel').textContent = tier3Max;
+            document.getElementById('yosTier4MinLabel').textContent = tier3Max + 1;
+        }
+
         function toggleHybridMode() {
             const toggle = document.getElementById('teacherHybridToggle');
             document.getElementById('hybridControls').classList.toggle('hidden', !toggle.checked);
@@ -905,11 +1248,23 @@
             // Check for teacher $50K schedule (set by preset)
             const teacher50k = customParams.teacher50k || false;
 
+            // Years of Service bonus
+            const yosBonus = document.getElementById('yosBonusToggle').checked;
+            const yosTier1Max = document.getElementById('yosTier1Max').value;
+            const yosTier1Amount = document.getElementById('yosTier1Amount').value;
+            const yosTier2Max = document.getElementById('yosTier2Max').value;
+            const yosTier2Amount = document.getElementById('yosTier2Amount').value;
+            const yosTier3Max = document.getElementById('yosTier3Max').value;
+            const yosTier3Amount = document.getElementById('yosTier3Amount').value;
+            const yosTier4Amount = document.getElementById('yosTier4Amount').value;
+
             // Store custom params for reuse
             customParams = {
                 annualRate, paraUseSchedule, asstUseSchedule, teacherUseSchedule,
                 basePara, baseAsst, baseTeacher, teacherHybrid,
-                hybridRate1, hybridThreshold, hybridRate2, teacher50k
+                hybridRate1, hybridThreshold, hybridRate2, teacher50k,
+                yosBonus, yosTier1Max, yosTier1Amount, yosTier2Max, yosTier2Amount,
+                yosTier3Max, yosTier3Amount, yosTier4Amount
             };
 
             let url = `/api/salary/custom-scenario?step_cap=${currentStepCap}`;
@@ -922,6 +1277,14 @@
                 url += `&teacher_50k=true`;
             } else if (teacherHybrid) {
                 url += `&teacher_hybrid=true&hybrid_rate_1=${hybridRate1}&hybrid_threshold=${hybridThreshold}&hybrid_rate_2=${hybridRate2}`;
+            }
+            // Add YOS bonus params
+            if (yosBonus) {
+                url += `&yos_bonus=true`;
+                url += `&yos_tier1_max=${yosTier1Max}&yos_tier1_amount=${yosTier1Amount}`;
+                url += `&yos_tier2_max=${yosTier2Max}&yos_tier2_amount=${yosTier2Amount}`;
+                url += `&yos_tier3_max=${yosTier3Max}&yos_tier3_amount=${yosTier3Amount}`;
+                url += `&yos_tier4_amount=${yosTier4Amount}`;
             }
             if (school) url += `&school=${encodeURIComponent(school)}`;
 
@@ -939,6 +1302,15 @@
                 document.getElementById('customCurrentSchedule').textContent = fmtK(t.current_schedule_total);
                 document.getElementById('customNextSchedule').textContent = fmtK(t.next_schedule_total);
                 document.getElementById('customNextCustom').textContent = fmtK(t.next_custom_total);
+
+                // Show YOS bonus total if enabled
+                const yosBonusBox = document.getElementById('yosBonusTotalBox');
+                if (data.yos_bonus_enabled && t.next_yos_bonus_total > 0) {
+                    yosBonusBox.classList.remove('hidden');
+                    document.getElementById('customYosBonus').textContent = fmtK(t.next_yos_bonus_total);
+                } else {
+                    yosBonusBox.classList.add('hidden');
+                }
 
                 const diff = t.next_custom_total - t.next_schedule_total;
                 const diffEl = document.getElementById('customDifference');
@@ -1009,6 +1381,18 @@
             toggleCategorySchedule('para');
             toggleCategorySchedule('asst');
             toggleCategorySchedule('teacher');
+
+            // Reset YOS bonus
+            document.getElementById('yosBonusToggle').checked = false;
+            document.getElementById('yosBonusControls').classList.add('hidden');
+            document.getElementById('yosTier1Max').value = 2;
+            document.getElementById('yosTier1Amount').value = 500;
+            document.getElementById('yosTier2Max').value = 5;
+            document.getElementById('yosTier2Amount').value = 750;
+            document.getElementById('yosTier3Max').value = 9;
+            document.getElementById('yosTier3Amount').value = 1000;
+            document.getElementById('yosTier4Amount').value = 1250;
+            updateYosTierLabel(1);
 
             // Reload original data
             updateCharts();
@@ -1129,6 +1513,14 @@
             } else if (customParams.teacherHybrid) {
                 url += `&teacher_hybrid=true&hybrid_rate_1=${customParams.hybridRate1}&hybrid_threshold=${customParams.hybridThreshold}&hybrid_rate_2=${customParams.hybridRate2}`;
             }
+            // Add YOS bonus params
+            if (customParams.yosBonus) {
+                url += `&yos_bonus=true`;
+                url += `&yos_tier1_max=${customParams.yosTier1Max}&yos_tier1_amount=${customParams.yosTier1Amount}`;
+                url += `&yos_tier2_max=${customParams.yosTier2Max}&yos_tier2_amount=${customParams.yosTier2Amount}`;
+                url += `&yos_tier3_max=${customParams.yosTier3Max}&yos_tier3_amount=${customParams.yosTier3Amount}`;
+                url += `&yos_tier4_amount=${customParams.yosTier4Amount}`;
+            }
             if (school) url += `&school=${encodeURIComponent(school)}`;
             if (category) url += `&category=${encodeURIComponent(category)}`;
             if (minYoe) url += `&min_yoe=${minYoe}`;
@@ -1167,14 +1559,16 @@
 
         function applyPreset(preset) {
             const presets = {
-                minimal: { rate: 1.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
-                conservative: { rate: 1.5, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
-                moderate: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
-                aggressive: { rate: 3.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false },
-                competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false, teacher50k: false },
-                hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5, teacher50k: false },
-                hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5, teacher50k: false },
-                teacher_50k: { rate: 0, para: 28850, asst: 31900, teacher: 50000, hybrid: false, teacher50k: true, paraSchedule: true, asstSchedule: true, teacherSchedule: false }
+                minimal: { rate: 1.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false, yosBonus: false },
+                conservative: { rate: 1.5, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false, yosBonus: false },
+                moderate: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false, yosBonus: false },
+                aggressive: { rate: 3.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false, yosBonus: false },
+                competitive: { rate: 2.0, para: 30850, asst: 33900, teacher: 50000, hybrid: false, teacher50k: false, yosBonus: false },
+                hybrid: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.0, threshold: 10, rate2: 1.5, teacher50k: false, yosBonus: false },
+                hybrid_aggressive: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: true, rate1: 2.5, threshold: 10, rate2: 1.5, teacher50k: false, yosBonus: false },
+                teacher_50k: { rate: 0, para: 28850, asst: 31900, teacher: 50000, hybrid: false, teacher50k: true, paraSchedule: true, asstSchedule: true, teacherSchedule: false, yosBonus: false },
+                yos_bonus: { rate: 2.0, para: 28850, asst: 31900, teacher: 48000, hybrid: false, teacher50k: false, yosBonus: true,
+                    yosTier1Max: 2, yosTier1Amount: 500, yosTier2Max: 5, yosTier2Amount: 750, yosTier3Max: 9, yosTier3Amount: 1000, yosTier4Amount: 1250 }
             };
 
             const p = presets[preset];
@@ -1192,6 +1586,8 @@
             btn.classList.remove('border-transparent');
             if (preset === 'teacher_50k') {
                 btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'ring-offset-1');
+            } else if (preset === 'yos_bonus') {
+                btn.classList.add('border-green-500', 'ring-2', 'ring-green-500', 'ring-offset-1');
             } else if (preset.includes('hybrid')) {
                 btn.classList.add('border-fls-orange', 'ring-2', 'ring-fls-orange', 'ring-offset-1');
             } else {
@@ -1230,6 +1626,21 @@
                 document.getElementById('hybridRate2Slider').value = p.rate2;
                 document.getElementById('hybridRate2Value').textContent = `${p.rate2}%`;
                 updateHybridFormula();
+            }
+
+            // Handle YOS bonus preset
+            const yosBonusToggle = document.getElementById('yosBonusToggle');
+            yosBonusToggle.checked = p.yosBonus;
+            document.getElementById('yosBonusControls').classList.toggle('hidden', !p.yosBonus);
+            if (p.yosBonus) {
+                document.getElementById('yosTier1Max').value = p.yosTier1Max || 2;
+                document.getElementById('yosTier1Amount').value = p.yosTier1Amount || 500;
+                document.getElementById('yosTier2Max').value = p.yosTier2Max || 5;
+                document.getElementById('yosTier2Amount').value = p.yosTier2Amount || 750;
+                document.getElementById('yosTier3Max').value = p.yosTier3Max || 9;
+                document.getElementById('yosTier3Amount').value = p.yosTier3Amount || 1000;
+                document.getElementById('yosTier4Amount').value = p.yosTier4Amount || 1250;
+                updateYosTierLabel(1);
             }
 
             // Store teacher50k flag for use in loadCustomScenario
@@ -1318,10 +1729,16 @@
             if (!employeesData.length) return;
             let headers, rows;
             if (customScenarioActive) {
-                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'Current', 'Base', 'Custom'];
+                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'YOS', 'Current', 'Base', 'YOS Bonus', 'Custom'];
                 rows = employeesData.map(e => [
                     e.name, e.school, e.job_title, e.category, e.current_yoe,
-                    e.current_salary, e.next_base, e.next_custom
+                    e.years_of_service || 0, e.current_salary, e.next_base, e.yos_bonus || 0, e.next_custom
+                ]);
+            } else if (baseYosBonusEnabled) {
+                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'YOS', 'Current', 'Base', 'YOS Bonus', 'Total'];
+                rows = employeesData.map(e => [
+                    e.name, e.school, e.job_title, e.category, e.current_yoe,
+                    e.years_of_service || 0, e.current_salary, e.next_base, e.yos_bonus || 0, e.next_base + (e.yos_bonus || 0)
                 ]);
             } else {
                 headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'Current', 'Base'];
@@ -1335,7 +1752,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            const suffix = customScenarioActive ? '_custom' : '';
+            const suffix = customScenarioActive ? '_custom' : (baseYosBonusEnabled ? '_with_yos' : '');
             a.download = `salary_projections_${currentStepCap}yr_cap${suffix}.csv`;
             a.click();
         }

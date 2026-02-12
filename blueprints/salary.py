@@ -47,6 +47,18 @@ TEACHER_50K_SCHEDULE = [
     77250
 ]
 
+# Years of Service Bonus Schedule (based on hire date, not experience)
+# Default values - can be adjusted via UI
+YOS_BONUS_DEFAULT = {
+    'tier1_max': 2,     # Years 1-2
+    'tier1_amount': 500,
+    'tier2_max': 5,     # Years 3-5
+    'tier2_amount': 750,
+    'tier3_max': 9,     # Years 6-9
+    'tier3_amount': 1000,
+    'tier4_amount': 1250  # Years 10+
+}
+
 
 @bp.route('/salary-dashboard')
 def serve_dashboard():
@@ -86,13 +98,57 @@ def get_salary_summary():
     - step_cap: Maximum step to use (default 30)
     - scenario: 'base', 'option1', 'option2', or 'all' (default 'all')
     - school: Filter by school (optional)
+    - yos_bonus: If 'true', include years of service bonus calculations
+    - yos_tier1_max, yos_tier1_amount, etc: YOS bonus tier settings
     """
     step_cap = int(request.args.get('step_cap', 30))
     school = request.args.get('school', '')
 
+    # YOS bonus parameters for base comparison
+    yos_bonus = request.args.get('yos_bonus', 'false').lower() == 'true'
+    yos_tier1_max = int(request.args.get('yos_tier1_max', YOS_BONUS_DEFAULT['tier1_max']))
+    yos_tier1_amount = float(request.args.get('yos_tier1_amount', YOS_BONUS_DEFAULT['tier1_amount']))
+    yos_tier2_max = int(request.args.get('yos_tier2_max', YOS_BONUS_DEFAULT['tier2_max']))
+    yos_tier2_amount = float(request.args.get('yos_tier2_amount', YOS_BONUS_DEFAULT['tier2_amount']))
+    yos_tier3_max = int(request.args.get('yos_tier3_max', YOS_BONUS_DEFAULT['tier3_max']))
+    yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
+    yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
+
     school_filter = ""
     if school:
         school_filter = f'AND Location_Name = "{school}"'
+
+    # Build YOS bonus formulas
+    if yos_bonus:
+        current_yos_formula = f"""
+          CASE
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) < 1 THEN 0
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier1_max} THEN {yos_tier1_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier2_max} THEN {yos_tier2_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier3_max} THEN {yos_tier3_amount}
+            ELSE {yos_tier4_amount}
+          END
+        """
+        next_yos_formula = f"""
+          CASE
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 < 1 THEN 0
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier1_max} THEN {yos_tier1_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier2_max} THEN {yos_tier2_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier3_max} THEN {yos_tier3_amount}
+            ELSE {yos_tier4_amount}
+          END
+        """
+        yos_select = f"""
+            ({current_yos_formula}) as current_yos_bonus,
+            ({next_yos_formula}) as next_yos_bonus,
+        """
+        yos_sum = """
+            ROUND(SUM(current_yos_bonus), 0) as current_yos_bonus_total,
+            ROUND(SUM(next_yos_bonus), 0) as next_yos_bonus_total,
+        """
+    else:
+        yos_select = "0 as current_yos_bonus, 0 as next_yos_bonus,"
+        yos_sum = "0 as current_yos_bonus_total, 0 as next_yos_bonus_total,"
 
     query = f"""
     WITH
@@ -102,6 +158,7 @@ def get_salary_summary():
         Employee_Name__Last_Suffix__First_MI_ as name,
         Job_Title,
         Location_Name as school,
+        Last_Hire_Date,
         Relevant_Years_of_Experience as current_yoe,
         -- For schedule lookup: cap at 30 (schedule max)
         LEAST(COALESCE(Relevant_Years_of_Experience, 0), 30) as current_step,
@@ -143,7 +200,11 @@ def get_salary_summary():
         CASE s.salary_category
           WHEN "Teacher" THEN next_capped.teacher_option_2
           ELSE NULL
-        END as next_opt2
+        END as next_opt2,
+        -- YOS bonus
+        {yos_select}
+        -- Years of service
+        FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(s.Last_Hire_Date), DAY) / 365.25) as years_of_service
       FROM staff s
       LEFT JOIN `{SALARY_SCHEDULE_TABLE}` curr
         ON curr.step = s.current_step
@@ -160,6 +221,7 @@ def get_salary_summary():
       ROUND(SUM(next_base), 0) as next_base_total,
       ROUND(SUM(next_opt1), 0) as next_opt1_total,
       ROUND(SUM(next_opt2), 0) as next_opt2_total,
+      {yos_sum}
       ROUND(AVG(current_yoe), 1) as avg_yoe,
       SUM(CASE WHEN current_yoe > 20 THEN 1 ELSE 0 END) as above_20_years,
       SUM(CASE WHEN current_yoe > 15 THEN 1 ELSE 0 END) as above_15_years,
@@ -178,6 +240,8 @@ def get_salary_summary():
         'next_base_total': 0,
         'next_opt1_total': 0,
         'next_opt2_total': 0,
+        'current_yos_bonus_total': 0,
+        'next_yos_bonus_total': 0,
         'above_20_years': 0,
         'above_15_years': 0,
         'above_10_years': 0
@@ -196,6 +260,8 @@ def get_salary_summary():
             'next_base_total': base,
             'next_opt1_total': opt1,
             'next_opt2_total': row.next_opt2_total or 0,
+            'current_yos_bonus_total': getattr(row, 'current_yos_bonus_total', 0) or 0,
+            'next_yos_bonus_total': getattr(row, 'next_yos_bonus_total', 0) or 0,
             'avg_yoe': row.avg_yoe or 0,
             'above_20_years': row.above_20_years or 0,
             'above_15_years': row.above_15_years or 0,
@@ -210,6 +276,16 @@ def get_salary_summary():
 
     return jsonify({
         'step_cap': step_cap,
+        'yos_bonus_enabled': yos_bonus,
+        'yos_tiers': {
+            'tier1_max': yos_tier1_max,
+            'tier1_amount': yos_tier1_amount,
+            'tier2_max': yos_tier2_max,
+            'tier2_amount': yos_tier2_amount,
+            'tier3_max': yos_tier3_max,
+            'tier3_amount': yos_tier3_amount,
+            'tier4_amount': yos_tier4_amount
+        } if yos_bonus else None,
         'categories': categories,
         'totals': totals
     })
@@ -284,14 +360,38 @@ def get_employees():
     hybrid_rate_2 = float(request.args.get('hybrid_rate_2', 1.5))
     teacher_50k = request.args.get('teacher_50k', 'false').lower() == 'true'
 
+    # YOS bonus parameters
+    yos_bonus = request.args.get('yos_bonus', 'false').lower() == 'true'
+    yos_tier1_max = int(request.args.get('yos_tier1_max', YOS_BONUS_DEFAULT['tier1_max']))
+    yos_tier1_amount = float(request.args.get('yos_tier1_amount', YOS_BONUS_DEFAULT['tier1_amount']))
+    yos_tier2_max = int(request.args.get('yos_tier2_max', YOS_BONUS_DEFAULT['tier2_max']))
+    yos_tier2_amount = float(request.args.get('yos_tier2_amount', YOS_BONUS_DEFAULT['tier2_amount']))
+    yos_tier3_max = int(request.args.get('yos_tier3_max', YOS_BONUS_DEFAULT['tier3_max']))
+    yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
+    yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
+
     conditions = ['Employment_Status IN ("Active", "Leave of absence")']
     if school:
         conditions.append(f'Location_Name = "{school}"')
 
     where_clause = ' AND '.join(conditions)
 
+    # Build YOS bonus formula for employees (next year)
+    if yos_bonus:
+        yos_bonus_formula_next = f"""
+          CASE
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 < 1 THEN 0
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier1_max} THEN {yos_tier1_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier2_max} THEN {yos_tier2_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 <= {yos_tier3_max} THEN {yos_tier3_amount}
+            ELSE {yos_tier4_amount}
+          END
+        """
+    else:
+        yos_bonus_formula_next = "0"
+
     # Build custom salary formulas if in custom mode
-    if custom_mode and (annual_increase > 0 or teacher_hybrid or teacher_50k):
+    if custom_mode and (annual_increase > 0 or teacher_hybrid or teacher_50k or yos_bonus):
         base_para = float(base_para) if base_para else 28850
         base_asst = float(base_asst) if base_asst else 31900
         base_teacher = float(base_teacher) if base_teacher else 48000
@@ -329,14 +429,23 @@ def get_employees():
             teacher_next_formula = f"{base_teacher} * POWER({rate}, s.next_year_step)"
 
         custom_salary_select = f"""
-            CASE s.salary_category
+            (CASE s.salary_category
               WHEN "Paraprofessional" THEN {para_next_formula}
               WHEN "Asst_Teacher" THEN {asst_next_formula}
               WHEN "Teacher" THEN {teacher_next_formula}
-            END as next_custom,
+            END) + ({yos_bonus_formula_next}) as next_custom,
+            ({yos_bonus_formula_next}) as yos_bonus,
+            FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,
+        """
+    elif yos_bonus:
+        # Not in custom mode but YOS bonus is enabled - still calculate YOS bonus
+        custom_salary_select = f"""
+            NULL as next_custom,
+            ({yos_bonus_formula_next}) as yos_bonus,
+            FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,
         """
     else:
-        custom_salary_select = "NULL as next_custom,"
+        custom_salary_select = "NULL as next_custom, 0 as yos_bonus, FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,"
 
     query = f"""
     WITH
@@ -346,6 +455,7 @@ def get_employees():
         Employee_Name__Last_Suffix__First_MI_ as name,
         Job_Title,
         Location_Name as school,
+        Last_Hire_Date,
         Relevant_Years_of_Experience as current_yoe,
         -- For schedule lookup: cap at 30 (schedule max)
         LEAST(COALESCE(Relevant_Years_of_Experience, 0), 30) as current_step,
@@ -417,13 +527,15 @@ def get_employees():
             'current_salary': row.current_salary or 0,
             'next_base': row.next_base or 0,
             'next_opt1': row.next_opt1 or 0,
-            'next_opt2': row.next_opt2
+            'next_opt2': row.next_opt2,
+            'years_of_service': getattr(row, 'years_of_service', None) or 0,
+            'yos_bonus': getattr(row, 'yos_bonus', 0) or 0
         }
         if custom_mode:
             emp['next_custom'] = row.next_custom or 0
         employees.append(emp)
 
-    return jsonify({'employees': employees, 'custom_mode': custom_mode})
+    return jsonify({'employees': employees, 'custom_mode': custom_mode, 'yos_bonus_enabled': yos_bonus})
 
 
 @bp.route('/api/salary/schools')
@@ -576,6 +688,14 @@ def custom_scenario():
     - hybrid_rate_1: First rate percentage (default 2.0)
     - hybrid_rate_2: Second rate percentage (default 1.5)
     - school: Filter by school (optional)
+    - yos_bonus: If 'true', include years of service bonus
+    - yos_tier1_max: Max years for tier 1 (default 2)
+    - yos_tier1_amount: Bonus for tier 1 (default 500)
+    - yos_tier2_max: Max years for tier 2 (default 5)
+    - yos_tier2_amount: Bonus for tier 2 (default 750)
+    - yos_tier3_max: Max years for tier 3 (default 9)
+    - yos_tier3_amount: Bonus for tier 3 (default 1000)
+    - yos_tier4_amount: Bonus for tier 4 - 10+ years (default 1250)
     """
     step_cap = int(request.args.get('step_cap', 30))
     school = request.args.get('school', '')
@@ -600,15 +720,39 @@ def custom_scenario():
     # Teacher $50K schedule option
     teacher_50k = request.args.get('teacher_50k', 'false').lower() == 'true'
 
+    # Years of Service Bonus parameters
+    yos_bonus = request.args.get('yos_bonus', 'false').lower() == 'true'
+    yos_tier1_max = int(request.args.get('yos_tier1_max', YOS_BONUS_DEFAULT['tier1_max']))
+    yos_tier1_amount = float(request.args.get('yos_tier1_amount', YOS_BONUS_DEFAULT['tier1_amount']))
+    yos_tier2_max = int(request.args.get('yos_tier2_max', YOS_BONUS_DEFAULT['tier2_max']))
+    yos_tier2_amount = float(request.args.get('yos_tier2_amount', YOS_BONUS_DEFAULT['tier2_amount']))
+    yos_tier3_max = int(request.args.get('yos_tier3_max', YOS_BONUS_DEFAULT['tier3_max']))
+    yos_tier3_amount = float(request.args.get('yos_tier3_amount', YOS_BONUS_DEFAULT['tier3_amount']))
+    yos_tier4_amount = float(request.args.get('yos_tier4_amount', YOS_BONUS_DEFAULT['tier4_amount']))
+
     school_filter = ""
     if school:
         school_filter = f'AND Location_Name = "{school}"'
+
+    # Build YOS bonus formula if enabled
+    if yos_bonus:
+        yos_bonus_formula = f"""
+          CASE
+            WHEN years_of_service < 1 THEN 0
+            WHEN years_of_service <= {yos_tier1_max} THEN {yos_tier1_amount}
+            WHEN years_of_service <= {yos_tier2_max} THEN {yos_tier2_amount}
+            WHEN years_of_service <= {yos_tier3_max} THEN {yos_tier3_amount}
+            ELSE {yos_tier4_amount}
+          END
+        """
+    else:
+        yos_bonus_formula = "0"
 
     # Check if any category needs custom calculation
     any_custom = (not para_schedule or not asst_schedule or not teacher_schedule) and annual_increase > 0
 
     # If custom bases provided, calculate dynamically
-    if any_custom or teacher_hybrid or teacher_50k:
+    if any_custom or teacher_hybrid or teacher_50k or yos_bonus:
         # Use defaults from step 0 if not provided
         base_para = float(base_para) if base_para else 28850
         base_asst = float(base_asst) if base_asst else 31900
@@ -675,6 +819,9 @@ def custom_scenario():
             Relevant_Years_of_Experience as current_yoe,
             LEAST(COALESCE(Relevant_Years_of_Experience, 0), {step_cap}) as capped_yoe,
             LEAST(COALESCE(Relevant_Years_of_Experience, 0) + 1, {step_cap}) as next_year_step,
+            -- Years of service from hire date
+            FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,
+            FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 as next_year_yos,
             CASE
               WHEN LOWER(Job_Title) LIKE "%paraprofessional%" THEN "Paraprofessional"
               WHEN LOWER(Job_Title) LIKE "%asst teacher%" OR LOWER(Job_Title) LIKE "%assistant teacher%" THEN "Asst_Teacher"
@@ -685,21 +832,36 @@ def custom_scenario():
           WHERE Employment_Status IN ("Active", "Leave of absence")
           {school_filter}
         ),
+        with_bonus AS (
+          SELECT
+            s.*,
+            -- Current YOS bonus
+            {yos_bonus_formula} as current_yos_bonus,
+            -- Next year YOS bonus (using next_year_yos)
+            CASE
+              WHEN s.next_year_yos < 1 THEN 0
+              WHEN s.next_year_yos <= {yos_tier1_max} THEN {yos_tier1_amount if yos_bonus else 0}
+              WHEN s.next_year_yos <= {yos_tier2_max} THEN {yos_tier2_amount if yos_bonus else 0}
+              WHEN s.next_year_yos <= {yos_tier3_max} THEN {yos_tier3_amount if yos_bonus else 0}
+              ELSE {yos_tier4_amount if yos_bonus else 0}
+            END as next_yos_bonus
+          FROM staff s
+        ),
         projections AS (
           SELECT
             s.*,
-            -- Current custom salary (per-category: schedule or custom)
+            -- Current custom salary (per-category: schedule or custom) + YOS bonus
             CASE s.salary_category
               WHEN "Paraprofessional" THEN {para_current_formula}
               WHEN "Asst_Teacher" THEN {asst_current_formula}
               WHEN "Teacher" THEN {teacher_current_formula}
-            END as current_custom,
-            -- Next year custom salary (per-category: schedule or custom)
+            END + s.current_yos_bonus as current_custom,
+            -- Next year custom salary (per-category: schedule or custom) + YOS bonus
             CASE s.salary_category
               WHEN "Paraprofessional" THEN {para_next_formula}
               WHEN "Asst_Teacher" THEN {asst_next_formula}
               WHEN "Teacher" THEN {teacher_next_formula}
-            END as next_custom,
+            END + s.next_yos_bonus as next_custom,
             -- Current schedule salary for comparison
             CASE s.salary_category
               WHEN "Paraprofessional" THEN curr.paraprofessional
@@ -711,8 +873,10 @@ def custom_scenario():
               WHEN "Paraprofessional" THEN next.paraprofessional
               WHEN "Asst_Teacher" THEN next.asst_teacher
               WHEN "Teacher" THEN next.teacher
-            END as next_schedule
-          FROM staff s
+            END as next_schedule,
+            s.current_yos_bonus,
+            s.next_yos_bonus
+          FROM with_bonus s
           LEFT JOIN `{SALARY_SCHEDULE_TABLE}` curr
             ON curr.step = s.capped_yoe
           LEFT JOIN `{SALARY_SCHEDULE_TABLE}` next
@@ -726,6 +890,8 @@ def custom_scenario():
           ROUND(SUM(next_schedule), 0) as next_schedule_total,
           ROUND(SUM(current_custom), 0) as current_custom_total,
           ROUND(SUM(next_custom), 0) as next_custom_total,
+          ROUND(SUM(current_yos_bonus), 0) as current_yos_bonus_total,
+          ROUND(SUM(next_yos_bonus), 0) as next_yos_bonus_total,
           ROUND(AVG(current_yoe), 1) as avg_yoe
         FROM projections
         GROUP BY salary_category
@@ -794,7 +960,9 @@ def custom_scenario():
         'current_schedule_total': 0,
         'next_schedule_total': 0,
         'current_custom_total': 0,
-        'next_custom_total': 0
+        'next_custom_total': 0,
+        'current_yos_bonus_total': 0,
+        'next_yos_bonus_total': 0
     }
 
     for row in results:
@@ -809,6 +977,8 @@ def custom_scenario():
             'next_schedule_total': row.next_schedule_total or 0,
             'current_custom_total': row.current_custom_total or 0,
             'next_custom_total': next_custom,
+            'current_yos_bonus_total': getattr(row, 'current_yos_bonus_total', 0) or 0,
+            'next_yos_bonus_total': getattr(row, 'next_yos_bonus_total', 0) or 0,
             'avg_yoe': row.avg_yoe or 0,
             'avg_raise_custom': round((next_custom - current) / emp_count, 0) if emp_count else 0,
         }
@@ -823,6 +993,16 @@ def custom_scenario():
         'base_asst': base_asst if base_asst else 31900,
         'base_teacher': base_teacher if base_teacher else 48000,
         'annual_increase': annual_increase if annual_increase else 'schedule',
+        'yos_bonus_enabled': yos_bonus,
+        'yos_tiers': {
+            'tier1_max': yos_tier1_max,
+            'tier1_amount': yos_tier1_amount,
+            'tier2_max': yos_tier2_max,
+            'tier2_amount': yos_tier2_amount,
+            'tier3_max': yos_tier3_max,
+            'tier3_amount': yos_tier3_amount,
+            'tier4_amount': yos_tier4_amount
+        } if yos_bonus else None,
         'categories': categories,
         'totals': totals
     })
