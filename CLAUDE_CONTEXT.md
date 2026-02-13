@@ -55,26 +55,28 @@ Due to Windows timestamp issues, deploy using temp directory:
 # Copy files to temp dir with fresh timestamps, then deploy from there
 ```
 
-## Last Session: February 12, 2026 — Dashboard Nav Consistency
+## Last Session: February 13, 2026 — Nav Dropdowns, Cert CSV, OAuth Fix
 
 ### What was done
-- Added `salary_dashboard_access` flag to `blueprints/auth_routes.py` (imports `get_salary_access` from auth)
-- HR dashboard (`hr-dashboard.html`): replaced individual nav links (Supervisor View, Schools View, Kickboard) with role-aware "Dashboards" dropdown
-- HR dropdown shows: Supervisor, Staff List, Schools (if access), Salary (if access), Org Chart
-- Supervisor dashboard (`index.html`): added same dropdown pattern — **changes are ready but NOT committed**
-- Supervisor dropdown shows: HR View (if access), Staff List, Schools/Kickboard/Suspensions/Salary (if access), Org Chart
+- **Dropdown nav (Phase 1 complete)**: Both Supervisor and HR dashboards now have role-aware "Dashboards" dropdown
+  - HR dropdown: Supervisor, Staff List, Schools (if access), Salary (if access), Org Chart
+  - Supervisor dropdown: HR View (if access), Staff List, Schools/Kickboard/Suspensions/Salary (if access), Org Chart
+  - Data Portal moved from big orange button into dropdown on both dashboards
+  - Search bar widened (`flex-1`) with filter buttons on the right
+- **Non-supervisor redirect**: Users with no supervisor access but HR access auto-redirect from `/` to `/hr-dashboard`
+- **Certification CSV**: Replaced Google Sheets-backed `state_certification_list` with CSV upload to `state_certification_list_native`. Old external table deleted. Scheduled query should be disabled.
+- **OAuth fix**: `invalid_client` error caused by hidden `\r` characters in Cloud Run env vars. Fixed by re-setting env vars cleanly on both services with `gcloud run services update --update-env-vars`.
 - Fixed Staff List route: `/staff-list-dashboard` (not `/staff-list`)
-- HR dashboard deployed to Cloud Run (commit `bf62704`)
 
-### Uncommitted work
-- `index.html` has the Supervisor dashboard dropdown nav ready to commit & deploy
+### Known issue
+- Deploy script (`~/deploy.sh`) may introduce `\r` carriage returns into env vars on Windows, corrupting OAuth credentials. Needs hardening.
 
 ### Next steps
-1. Commit & deploy Supervisor dashboard dropdown (`index.html`)
-2. Phase 2: Roll out dropdown to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart) — each omits its own self-link
-3. Phase 3: Integrate Position Control into this app as a blueprint (currently separate Cloud Run service)
-   - Access should be: C-Team + HR + School Leaders (by job title)
+1. Roll out dropdown nav to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart)
+2. Integrate Position Control into this app as a blueprint (currently separate Cloud Run service)
+   - Access: C-Team + HR + School Leaders (by job title)
    - Add `get_position_control_access` to `auth.py`
+3. Harden deploy script to strip `\r` from env vars
    - Add `position_control_access` flag to auth status endpoint
    - Add to dropdown nav on all dashboards
 

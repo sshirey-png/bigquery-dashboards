@@ -1,18 +1,12 @@
 # Next Steps — Supervisor Dashboard & Dashboards Project
 
-**Last Updated:** February 12, 2026
+**Last Updated:** February 13, 2026
 
 ---
 
 ## Immediate — Pick Up Here
 
-### 1. Commit & deploy Supervisor dashboard dropdown
-- `index.html` has the dropdown nav ready, **uncommitted**
-- Same pattern as HR dashboard — role-aware "Dashboards" dropdown
-- Shows: HR View (if access), Staff List, Schools, Kickboard, Suspensions, Salary (all if access), Org Chart
-- Deploy with `~/deploy.sh supervisor`
-
-### 2. Roll out dropdown to remaining 6 dashboards
+### 1. Roll out dropdown to remaining 6 dashboards
 Apply the same dropdown pattern to:
 - [ ] Schools (`schools-dashboard.html`)
 - [ ] Kickboard (`kickboard-dashboard.html`)
@@ -23,21 +17,33 @@ Apply the same dropdown pattern to:
 
 Each dashboard omits its own self-link. Decide per-dashboard which links are relevant (e.g. HR dashboard excludes Kickboard/Suspensions).
 
-### 3. Integrate Position Control as a blueprint
+### 2. Integrate Position Control as a blueprint
 Position Control is currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`). Plan is to bring it into this app so it shares auth, nav, and deployment.
 - Pull code into `blueprints/position_control.py`
 - Add `get_position_control_access` to `auth.py` — access: C-Team + HR + School Leaders (by job title)
 - Add `position_control_access` flag to auth status endpoint
 - Add to dropdown nav on all dashboards
 
+### 3. Deploy script hardening
+- Investigate `\r` carriage return characters in env vars from Windows deploys
+- Add explicit `\r` stripping to `deploy.sh` to prevent OAuth breakage
+
 ---
 
 ## Completed Recently
 
+### February 13, 2026
+- Supervisor dashboard: committed and deployed dropdown nav (`index.html`)
+- Moved Data Portal button into Dashboards dropdown on both Supervisor and HR dashboards
+- Widened search bar (now `flex-1`) with filter buttons (All Staff / With Alerts / Action Needed) on the right
+- Added redirect: non-supervisor HR users hitting `/` now auto-redirect to `/hr-dashboard`
+- Certification: replaced Google Sheets-backed `state_certification_list` with CSV upload to `state_certification_list_native` — deleted old external table, scheduled query can be disabled
+- Fixed OAuth `invalid_client` error caused by hidden `\r` characters in Cloud Run env vars — re-set env vars cleanly on both services
+- Deployed both `bigquery-dashboards` and `supervisor-dashboard` services
+
 ### February 12, 2026
 - Added `salary_dashboard_access` flag to `blueprints/auth_routes.py`
 - HR dashboard: replaced individual nav links with role-aware dropdown (deployed)
-- Supervisor dashboard: dropdown nav added (uncommitted)
 - Fixed Staff List route (`/staff-list-dashboard`)
 - Updated `docs/ACCESS_PERMISSIONS.md` with nav dropdown documentation
 
