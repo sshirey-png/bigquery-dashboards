@@ -22,21 +22,31 @@ GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 DEV_MODE = os.environ.get('FLASK_ENV') == 'development' or not GOOGLE_CLIENT_ID
 DEV_USER_EMAIL = 'sshirey@firstlineschools.org'
 
-# Admin emails - these users have access to ALL supervisors
-ADMIN_EMAILS = [
-    'sshirey@firstlineschools.org',      # Scott Shirey - Chief People Officer
-    'brichardson@firstlineschools.org',  # Brittney Richardson - Chief of Human Resources
-    'spence@firstlineschools.org',       # Sabrina Pence
-    'mtoussaint@firstlineschools.org',   # M. Toussaint
-    'csmith@firstlineschools.org',       # C. Smith
-    'aleibfritz@firstlineschools.org',   # A. Leibfritz
-    # CXO Team
-    'sdomango@firstlineschools.org',     # Sivi Domango - Chief Experience Officer
-    'dgoodwin@firstlineschools.org',     # Dawn Goodwin - K-8 Content Lead
-    'rjohnson@firstlineschools.org',     # Rameisha Johnson - Manager Family Engagement
-    'krodriguez@firstlineschools.org',   # Kristin Rodriguez - Dir of Culture
-    'csteele@firstlineschools.org',      # Charlotte Steele - Dir of ESYNOLA
+# ── Permission Tiers ──
+# Tier 1a: CPO — full access to everything
+CPO_EMAILS = [
+    'sshirey@firstlineschools.org',
 ]
+
+# Tier 1b: HR Team — full access to Supervisor, HR, Staff List dashboards
+HR_TEAM_EMAILS = [
+    'brichardson@firstlineschools.org',   # Chief of Human Resources
+    'spence@firstlineschools.org',        # Sabrina Pence
+    'mtoussaint@firstlineschools.org',    # M. Toussaint
+    'csmith@firstlineschools.org',        # C. Smith
+    'aleibfritz@firstlineschools.org',    # A. Leibfritz
+]
+
+# Schools Team — full access to Schools, Kickboard, Suspensions dashboards
+SCHOOLS_TEAM_EMAILS = [
+    'sdomango@firstlineschools.org',      # Sivi Domango - Chief Experience Officer
+    'dgoodwin@firstlineschools.org',      # Dawn Goodwin - K-8 Content Lead
+    'krodriguez@firstlineschools.org',    # Kristin Rodriguez - Dir of Culture
+    'csteele@firstlineschools.org',       # Charlotte Steele - Dir of ESYNOLA
+]
+
+# Combined: all emails that get "all supervisors" access (backward compat)
+ADMIN_EMAILS = CPO_EMAILS + HR_TEAM_EMAILS
 
 # Email aliases - map alternative emails to primary FirstLine emails
 EMAIL_ALIASES = {

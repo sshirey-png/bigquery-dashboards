@@ -9,7 +9,8 @@ from flask import session, jsonify
 from google.cloud import bigquery
 
 from config import (
-    ADMIN_EMAILS, EMAIL_ALIASES, SCHOOLS_DASHBOARD_ROLES,
+    ADMIN_EMAILS, CPO_EMAILS, HR_TEAM_EMAILS, SCHOOLS_TEAM_EMAILS,
+    EMAIL_ALIASES, SCHOOLS_DASHBOARD_ROLES,
     KICKBOARD_SCHOOL_MAP, KICKBOARD_ACL_RAW, KICKBOARD_REVERSE_MAP,
     KICKBOARD_SCHOOL_LEADER_TITLES,
     SUSPENSIONS_SCHOOL_MAP, SUSPENSIONS_REVERSE_MAP,
@@ -40,13 +41,43 @@ def resolve_email_alias(email):
     return EMAIL_ALIASES.get(email.lower(), email)
 
 
-def is_admin(email):
-    """Check if the user is an admin with full access. Also checks email aliases."""
+def is_cpo(email):
+    """Check if user is CPO (Tier 1a) — full access to everything."""
     if not email:
         return False
-    emails_to_check = [email.lower(), resolve_email_alias(email).lower()]
-    admin_emails_lower = [e.lower() for e in ADMIN_EMAILS]
-    return any(e in admin_emails_lower for e in emails_to_check)
+    emails = [email.lower(), resolve_email_alias(email).lower()]
+    return any(e in [x.lower() for x in CPO_EMAILS] for e in emails)
+
+
+def is_hr_team(email):
+    """Check if user is HR Team (Tier 1b) — Supervisor/HR/Staff List admin."""
+    if not email:
+        return False
+    emails = [email.lower(), resolve_email_alias(email).lower()]
+    return any(e in [x.lower() for x in HR_TEAM_EMAILS] for e in emails)
+
+
+def is_hr_admin(email):
+    """Check if user has HR admin access (CPO or HR Team)."""
+    return is_cpo(email) or is_hr_team(email)
+
+
+def is_schools_team(email):
+    """Check if user is Schools Team — Schools/Kickboard/Suspensions admin."""
+    if not email:
+        return False
+    emails = [email.lower(), resolve_email_alias(email).lower()]
+    return any(e in [x.lower() for x in SCHOOLS_TEAM_EMAILS] for e in emails)
+
+
+def is_schools_admin(email):
+    """Check if user has schools admin access (CPO or Schools Team)."""
+    return is_cpo(email) or is_schools_team(email)
+
+
+def is_admin(email):
+    """Check if user is admin (CPO or HR Team). Used for supervisor dashboard all-access."""
+    return is_hr_admin(email)
 
 
 def get_supervisor_name_for_email(email):
@@ -194,7 +225,7 @@ def get_schools_dashboard_role(email):
         return None
 
     primary_email = resolve_email_alias(email)
-    if is_admin(email):
+    if is_schools_admin(email):
         return {'has_access': True, 'scope': 'all_except_cteam', 'label': 'Admin'}
 
     if not bq_client:
@@ -242,8 +273,8 @@ def get_kickboard_access(email):
     if not email:
         return None
 
-    # 1. Admins see everything
-    if is_admin(email):
+    # 1. Schools admins (CPO + Schools Team) see everything
+    if is_schools_admin(email):
         return {
             'has_access': True,
             'access_type': 'admin',
@@ -400,8 +431,8 @@ def get_suspensions_access(email):
     if not email:
         return None
 
-    # 1. Admins see everything
-    if is_admin(email):
+    # 1. Schools admins (CPO + Schools Team) see everything
+    if is_schools_admin(email):
         return {
             'has_access': True,
             'access_type': 'admin',

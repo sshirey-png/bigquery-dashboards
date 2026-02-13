@@ -921,8 +921,8 @@
                     // Update role label
                     document.getElementById('roleLabel').textContent = schoolsRole ? schoolsRole.label : 'Schools Support';
 
-                    // Show HR Dashboard link for admins
-                    if (data.is_admin) {
+                    // Show HR Dashboard link for HR admins
+                    if (data.is_hr_admin) {
                         document.getElementById('hrDashboardLink').classList.remove('hidden');
                     }
 

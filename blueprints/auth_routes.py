@@ -4,12 +4,13 @@ import logging
 from flask import Blueprint, jsonify, redirect, url_for, session, request
 
 from config import (
-    ADMIN_EMAILS, EMAIL_ALIASES, ALLOWED_DOMAIN, DEV_MODE, DEV_USER_EMAIL,
+    EMAIL_ALIASES, ALLOWED_DOMAIN, DEV_MODE, DEV_USER_EMAIL,
 )
 from extensions import oauth
 from auth import (
-    is_admin, get_supervisor_name_for_email, get_accessible_supervisors,
-    get_schools_dashboard_role, get_kickboard_access,
+    is_admin, is_cpo, is_hr_admin, is_schools_admin,
+    get_supervisor_name_for_email, get_accessible_supervisors,
+    get_schools_dashboard_role, get_kickboard_access, get_suspensions_access,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,24 +101,34 @@ def auth_status():
     if 'user' in session:
         user = session['user']
         user_email = user.get('email', '').lower()
-        is_admin_flag = user_email in [e.lower() for e in ADMIN_EMAILS]
         schools_role = get_schools_dashboard_role(user_email)
         kickboard_access = get_kickboard_access(user_email)
+        suspensions_access = get_suspensions_access(user_email)
         return jsonify({
             'authenticated': True,
             'user': user,
-            'is_admin': is_admin_flag,
+            'is_admin': is_hr_admin(user_email),
+            'is_cpo': is_cpo(user_email),
+            'is_hr_admin': is_hr_admin(user_email),
+            'is_schools_admin': is_schools_admin(user_email),
+            'hr_dashboard_access': is_hr_admin(user_email),
             'schools_dashboard_access': schools_role is not None,
             'schools_dashboard_role': schools_role,
             'kickboard_dashboard_access': kickboard_access is not None,
-            'kickboard_access': kickboard_access
+            'kickboard_access': kickboard_access,
+            'suspensions_dashboard_access': suspensions_access is not None,
         })
     return jsonify({
         'authenticated': False,
         'user': None,
         'is_admin': False,
+        'is_cpo': False,
+        'is_hr_admin': False,
+        'is_schools_admin': False,
+        'hr_dashboard_access': False,
         'schools_dashboard_access': False,
         'schools_dashboard_role': None,
         'kickboard_dashboard_access': False,
-        'kickboard_access': None
+        'kickboard_access': None,
+        'suspensions_dashboard_access': False,
     })

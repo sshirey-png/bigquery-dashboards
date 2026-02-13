@@ -5,9 +5,9 @@ import logging
 from flask import Blueprint, jsonify, request, session, send_from_directory
 from google.cloud import bigquery
 
-from config import PROJECT_ID, DATASET_ID, TABLE_ID, ADMIN_EMAILS, CURRENT_SY_START
+from config import PROJECT_ID, DATASET_ID, TABLE_ID, CURRENT_SY_START
 from extensions import bq_client
-from auth import login_required
+from auth import login_required, is_hr_admin
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +41,8 @@ def get_all_staff():
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
 
-    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
-        logger.warning(f"Authorization denied: user {user_email} tried to access all-staff (not admin)")
+    if not is_hr_admin(user_email):
+        logger.warning(f"Authorization denied: user {user_email} tried to access all-staff (not HR admin)")
         return jsonify({'error': 'Access denied. Admin access required.'}), 403
 
     location_filter = request.args.get('location', '')
@@ -216,7 +216,7 @@ def get_filter_options():
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
 
-    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
+    if not is_hr_admin(user_email):
         return jsonify({'error': 'Access denied. Admin access required.'}), 403
 
     try:
@@ -274,7 +274,7 @@ def get_all_action_steps():
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
 
-    if user_email not in [e.lower() for e in ADMIN_EMAILS]:
+    if not is_hr_admin(user_email):
         return jsonify({'error': 'Access denied. Admin access required.'}), 403
 
     try:
