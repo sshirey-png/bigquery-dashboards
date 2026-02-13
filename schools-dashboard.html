@@ -258,27 +258,26 @@
                             <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
                             <span id="userDisplayName" class="text-sm text-white hidden"></span>
                         </div>
-                        <!-- Link to Supervisor Dashboard -->
-                        <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            Supervisor View
-                        </a>
-                        <!-- Link to HR Dashboard (shown for admins) -->
-                        <a href="/hr-dashboard" id="hrDashboardLink" class="hidden inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            HR View
-                        </a>
-                        <!-- Link to Kickboard Dashboard (shown conditionally) -->
-                        <a href="/kickboard-dashboard" id="kickboardDashboardLink" class="hidden inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            Kickboard
-                        </a>
+                        <!-- Dashboards dropdown -->
+                        <div class="relative" id="navDropdown">
+                            <button id="navDropdownBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                                Dashboards
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="navDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                                <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Supervisor</a>
+                                <a href="/hr-dashboard" id="navHR" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">HR View</a>
+                                <a href="/staff-list-dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Staff List</a>
+                                <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
+                                <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                                <a href="/salary-dashboard" id="navSalary" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Salary</a>
+                                <hr class="my-1 border-gray-200">
+                                <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
+                                <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
+                            </div>
+                        </div>
                         <button id="refreshBtn" onclick="loadStaffData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -404,7 +403,7 @@
             <!-- Search and Filters -->
             <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
                 <div class="flex flex-col md:flex-row gap-4 items-center">
-                    <div class="w-full md:w-56 relative">
+                    <div class="flex-1 relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -417,12 +416,6 @@
                         <button class="segment-btn" data-filter="alerts">With Alerts</button>
                         <button class="segment-btn" data-filter="action">Action Needed</button>
                     </div>
-                    <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 bg-fls-orange text-white font-medium rounded-xl hover:bg-orange-600 transition-colors whitespace-nowrap">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                        </svg>
-                        Data Portal
-                    </a>
                 </div>
             </div>
 
@@ -842,6 +835,16 @@
             checkAuthStatus();
             setupEventListeners();
             handleUrlErrors();
+
+            // Dashboards dropdown toggle
+            const dropdownBtn = document.getElementById('navDropdownBtn');
+            const dropdownMenu = document.getElementById('navDropdownMenu');
+            dropdownBtn.addEventListener('click', () => dropdownMenu.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('navDropdown').contains(e.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
         });
 
         // Check URL for error parameters
@@ -921,15 +924,11 @@
                     // Update role label
                     document.getElementById('roleLabel').textContent = schoolsRole ? schoolsRole.label : 'Schools Support';
 
-                    // Show HR Dashboard link for HR admins
-                    if (data.is_hr_admin) {
-                        document.getElementById('hrDashboardLink').classList.remove('hidden');
-                    }
-
-                    // Show Kickboard link if user has access
-                    if (data.kickboard_dashboard_access) {
-                        document.getElementById('kickboardDashboardLink').classList.remove('hidden');
-                    }
+                    // Show nav dropdown links based on access
+                    if (data.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
+                    if (data.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
+                    if (data.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+                    if (data.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
 
                     // Show dashboard
                     document.getElementById('loginScreen').classList.add('hidden');
