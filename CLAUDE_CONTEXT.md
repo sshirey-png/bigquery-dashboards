@@ -55,7 +55,30 @@ Due to Windows timestamp issues, deploy using temp directory:
 # Copy files to temp dir with fresh timestamps, then deploy from there
 ```
 
-## Last Session: January 19, 2026 (Evening)
+## Last Session: February 12, 2026 — Dashboard Nav Consistency
+
+### What was done
+- Added `salary_dashboard_access` flag to `blueprints/auth_routes.py` (imports `get_salary_access` from auth)
+- HR dashboard (`hr-dashboard.html`): replaced individual nav links (Supervisor View, Schools View, Kickboard) with role-aware "Dashboards" dropdown
+- HR dropdown shows: Supervisor, Staff List, Schools (if access), Salary (if access), Org Chart
+- Supervisor dashboard (`index.html`): added same dropdown pattern — **changes are ready but NOT committed**
+- Supervisor dropdown shows: HR View (if access), Staff List, Schools/Kickboard/Suspensions/Salary (if access), Org Chart
+- Fixed Staff List route: `/staff-list-dashboard` (not `/staff-list`)
+- HR dashboard deployed to Cloud Run (commit `bf62704`)
+
+### Uncommitted work
+- `index.html` has the Supervisor dashboard dropdown nav ready to commit & deploy
+
+### Next steps
+1. Commit & deploy Supervisor dashboard dropdown (`index.html`)
+2. Phase 2: Roll out dropdown to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart) — each omits its own self-link
+3. Phase 3: Integrate Position Control into this app as a blueprint (currently separate Cloud Run service)
+   - Access should be: C-Team + HR + School Leaders (by job title)
+   - Add `get_position_control_access` to `auth.py`
+   - Add `position_control_access` flag to auth status endpoint
+   - Add to dropdown nav on all dashboards
+
+## Previous Session: January 19, 2026 (Evening)
 - Added certification badges for teachers and leaders (not network staff)
 - Orange "C" badge appears next to certified staff names
 - Click badge to see popup with all certifications (active and expired)

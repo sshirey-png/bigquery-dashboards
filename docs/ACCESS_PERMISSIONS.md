@@ -330,6 +330,47 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 ---
 
+## Dashboard Navigation — Role-Aware Dropdown
+
+**Status:** Phase 1 in progress (Feb 12, 2026)
+
+### What's Done
+- Added `salary_dashboard_access` flag to `blueprints/auth_routes.py`
+- HR dashboard: replaced individual nav links with "Dashboards" dropdown menu
+- Dropdown is role-aware — only shows links the user has permission to access
+- Deployed to Cloud Run
+
+### HR Dashboard Dropdown Contents
+| Link | Visibility |
+|------|-----------|
+| Supervisor | Always |
+| Staff List | Always |
+| Schools | `schools_dashboard_access` |
+| Salary | `salary_dashboard_access` |
+| Org Chart | Always |
+
+### Supervisor Dashboard Dropdown Contents (uncommitted — `index.html`)
+| Link | Visibility |
+|------|-----------|
+| HR View | `hr_dashboard_access` |
+| Staff List | Always |
+| Schools | `schools_dashboard_access` |
+| Kickboard | `kickboard_dashboard_access` |
+| Suspensions | `suspensions_dashboard_access` |
+| Salary | `salary_dashboard_access` |
+| Org Chart | Always |
+
+### TODO — Next Session
+- [ ] Commit & deploy Supervisor dashboard dropdown (`index.html`)
+- [ ] Phase 2: Roll out dropdown to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart)
+- [ ] Phase 3: Integrate Position Control into this app as a blueprint
+  - Currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`)
+  - Access: C-Team + HR + School Leaders (by job title)
+  - Add `get_position_control_access` to `auth.py`
+  - Add to dropdown nav on all dashboards
+
+---
+
 ## Known Issues
 
 1. **ACL table inaccessible** — `fls-data-warehouse.acl.fls_acl_named` is backed by a Google Sheet that requires Drive permissions not currently granted. Non-blocking (Kickboard ACL fallback only).

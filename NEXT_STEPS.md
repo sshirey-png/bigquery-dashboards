@@ -1,73 +1,71 @@
-# Next Steps - Supervisor Dashboard
+# Next Steps — Supervisor Dashboard & Dashboards Project
 
-## Current Status: ✓ LIVE & BRANDED
-
-**Live URL:** https://supervisor-dashboard-965913991496.us-central1.run.app
-
-### What's Working:
-- ✓ Flask backend with BigQuery integration
-- ✓ Native BigQuery tables with hourly refresh
-- ✓ FirstLine Schools branding (logo, colors, fonts)
-- ✓ Supervisor selection and team view
-- ✓ Staff list with PMAP status, time off, NPS scores
-- ✓ Color-coded alerts (red/yellow/green)
-- ✓ Search and filtering (All Staff / With Alerts / Action Needed)
-- ✓ Detail view modal
-- ✓ Employment Status display (Active, Leave of Absence)
-- ✓ Responsive design (desktop + mobile)
+**Last Updated:** February 12, 2026
 
 ---
 
-## Potential Future Enhancements
+## Immediate — Pick Up Here
 
-### High Priority
-1. ~~**Authentication** - Add Google OAuth or SSO to restrict access~~ ✓ DONE
-2. **Custom Domain** - Set up supervisordashboard.firstlineschools.org (waiting on IT for DNS)
+### 1. Commit & deploy Supervisor dashboard dropdown
+- `index.html` has the dropdown nav ready, **uncommitted**
+- Same pattern as HR dashboard — role-aware "Dashboards" dropdown
+- Shows: HR View (if access), Staff List, Schools, Kickboard, Suspensions, Salary (all if access), Org Chart
+- Deploy with `~/deploy.sh supervisor`
 
-### Medium Priority
-3. **Export to CSV/Excel** - Allow supervisors to download their team data
-4. **Email Notifications** - Alert supervisors when staff need action
-5. **Historical Trends** - Show observation counts over time
-6. **Bulk Actions** - Mark multiple items as reviewed
+### 2. Roll out dropdown to remaining 6 dashboards
+Apply the same dropdown pattern to:
+- [ ] Schools (`schools-dashboard.html`)
+- [ ] Kickboard (`kickboard-dashboard.html`)
+- [ ] Suspensions (`suspensions-dashboard.html`)
+- [ ] Salary (`salary-dashboard.html`)
+- [ ] Staff List (`staff-list-dashboard.html`)
+- [ ] Org Chart (`orgchart.html`)
 
-### Nice to Have
-7. **Dark Mode** - Toggle for dark theme
-8. **Print View** - Optimized layout for printing
-9. **Dashboard Widgets** - Customizable stat cards
-10. **Mobile App** - Progressive Web App (PWA) support
+Each dashboard omits its own self-link. Decide per-dashboard which links are relevant (e.g. HR dashboard excludes Kickboard/Suspensions).
 
----
-
-## Technical Notes
-
-### Deployment
-Due to Windows timestamp issues with gcloud, deploy using a temp directory:
-```bash
-# 1. Copy files to temp dir with fresh timestamps
-# 2. Deploy from temp dir
-# 3. Clean up temp dir
-```
-
-### Scheduled Queries
-5 scheduled queries run hourly in BigQuery Console to refresh native tables from source Google Sheets.
-
-### Key Files
-- `app.py` - Flask backend
-- `index.html` - Frontend (single-page app)
-- `Dockerfile` - Cloud Run container config
-- `requirements.txt` - Python dependencies
+### 3. Integrate Position Control as a blueprint
+Position Control is currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`). Plan is to bring it into this app so it shares auth, nav, and deployment.
+- Pull code into `blueprints/position_control.py`
+- Add `get_position_control_access` to `auth.py` — access: C-Team + HR + School Leaders (by job title)
+- Add `position_control_access` flag to auth status endpoint
+- Add to dropdown nav on all dashboards
 
 ---
 
-## Session Log
+## Completed Recently
+
+### February 12, 2026
+- Added `salary_dashboard_access` flag to `blueprints/auth_routes.py`
+- HR dashboard: replaced individual nav links with role-aware dropdown (deployed)
+- Supervisor dashboard: dropdown nav added (uncommitted)
+- Fixed Staff List route (`/staff-list-dashboard`)
+- Updated `docs/ACCESS_PERMISSIONS.md` with nav dropdown documentation
+
+### January 19, 2026
+- Certification badges for teachers/leaders
+- Intent to Return popup with survey details
+- Removed NPS column from main table
 
 ### January 17, 2026
-- Converted external tables to native BigQuery tables
-- Set up hourly scheduled refresh queries
-- Added Leave of Absence employees to dashboard
-- Redesigned UI with FirstLine Schools branding
-- Fixed logo display
+- Native BigQuery tables with hourly refresh
+- FirstLine Schools branding
+- Google OAuth authentication
 
 ---
 
-**Last Updated:** January 17, 2026
+## Backlog
+
+- **Custom Domain** — supervisordashboard.firstlineschools.org (waiting on IT for DNS)
+- **Export to CSV/Excel** — download team data
+- **Email Notifications** — alert supervisors when staff need action
+- **Historical Trends** — observation counts over time
+
+---
+
+## Deployment
+
+- Dashboard app: `~/deploy.sh dashboards`
+- Supervisor app: `~/deploy.sh supervisor`
+- Live URLs:
+  - https://bigquery-dashboards-daem7b6ydq-uc.a.run.app
+  - https://supervisor-dashboard-965913991496.us-central1.run.app
