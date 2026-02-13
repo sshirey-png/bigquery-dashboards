@@ -216,18 +216,26 @@
                             <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
                             <span id="userDisplayName" class="text-sm text-white hidden"></span>
                         </div>
-                        <a href="/suspensions-dashboard" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                            </svg>
-                            Suspensions
-                        </a>
-                        <a href="/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            Supervisor View
-                        </a>
+                        <!-- Dashboards dropdown -->
+                        <div class="relative" id="navDropdown">
+                            <button id="navDropdownBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                                Dashboards
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="navDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                                <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Supervisor</a>
+                                <a href="/hr-dashboard" id="navHR" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">HR View</a>
+                                <a href="/staff-list-dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Staff List</a>
+                                <a href="/schools-dashboard" id="navSchools" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Schools</a>
+                                <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                                <a href="/salary-dashboard" id="navSalary" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Salary</a>
+                                <hr class="my-1 border-gray-200">
+                                <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
+                                <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
+                            </div>
+                        </div>
                         <button id="refreshBtn" onclick="refreshData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -614,7 +622,18 @@
         // ============================================
         // Initialization
         // ============================================
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Nav dropdown toggle
+            const dropdownBtn = document.getElementById('navDropdownBtn');
+            const dropdownMenu = document.getElementById('navDropdownMenu');
+            dropdownBtn.addEventListener('click', () => dropdownMenu.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('navDropdown').contains(e.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+            checkAuth();
+        });
 
         async function checkAuth() {
             const authLoading = document.getElementById('authLoading');
@@ -654,6 +673,12 @@
                     }
 
                     document.getElementById('roleLabel').textContent = kickboardAccess.label || 'Kickboard';
+
+                    // Show nav links based on access
+                    if (data.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
+                    if (data.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
+                    if (data.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+                    if (data.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
 
                     // Hide school filter for single-school users
                     if (isSingleSchool) {

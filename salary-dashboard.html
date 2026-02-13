@@ -110,6 +110,26 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
+                        <!-- Dashboards dropdown -->
+                        <div class="relative" id="navDropdown">
+                            <button id="navDropdownBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                                Dashboards
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="navDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                                <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Supervisor</a>
+                                <a href="/hr-dashboard" id="navHR" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">HR View</a>
+                                <a href="/staff-list-dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Staff List</a>
+                                <a href="/schools-dashboard" id="navSchools" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Schools</a>
+                                <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
+                                <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                                <hr class="my-1 border-gray-200">
+                                <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
+                                <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
+                            </div>
+                        </div>
                         <button onclick="loadData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -665,6 +685,15 @@
 
         // Check auth and access on load
         document.addEventListener('DOMContentLoaded', async () => {
+            // Nav dropdown toggle
+            const dropdownBtn = document.getElementById('navDropdownBtn');
+            const dropdownMenu = document.getElementById('navDropdownMenu');
+            dropdownBtn.addEventListener('click', () => dropdownMenu.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('navDropdown').contains(e.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
             try {
                 const authRes = await fetch('/api/auth/status');
                 const authData = await authRes.json();
@@ -674,6 +703,12 @@
                     const accessData = await accessRes.json();
 
                     if (accessData.has_access) {
+                        // Show nav links based on access
+                        if (authData.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
+                        if (authData.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
+                        if (authData.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
+                        if (authData.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('dashboardScreen').classList.remove('hidden');
                         await loadSchools();

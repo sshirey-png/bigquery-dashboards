@@ -150,6 +150,26 @@
                 <div class="flex items-center gap-2">
                     <img id="userProfilePic" src="" alt="" class="w-8 h-8 rounded-full hidden">
                     <span id="userDisplayName" class="text-sm text-white hidden sm:inline"></span>
+                    <!-- Dashboards dropdown -->
+                    <div class="relative" id="navDropdown">
+                        <button id="navDropdownBtn" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            Dashboards
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="navDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                            <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Supervisor</a>
+                            <a href="/hr-dashboard" id="navHR" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">HR View</a>
+                            <a href="/schools-dashboard" id="navSchools" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Schools</a>
+                            <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
+                            <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                            <a href="/salary-dashboard" id="navSalary" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Salary</a>
+                            <hr class="my-1 border-gray-200">
+                            <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
+                            <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
+                        </div>
+                    </div>
                     <button onclick="loadData()" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors" title="Refresh data">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         <span class="hidden sm:inline">Refresh</span>
@@ -480,11 +500,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!visibleColumns.length) {
         visibleColumns = ALL_COLUMNS.filter(c => c.default).map(c => c.key);
     }
-    // Close export menu on outside click
+    // Nav dropdown toggle
+    const dropdownBtn = document.getElementById('navDropdownBtn');
+    const dropdownMenu = document.getElementById('navDropdownMenu');
+    dropdownBtn.addEventListener('click', () => dropdownMenu.classList.toggle('hidden'));
+    // Close export menu and nav dropdown on outside click
     document.addEventListener('click', (e) => {
         const menu = document.getElementById('exportMenu');
         if (!menu.classList.contains('hidden') && !e.target.closest('.relative')) {
             menu.classList.add('hidden');
+        }
+        if (!document.getElementById('navDropdown').contains(e.target)) {
+            dropdownMenu.classList.add('hidden');
         }
     });
 });
@@ -512,6 +539,13 @@ async function checkAuth() {
                     name.classList.remove('hidden');
                 }
             }
+            // Show nav links based on access
+            if (auth.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
+            if (auth.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
+            if (auth.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
+            if (auth.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+            if (auth.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
+
             loadData();
         }
     } catch(e) {
