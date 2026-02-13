@@ -8,7 +8,7 @@
 
 ### 1. Roll out dropdown to remaining 6 dashboards
 Apply the same dropdown pattern to:
-- [ ] Schools (`schools-dashboard.html`)
+- [ ] Schools (`schools-dashboard.html`) — **priority, do first**
 - [ ] Kickboard (`kickboard-dashboard.html`)
 - [ ] Suspensions (`suspensions-dashboard.html`)
 - [ ] Salary (`salary-dashboard.html`)
