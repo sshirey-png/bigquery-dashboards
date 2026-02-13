@@ -1138,6 +1138,11 @@
                     // Check accessible supervisors
                     if (accessibleSupervisors.length === 0) {
                         // User is authenticated but has no supervisor access
+                        // Redirect to their primary dashboard if they have one
+                        if (data.hr_dashboard_access) {
+                            window.location.href = '/hr-dashboard';
+                            return;
+                        }
                         document.getElementById('notSupervisorWarning').classList.remove('hidden');
                         googleSignInBtn.textContent = 'Sign in with a different account';
                         googleSignInBtn.classList.remove('hidden');
