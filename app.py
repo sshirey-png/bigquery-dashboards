@@ -65,6 +65,19 @@ def create_app():
     app.register_blueprint(suspensions_bp)
     app.register_blueprint(salary_bp)
 
+    # Prevent browser caching of HTML pages so deploys take effect immediately
+    @app.after_request
+    def set_cache_headers(response):
+        if response.content_type and 'text/html' in response.content_type:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        # One-time cache clear: old cached pages still call APIs, so this header
+        # tells the browser to clear its cache. Safe to remove after March 2026.
+        if response.content_type and 'application/json' in response.content_type:
+            response.headers['Clear-Site-Data'] = '"cache"'
+        return response
+
     return app
 
 

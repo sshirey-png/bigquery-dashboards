@@ -288,7 +288,7 @@
                             class="hidden px-4 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-300 transition-colors">
                         Clear Custom
                     </button>
-                    <button onclick="loadCustomScenario()"
+                    <button id="calcCustomBtn" onclick="loadCustomScenario()"
                             class="px-6 py-2 bg-fls-orange text-white text-sm font-medium rounded-lg hover:bg-fls-orange-dark transition-colors">
                         Calculate Custom Scenario
                     </button>
@@ -608,10 +608,10 @@
                             <button onclick="setCategory('Teacher')" id="catTeacher" class="cat-btn px-3 py-1.5 text-sm font-medium bg-slate-50 text-slate-600 hover:bg-slate-100 border-l border-slate-200">Teacher</button>
                         </div>
                         <input type="number" id="empMinYoe" placeholder="Min YOE"
-                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="loadEmployees()">
+                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="customScenarioActive ? loadEmployeesWithCustom() : loadEmployees()">
                         <span class="text-slate-400">-</span>
                         <input type="number" id="empMaxYoe" placeholder="Max YOE"
-                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="loadEmployees()">
+                               class="w-20 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm" onchange="customScenarioActive ? loadEmployeesWithCustom() : loadEmployees()">
                         <button onclick="exportEmployees()" class="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200">
                             Export CSV
                         </button>
@@ -1263,6 +1263,13 @@
         }
 
         async function loadCustomScenario() {
+            // Show loading state on button
+            const calcBtn = document.getElementById('calcCustomBtn');
+            if (calcBtn) {
+                calcBtn.textContent = 'Calculating...';
+                calcBtn.disabled = true;
+            }
+
             const school = document.getElementById('schoolFilter').value;
             const annualRate = document.getElementById('annualRateSlider').value;
 
@@ -1325,6 +1332,11 @@
 
             try {
                 const res = await fetch(url);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    alert(`Custom scenario failed (${res.status}): ${errText}`);
+                    return;
+                }
                 const data = await res.json();
 
                 customScenarioActive = true;
@@ -1385,6 +1397,14 @@
                 loadEmployeesWithCustom();
             } catch (e) {
                 console.error('Error loading custom scenario:', e);
+                alert('Error calculating custom scenario: ' + (e.message || e));
+            } finally {
+                // Reset button
+                const calcBtn = document.getElementById('calcCustomBtn');
+                if (calcBtn) {
+                    calcBtn.textContent = 'Calculate Custom Scenario';
+                    calcBtn.disabled = false;
+                }
             }
         }
 
@@ -1396,11 +1416,7 @@
             document.getElementById('customResults').classList.add('hidden');
             document.getElementById('clearCustomBtn').classList.add('hidden');
 
-            // Reset headers
-            document.getElementById('summaryLastCol').textContent = 'Avg Raise (Base)';
-            document.getElementById('summaryLastCol').classList.remove('text-green-600');
-            document.getElementById('empLastCol').textContent = 'Base';
-            document.getElementById('empLastCol').classList.remove('text-green-600');
+            // Headers are rebuilt by updateSummaryTable() and loadEmployees() below
 
             // Clear preset highlights
             document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -1485,11 +1501,16 @@
         function updateSummaryTableWithCustom() {
             if (!customScenarioData) return;
 
-            // Update header to show "Custom"
-            document.getElementById('summaryLastCol').textContent = 'Avg Raise (Custom)';
-            document.getElementById('summaryLastCol').classList.add('text-green-600');
-            document.getElementById('empLastCol').textContent = 'Custom';
-            document.getElementById('empLastCol').classList.add('text-green-600');
+            // Rebuild summary header with Custom column
+            const summaryHeaderRow = document.querySelector('#summaryTableBody').closest('table').querySelector('thead tr');
+            summaryHeaderRow.innerHTML = `
+                <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
+                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg YOE</th>
+                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base (+1 yr)</th>
+                <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">Avg Raise (Custom)</th>
+            `;
 
             const tbody = document.getElementById('summaryTableBody');
             const tfoot = document.getElementById('summaryTableFoot');
@@ -1566,7 +1587,20 @@
                 const data = await res.json();
                 employeesData = data.employees;
 
+                const headerRow = document.querySelector('#employeeTableBody').closest('table').querySelector('thead tr');
                 const tbody = document.getElementById('employeeTableBody');
+
+                headerRow.innerHTML = `
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Name</th>
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">School</th>
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Job Title</th>
+                    <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">YOE</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                    <th class="text-right py-3 px-4 font-semibold text-fls-blue bg-slate-50">Standard</th>
+                    <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">Custom</th>
+                `;
+
                 tbody.innerHTML = employeesData.map(e => `
                     <tr class="table-row border-b border-slate-100">
                         <td class="py-2 px-4 font-medium">${e.name}</td>
@@ -1579,6 +1613,7 @@
                         }">${e.category.replace('_', ' ')}</span></td>
                         <td class="py-2 px-4 text-right ${e.current_yoe > currentStepCap ? 'text-red-600 font-semibold' : ''}">${e.current_yoe}</td>
                         <td class="py-2 px-4 text-right">${fmt.format(e.current_salary)}</td>
+                        <td class="py-2 px-4 text-right text-fls-blue">${fmt.format(e.next_base)}</td>
                         <td class="py-2 px-4 text-right text-green-600 font-semibold">${fmt.format(e.next_custom)}</td>
                     </tr>
                 `).join('');
@@ -1764,10 +1799,10 @@
             if (!employeesData.length) return;
             let headers, rows;
             if (customScenarioActive) {
-                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'YOS', 'Current', 'Base', 'YOS Bonus', 'Custom'];
+                headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'YOS', 'Current', 'Standard', 'Current YOS Bonus', 'Custom YOS Bonus', 'Custom'];
                 rows = employeesData.map(e => [
                     e.name, e.school, e.job_title, e.category, e.current_yoe,
-                    e.years_of_service || 0, e.current_salary, e.next_base, e.yos_bonus || 0, e.next_custom
+                    e.years_of_service || 0, e.current_salary, e.next_base, e.current_yos_bonus || 0, e.yos_bonus || 0, e.next_custom
                 ]);
             } else if (baseYosBonusEnabled) {
                 headers = ['Name', 'School', 'Job Title', 'Category', 'YOE', 'YOS', 'Current', 'Base', 'YOS Bonus', 'Total'];
@@ -1782,7 +1817,7 @@
                     e.current_salary, e.next_base
                 ]);
             }
-            const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+            const csv = [headers, ...rows].map(r => r.map(v => typeof v === 'string' && v.includes(',') ? `"${v}"` : v).join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

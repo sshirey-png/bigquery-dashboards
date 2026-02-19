@@ -3,7 +3,7 @@ Salary Projection Dashboard Blueprint
 Interactive salary scenario modeling for CEO presentations
 """
 
-from flask import Blueprint, request, jsonify, send_from_directory, session
+from flask import Blueprint, request, jsonify, send_from_directory, session, redirect, url_for
 from functools import wraps
 from google.cloud import bigquery
 import os
@@ -385,8 +385,17 @@ def get_employees():
 
     where_clause = ' AND '.join(conditions)
 
-    # Build YOS bonus formula for employees (next year)
+    # Build YOS bonus formulas for employees (current year and next year)
     if yos_bonus:
+        yos_bonus_formula_current = f"""
+          CASE
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) < 1 THEN 0
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier1_max} THEN {yos_tier1_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier2_max} THEN {yos_tier2_amount}
+            WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) <= {yos_tier3_max} THEN {yos_tier3_amount}
+            ELSE {yos_tier4_amount}
+          END
+        """
         yos_bonus_formula_next = f"""
           CASE
             WHEN FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) + 1 < 1 THEN 0
@@ -397,6 +406,7 @@ def get_employees():
           END
         """
     else:
+        yos_bonus_formula_current = "0"
         yos_bonus_formula_next = "0"
 
     # Build custom salary formulas if in custom mode
@@ -443,6 +453,7 @@ def get_employees():
               WHEN "Asst_Teacher" THEN {asst_next_formula}
               WHEN "Teacher" THEN {teacher_next_formula}
             END) + ({yos_bonus_formula_next}) as next_custom,
+            ({yos_bonus_formula_current}) as current_yos_bonus,
             ({yos_bonus_formula_next}) as yos_bonus,
             FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,
         """
@@ -450,11 +461,12 @@ def get_employees():
         # Not in custom mode but YOS bonus is enabled - still calculate YOS bonus
         custom_salary_select = f"""
             NULL as next_custom,
+            ({yos_bonus_formula_current}) as current_yos_bonus,
             ({yos_bonus_formula_next}) as yos_bonus,
             FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,
         """
     else:
-        custom_salary_select = "NULL as next_custom, 0 as yos_bonus, FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,"
+        custom_salary_select = "NULL as next_custom, 0 as current_yos_bonus, 0 as yos_bonus, FLOOR(DATE_DIFF(CURRENT_DATE(), DATE(Last_Hire_Date), DAY) / 365.25) as years_of_service,"
 
     # Build extra filters with parameterized queries
     extra_filters = ""
@@ -547,6 +559,7 @@ def get_employees():
             'next_opt1': row.next_opt1 or 0,
             'next_opt2': row.next_opt2,
             'years_of_service': getattr(row, 'years_of_service', None) or 0,
+            'current_yos_bonus': getattr(row, 'current_yos_bonus', 0) or 0,
             'yos_bonus': getattr(row, 'yos_bonus', 0) or 0
         }
         if custom_mode:
@@ -896,9 +909,7 @@ def custom_scenario():
               WHEN "Paraprofessional" THEN next.paraprofessional
               WHEN "Asst_Teacher" THEN next.asst_teacher
               WHEN "Teacher" THEN next.teacher
-            END as next_schedule,
-            s.current_yos_bonus,
-            s.next_yos_bonus
+            END as next_schedule
           FROM with_bonus s
           LEFT JOIN `{SALARY_SCHEDULE_TABLE}` curr
             ON curr.step = s.capped_yoe
