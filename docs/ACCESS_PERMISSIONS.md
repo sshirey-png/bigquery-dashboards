@@ -1,6 +1,6 @@
 # Access Permissions & Authorization Guide — All Projects
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-19
 **GCP Project:** talent-demo-482004
 
 ---
@@ -22,26 +22,37 @@
 ## 1. Supervisor Dashboard (bigquery-dashboards)
 
 **Repo:** github.com/sshirey-png/bigquery-dashboards
-**Cloud Run:** supervisor-dashboard
-**URLs:** https://supervisor-dashboard-965913991496.us-central1.run.app (also: https://supervisor-dashboard-daem7b6ydq-uc.a.run.app)
+**Cloud Run:** bigquery-dashboards (serves all dashboards), supervisor-dashboard (supervisor only)
+**URLs:** https://bigquery-dashboards-daem7b6ydq-uc.a.run.app, https://supervisor-dashboard-daem7b6ydq-uc.a.run.app
 **Auth:** Google OAuth, `@firstlineschools.org` domain required
 
-### Admin Users
-| Email | Name/Role |
-|-------|-----------|
+### Permission Tiers
+
+Access is controlled by three role tiers defined in `config.py`. Each tier grants different dashboard access.
+
+#### Tier 1a: CPO — full access to everything
+| Email | Name |
+|-------|------|
 | sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
+
+#### Tier 1b: HR Team — Supervisor, HR, Staff List dashboards
+| Email | Name |
+|-------|------|
 | brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
 | spence@firstlineschools.org | Sabrina Pence |
 | mtoussaint@firstlineschools.org | M. Toussaint |
 | csmith@firstlineschools.org | C. Smith |
 | aleibfritz@firstlineschools.org | A. Leibfritz |
+
+#### Schools Team — Schools, Kickboard, Suspensions dashboards
+| Email | Name |
+|-------|------|
 | sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
 | dgoodwin@firstlineschools.org | Dawn Goodwin - K-8 Content Lead |
-| rjohnson@firstlineschools.org | Rameisha Johnson - Manager Family Engagement |
 | krodriguez@firstlineschools.org | Kristin Rodriguez - Dir of Culture |
 | csteele@firstlineschools.org | Charlotte Steele - Dir of ESYNOLA |
 
-**Source:** `bigquery-dashboards/config.py` lines 25-38
+**Source:** `config.py` lines 25-46
 
 ### Email Aliases
 | External Email | Maps To |
@@ -50,21 +61,34 @@
 
 ### Dashboard Access Matrix
 
-| Dashboard | Who Can Access | Data Scope |
-|-----------|---------------|------------|
-| **Supervisor** | All @firstlineschools.org users | Own team + downline (hierarchical) |
-| **HR/Talent** | Admin users only (11 above) | All staff org-wide |
-| **Schools** | Admins + specific job titles | Filtered by role scope (see below) |
-| **Kickboard** | Admins, School Leaders, Supervisors, ACL grants | Hybrid: schools + staff IDs |
-| **Suspensions** | Admins + School Leaders | School-level only |
-| **Salary Projection** | C-Team only (Chief/Ex. Dir in title) | All staff, filterable by school |
-| **Staff List** | All @firstlineschools.org users | All staff (read-only directory) |
-| **Org Chart** | All @firstlineschools.org users | Full org structure |
+| Dashboard | Who Can Access | Auth Flag | Data Scope |
+|-----------|---------------|-----------|------------|
+| **Supervisor** | All @firstlineschools.org users | always | Own team + downline (hierarchical) |
+| **HR/Talent** | CPO + HR Team | `hr_dashboard_access` | All staff org-wide |
+| **Schools** | CPO + Schools Team + specific job titles | `schools_dashboard_access` | Filtered by role scope (see below) |
+| **Kickboard** | CPO + Schools Team + School Leaders + Supervisors + ACL | `kickboard_dashboard_access` | Hybrid: schools + staff IDs |
+| **Suspensions** | CPO + Schools Team + School Leaders | `suspensions_dashboard_access` | School-level only |
+| **Salary Projection** | C-Team only (Chief/Ex. Dir in title) | `salary_dashboard_access` | All staff, filterable by school |
+| **Staff List** | All @firstlineschools.org users | always | All staff (read-only directory) |
+| **Org Chart** | All @firstlineschools.org users | always | Full org structure |
+
+### What Each Role Sees in the Nav Dropdown
+
+Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards the user can access. Each page omits its own self-link.
+
+| Role | Dashboards Visible |
+|------|--------------------|
+| CPO (sshirey) | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Org Chart |
+| HR Team (brichardson, spence, etc.) | Supervisor, HR, Staff List, Org Chart |
+| Schools Team (sdomango, dgoodwin, etc.) | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if C-Team title) |
+| School Leaders (principals, APs, etc.) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if job title qualifies) |
+| Supervisors | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
+| All Staff | Supervisor, Staff List, Org Chart |
 
 ### Schools Dashboard Roles
 | Job Title | Scope | What They See |
 |-----------|-------|---------------|
-| (Admin users) | all_except_cteam | All staff except Chief/CEO titles |
+| CPO + Schools Team | all_except_cteam | All staff except Chief/CEO titles |
 | Chief Academic Officer | all_except_cteam | All staff except Chief/CEO titles |
 | ExDir of Teach and Learn | teachers_only | Only Job_Function = 'Teacher' |
 | K-8 Content Lead | teachers_only | Only Job_Function = 'Teacher' |
@@ -72,7 +96,7 @@
 ### Kickboard Access Tiers (checked in order)
 | Tier | Who | Access Granted |
 |------|-----|---------------|
-| 1. Admin | ADMIN_EMAILS | All schools, all data |
+| 1. Admin | CPO + Schools Team | All schools, all data |
 | 2. School Leader | principal, assistant principal, dean, head of school, director of culture | Their school's data |
 | 3. Supervisor | Any supervisor in org hierarchy | Their direct/indirect reports (by employee ID) |
 | 4. ACL Fallback | Explicit grants in Google Sheet | Specific school(s) via `fls-data-warehouse.acl.fls_acl_named` |
@@ -80,12 +104,14 @@
 ### Suspensions Access
 | Tier | Who | Access |
 |------|-----|--------|
-| 1. Admin | ADMIN_EMAILS | All schools |
+| 1. Admin | CPO + Schools Team | All schools |
 | 2. School Leader | Same titles as Kickboard | Their school only |
 
 ### Salary Projection Access
 - C-Team only (job title contains 'Chief' or 'Ex. Dir')
 - **No admin bypass** — strictly job-title based
+- Custom scenario builder with Current/Standard/Custom salary comparison
+- CSV export includes YOS, Current YOS Bonus, and Custom YOS Bonus columns
 
 ### BigQuery Tables
 
@@ -93,6 +119,7 @@
 | Dataset | Table | Used By |
 |---------|-------|---------|
 | talent_grow_observations | supervisor_dashboard_data | Supervisor, HR, Schools |
+| talent_grow_observations | staff_master_list_with_function | Auth lookups, Schools, Kickboard, Suspensions, Salary |
 | talent_grow_observations | ldg_action_steps | Action steps (LDG sync) |
 | talent_grow_observations | ldg_meetings | Meetings (LDG sync) |
 | Salary | salary_schedule | Salary dashboard |
@@ -297,7 +324,6 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 | Service | URL | Notes |
 |---------|-----|-------|
-| bigquery-dashboards | https://bigquery-dashboards-daem7b6ydq-uc.a.run.app | May be an older version of supervisor-dashboard |
 | itr-dashboard | https://itr-dashboard-daem7b6ydq-uc.a.run.app | Intent-to-return dashboard (no repo found) |
 | position-control | https://position-control-daem7b6ydq-uc.a.run.app | Position control dashboard (no repo found) |
 
@@ -305,19 +331,18 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 ## 9. Master Admin List Across All Projects
 
-| Email | Supervisor Dashboard | Referral Program | Sabbatical Program |
-|-------|---------------------|-----------------|-------------------|
-| sshirey@firstlineschools.org | Admin | Admin | Network Admin |
-| brichardson@firstlineschools.org | Admin | Admin | Network Admin |
-| spence@firstlineschools.org | Admin | — | Network Admin |
-| mtoussaint@firstlineschools.org | Admin | — | — |
-| csmith@firstlineschools.org | Admin | — | — |
-| aleibfritz@firstlineschools.org | Admin | — | — |
-| sdomango@firstlineschools.org | Admin | — | Network Admin |
-| dgoodwin@firstlineschools.org | Admin | — | — |
-| rjohnson@firstlineschools.org | Admin | — | — |
-| krodriguez@firstlineschools.org | Admin | — | — |
-| csteele@firstlineschools.org | Admin | — | — |
+| Email | Dashboard Role | Referral Program | Sabbatical Program |
+|-------|---------------|-----------------|-------------------|
+| sshirey@firstlineschools.org | CPO (Tier 1a) | Admin | Network Admin |
+| brichardson@firstlineschools.org | HR Team (Tier 1b) | Admin | Network Admin |
+| spence@firstlineschools.org | HR Team (Tier 1b) | — | Network Admin |
+| mtoussaint@firstlineschools.org | HR Team (Tier 1b) | — | — |
+| csmith@firstlineschools.org | HR Team (Tier 1b) | — | — |
+| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | — | — |
+| sdomango@firstlineschools.org | Schools Team | — | Network Admin |
+| dgoodwin@firstlineschools.org | Schools Team | — | — |
+| krodriguez@firstlineschools.org | Schools Team | — | — |
+| csteele@firstlineschools.org | Schools Team | — | — |
 | talent@firstlineschools.org | — | Admin | Network Admin |
 | hr@firstlineschools.org | — | Admin | Network Admin |
 | awatts@firstlineschools.org | — | Admin | Network Admin |
@@ -332,42 +357,20 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 ## Dashboard Navigation — Role-Aware Dropdown
 
-**Status:** Phase 1 in progress (Feb 12, 2026)
+**Status:** Complete (deployed Feb 13, 2026)
 
-### What's Done
-- Added `salary_dashboard_access` flag to `blueprints/auth_routes.py`
-- HR dashboard: replaced individual nav links with "Dashboards" dropdown menu
-- Dropdown is role-aware — only shows links the user has permission to access
-- Deployed to Cloud Run
+All 8 dashboards now have a "Dashboards" dropdown menu in the header. The dropdown is role-aware: it only shows links to dashboards the logged-in user has permission to access. Each page omits its own self-link.
 
-### HR Dashboard Dropdown Contents
-| Link | Visibility |
-|------|-----------|
-| Supervisor | Always |
-| Staff List | Always |
-| Schools | `schools_dashboard_access` |
-| Salary | `salary_dashboard_access` |
-| Org Chart | Always |
+### Auth Flags (returned by `/api/auth/status`)
+| Flag | Grants Nav Link To | Based On |
+|------|-------------------|----------|
+| `hr_dashboard_access` | HR View | `is_hr_admin()` — CPO + HR Team |
+| `schools_dashboard_access` | Schools | `get_schools_dashboard_role()` — CPO + Schools Team + job title |
+| `kickboard_dashboard_access` | Kickboard | `get_kickboard_access()` — CPO + Schools Team + School Leaders + Supervisors + ACL |
+| `suspensions_dashboard_access` | Suspensions | `get_suspensions_access()` — CPO + Schools Team + School Leaders |
+| `salary_dashboard_access` | Salary | `get_salary_access()` — C-Team job titles only |
 
-### Supervisor Dashboard Dropdown Contents (uncommitted — `index.html`)
-| Link | Visibility |
-|------|-----------|
-| HR View | `hr_dashboard_access` |
-| Staff List | Always |
-| Schools | `schools_dashboard_access` |
-| Kickboard | `kickboard_dashboard_access` |
-| Suspensions | `suspensions_dashboard_access` |
-| Salary | `salary_dashboard_access` |
-| Org Chart | Always |
-
-### TODO — Next Session
-- [ ] Commit & deploy Supervisor dashboard dropdown (`index.html`)
-- [ ] Phase 2: Roll out dropdown to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart)
-- [ ] Phase 3: Integrate Position Control into this app as a blueprint
-  - Currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`)
-  - Access: C-Team + HR + School Leaders (by job title)
-  - Add `get_position_control_access` to `auth.py`
-  - Add to dropdown nav on all dashboards
+Supervisor, Staff List, Org Chart, and Data Portal links are always visible.
 
 ---
 
@@ -375,8 +378,7 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 1. **ACL table inaccessible** — `fls-data-warehouse.acl.fls_acl_named` is backed by a Google Sheet that requires Drive permissions not currently granted. Non-blocking (Kickboard ACL fallback only).
 2. **Hardcoded admin lists** — All projects use hardcoded email lists. Changes require code deployment.
-3. **School year start date hardcoded** — `CURRENT_SY_START = '2025-08-04'` in bigquery-dashboards config.py must be manually updated each year.
-4. **Inconsistent admin lists** — Different projects have different admin sets (e.g., dcavato is in sabbatical but not supervisor-dashboard; dgoodwin is in supervisor-dashboard but not sabbatical).
-5. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
-6. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
-7. **Missing repos** — itr-dashboard and position-control Cloud Run services have no corresponding GitHub repos.
+3. **Inconsistent admin lists** — Different projects have different admin sets (e.g., dcavato is in sabbatical but not supervisor-dashboard; dgoodwin is in supervisor-dashboard but not sabbatical).
+4. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
+5. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
+6. **Missing repos** — itr-dashboard and position-control Cloud Run services have no corresponding GitHub repos.
