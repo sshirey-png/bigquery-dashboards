@@ -1,23 +1,12 @@
 # Next Steps — Supervisor Dashboard & Dashboards Project
 
-**Last Updated:** February 13, 2026
+**Last Updated:** February 19, 2026
 
 ---
 
 ## Immediate — Pick Up Here
 
-### 1. Roll out dropdown to remaining 6 dashboards
-Apply the same dropdown pattern to:
-- [ ] Schools (`schools-dashboard.html`) — **priority, do first**
-- [ ] Kickboard (`kickboard-dashboard.html`)
-- [ ] Suspensions (`suspensions-dashboard.html`)
-- [ ] Salary (`salary-dashboard.html`)
-- [ ] Staff List (`staff-list-dashboard.html`)
-- [ ] Org Chart (`orgchart.html`)
-
-Each dashboard omits its own self-link. Decide per-dashboard which links are relevant (e.g. HR dashboard excludes Kickboard/Suspensions).
-
-### 2. Integrate Position Control as a blueprint
+### 1. Integrate Position Control as a blueprint
 Position Control is currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`). Plan is to bring it into this app so it shares auth, nav, and deployment.
 - Pull code into `blueprints/position_control.py`
 - Add `get_position_control_access` to `auth.py` — access: C-Team + HR + School Leaders (by job title)
@@ -31,6 +20,20 @@ Position Control is currently a separate Cloud Run service (`position-control-da
 ---
 
 ## Completed Recently
+
+### February 19, 2026
+- **Assessment Fidelity on Schools Dashboard**: Added Completion % and Mastery % columns to the staff table, sourced from actual class rosters (`class_schedules` + `results_raw`) for per-teacher accuracy
+- School-level summary table showing current and previous formal assessment metrics per school, color-coded by threshold
+- Teacher assessment detail modal with current/previous comparison and delta indicators
+- Student drill-down: click "View Students" to see per-student test status, scores, and missing students highlighted in red
+- **Bottom 25th percentile highlighting**: Students from `sps.24_25_bottom_25` shown with amber styling and "B25" badge (with ELA/Math specificity)
+- **SPED co-teacher support**: SPED teachers in grades 3-8 automatically matched to inclusion sections (highest SPED student concentration) — each grade's test shown as separate data point (no cross-grade averaging)
+- New API endpoints: `/api/schools/assessment-fidelity`, `/api/schools/assessment-students`
+- New BigQuery tables integrated: `performance_matters.results_by_test`, `performance_matters.results_raw`, `class_schedules.class_schedules`, `student_rosters.student_roster`, `sps.24_25_bottom_25`
+
+### February 14, 2026
+- Dropdown nav rolled out to all remaining dashboards: Schools, Kickboard, Suspensions, Salary, Staff List
+- Salary dashboard: added Standard column, fixed custom scenario bugs, prevented caching
 
 ### February 13, 2026
 - Supervisor dashboard: committed and deployed dropdown nav (`index.html`)

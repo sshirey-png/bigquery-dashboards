@@ -67,12 +67,18 @@ bigquery-dashboards/
 │   ├── hr.py              # HR dashboard routes
 │   ├── schools.py         # Schools dashboard routes
 │   ├── kickboard.py       # Kickboard dashboard routes
+│   ├── suspensions.py     # Suspensions dashboard routes
+│   ├── staff_list.py      # Staff List dashboard routes
+│   ├── salary.py          # Salary dashboard routes
 │   ├── orgchart.py        # Org chart routes
 │   └── health.py          # Health check endpoint
 ├── index.html             # Supervisor Dashboard frontend
 ├── hr-dashboard.html      # HR Dashboard frontend
 ├── schools-dashboard.html # Schools Dashboard frontend
 ├── kickboard-dashboard.html # Kickboard Dashboard frontend
+├── suspensions-dashboard.html # Suspensions Dashboard frontend
+├── staff-list-dashboard.html  # Staff List Dashboard frontend
+├── salary-dashboard.html      # Salary Dashboard frontend
 ├── orgchart.html          # Org Chart frontend
 ├── Dockerfile             # Container build instructions
 ├── requirements.txt       # Python dependencies
@@ -86,8 +92,10 @@ bigquery-dashboards/
 | File | Purpose | When to Edit |
 |------|---------|--------------|
 | `config.py` | Admin list, school mappings, table names | Adding admins, changing school names |
-| `auth.py` | Permission logic | Changing who can access what |
+| `auth.py` | Permission logic, grade/subject mapping | Changing who can access what, updating grade or subject mappings |
+| `blueprints/schools.py` | Schools dashboard API (staff, assessments, students) | Changing assessment fidelity logic, SPED matching |
 | `blueprints/kickboard.py` | Kickboard API endpoints | Changing Kickboard data/features |
+| `schools-dashboard.html` | Schools dashboard UI | Changing assessment display, modals, summary table |
 | `kickboard-dashboard.html` | Kickboard UI | Changing how Kickboard looks |
 | `Dockerfile` | Container build | Adding new dependencies |
 
@@ -374,6 +382,8 @@ def get_kickboard_access(email):
 | `get_supervisor_name_for_email(email)` | Look up supervisor from email |
 | `get_accessible_supervisors(email, name)` | Get list of supervisors user can view |
 | `resolve_email_alias(email)` | Map alias emails to primary |
+| `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels (e.g., "7&8" → [7, 8]) |
+| `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings (e.g., "ELA" → ["English"]) |
 
 ---
 
@@ -421,6 +431,95 @@ Key Columns:
 - email (STRING)
 - powerschool (STRING) - school code
 ```
+
+#### Assessment Results (Aggregated by Test)
+```
+Table: fls-data-warehouse.performance_matters.results_by_test
+
+Key Columns:
+- Test_ID (STRING)
+- Test_Name (STRING)
+- Test_Date (DATE)
+- Location_Name (STRING) - full school name
+- Grade_Level (INTEGER) - 0-8
+- Subject (STRING) - English, Math, Science, Social Studies
+- Metric_Key (STRING) - 'completion_percent', 'percent_scoring_75_or_above'
+- Metric_Value (FLOAT) - decimal 0.0 to 1.0
+```
+
+#### Assessment Results (Student-Level)
+```
+Table: fls-data-warehouse.performance_matters.results_raw
+
+Key Columns:
+- Test_ID (STRING)
+- Test_Name (STRING)
+- Student_Number (STRING)
+- StudentLastFirst (STRING)
+- School_Name (STRING) - short code (Ashe, LHA, etc.)
+- Grade_Level_of_Test (INTEGER)
+- Subject (STRING)
+- Points_Earned (FLOAT)
+- Points_Possible (FLOAT)
+- Percent_Correct (FLOAT)
+- Assessment_Category (STRING) - Quiz, Test, End of Module, etc.
+```
+
+#### Class Schedules
+```
+Table: fls-data-warehouse.class_schedules.class_schedules
+
+Key Columns:
+- Teacher_Email (STRING)
+- CC_School (STRING) - short code
+- Student_Number (STRING)
+- Course_Number (STRING) - e.g., MAT07, ELA03
+- Section_Number (STRING)
+- Grade_Level (INTEGER)
+```
+
+#### Student Roster
+```
+Table: fls-data-warehouse.student_rosters.student_roster
+
+Key Columns:
+- Student_Number (STRING)
+- School (STRING) - short code
+- Grade_Level (INTEGER)
+- SPEDIndicator (STRING) - 'Yes' or 'No'
+```
+
+#### SPS Bottom 25th Percentile
+```
+Table: fls-data-warehouse.sps.24_25_bottom_25
+
+Key Columns:
+- Student_Number (STRING)
+- LastFirst (STRING)
+- Bottom_25th (STRING) - 'Yes' if in bottom 25th
+- ELA_25th (STRING)
+- Math_25th (STRING)
+```
+
+### Assessment Fidelity Architecture
+
+The Schools Dashboard assessment fidelity feature computes **per-teacher** completion and mastery metrics from actual class rosters rather than school-wide aggregates.
+
+**Data flow:**
+1. `results_raw` filtered to formal assessments (excluding Quiz, Reading Checkpoint) → `formal_tests`
+2. `results_by_test` ranked by date per school/grade/subject → current and previous assessments
+3. `class_schedules` joined with `results_raw` → per-teacher student-level results
+4. SPED teachers without direct rosters get **virtual rosters** from inclusion sections
+
+**SPED Virtual Roster Logic:**
+- SPED teachers in grades 3-8 who have no entries in `class_schedules` are identified
+- For each school/grade/course, the section with the highest count of `SPEDIndicator = 'Yes'` students is selected as the inclusion section
+- All students in that section are assigned to the SPED teacher as a virtual roster
+- Each grade's test is a separate data point — no averaging across grades
+
+**API Endpoints:**
+- `GET /api/schools/assessment-fidelity` — Returns school-level summary and per-teacher metrics
+- `GET /api/schools/assessment-students?teacher_email=...&test_name=...` — Returns student-level drill-down with scores, missing students, and B25 flags
 
 ---
 

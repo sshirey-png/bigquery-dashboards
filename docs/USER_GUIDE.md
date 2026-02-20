@@ -61,14 +61,48 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 ## 3. Schools Dashboard
 
 ### Who Can Access
+- **Schools Team** (Chief Experience Officer, K-8 Content Lead, Dir of Culture, Dir of ESYNOLA) - full access
 - **Chief Academic Officer** - sees all schools (except C-Team)
 - **ExDir of Teach and Learn** - sees teachers only
 - **K-8 Content Lead** - sees teachers only
 - **Admins** - full access
 
 ### What You See
-- Teacher observation and certification data
+- Staff table with observation data, certification status, action steps, and **assessment fidelity** (completion % and mastery %)
+- Filters by school, supervisor, employee type, job function, subject, and grade band
 - Filtered by role-appropriate scope
+
+### Assessment Fidelity
+
+#### School Summary Table
+At the top of the page, a summary table shows the most recent formal assessment for each school:
+- **Completion %** — what percentage of students took the test
+- **Mastery %** — what percentage of tested students scored 75% or above
+- Color-coded: green (high), amber (medium), red (low)
+- Click a school row to see a detailed breakdown with per-teacher data
+
+#### Staff Table Columns
+Each teacher row shows two assessment columns:
+- **Completion %** — this teacher's students who tested (bold = current, small text = previous with trend arrow)
+- **Mastery %** — this teacher's students scoring 75%+ (same format)
+- Non-teaching staff (Deans, Directors, etc.) show "—"
+- Click a cell to open the assessment detail modal
+
+#### Teacher Assessment Modal
+Click a teacher's completion or mastery cell to see:
+- Summary cards: current completion and mastery with deltas from previous
+- Current and previous assessment cards with test name, date, and metrics
+- **View Students** button on each assessment card
+
+#### Student Drill-Down
+Click "View Students" to see a per-student breakdown:
+- **Summary**: Tested count, Missing count, Total count
+- **Missing students** listed first (need attention), highlighted in red
+- **Tested students** sorted by score (lowest first), with score and points
+- **Bottom 25th percentile students** (from SPS data) highlighted with amber styling, bold names, and "B25" badge with subject specificity (ELA, Math, or both)
+
+#### SPED Co-Teachers
+SPED teachers who push into gen-ed classrooms (co-teaching model) are automatically matched to the inclusion section at their school — the section with the highest concentration of SPED students for each grade/course. Each grade's test is shown as a separate data point (no averaging across grades).
 
 ---
 
