@@ -106,3 +106,14 @@ SUSPENSIONS_SCHOOL_MAP = {
     'Green': 'Samuel J. Green Charter School',
 }
 SUSPENSIONS_REVERSE_MAP = {v: k for k, v in SUSPENSIONS_SCHOOL_MAP.items()}
+
+# Performance Matters (Assessment Fidelity)
+PM_RESULTS_BY_TEST = 'fls-data-warehouse.performance_matters.results_by_test'
+PM_RESULTS_RAW = 'fls-data-warehouse.performance_matters.results_raw'
+
+# SPS — Bottom 25th percentile students
+SPS_BOTTOM_25 = 'fls-data-warehouse.sps.24_25_bottom_25'
+
+# Student Rosters & Class Schedules
+STUDENT_ROSTER = 'fls-data-warehouse.student_rosters.student_roster'
+CLASS_SCHEDULES = 'fls-data-warehouse.class_schedules.class_schedules'

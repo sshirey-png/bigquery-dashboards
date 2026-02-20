@@ -595,3 +595,124 @@ def compute_grade_band(grade_level_desc):
         return '3-8'
 
     return None
+
+
+def map_grade_desc_to_levels(grade_level_desc):
+    """
+    Map a Grade_Level_Desc value to a list of integer grade levels for assessment matching.
+    Returns a list of ints (e.g. [7, 8]), or None if the value means "all grades".
+    """
+    if not grade_level_desc:
+        return None
+
+    val = grade_level_desc.strip().lower()
+
+    # Whole school / all grades → no filter
+    if val in ('whole school', 'all grades', 'all'):
+        return None
+
+    # Pre-K / PK → grade 0
+    if val in ('pre-k', 'pk', 'pre k', 'prek'):
+        return [0]
+
+    # Kindergarten → grade 0
+    if val in ('k', 'kinder', 'kindergarten'):
+        return [0]
+
+    # Single grades 1-8
+    single_map = {
+        '1': [1], '1st': [1], 'grade 1': [1],
+        '2': [2], '2nd': [2], 'grade 2': [2],
+        '3': [3], '3rd': [3], 'grade 3': [3],
+        '4': [4], '4th': [4], 'grade 4': [4],
+        '5': [5], '5th': [5], 'grade 5': [5],
+        '6': [6], '6th': [6], 'grade 6': [6],
+        '7': [7], '7th': [7], 'grade 7': [7],
+        '8': [8], '8th': [8], 'grade 8': [8],
+    }
+    if val in single_map:
+        return single_map[val]
+
+    # Multi-grade combos (explicit)
+    combo_map = {
+        'k&1': [0, 1], 'k-1': [0, 1],
+        '1&2': [1, 2], '1-2': [1, 2],
+        'k thru 2': [0, 1, 2], 'k-2': [0, 1, 2],
+        '3&4': [3, 4], '3-4': [3, 4],
+        '4&5': [4, 5], '4-5': [4, 5],
+        '5&6': [5, 6], '5-6': [5, 6],
+        '5&7': [5, 7],
+        '6&7': [6, 7], '6-7': [6, 7],
+        '7&8': [7, 8], '7-8': [7, 8],
+        '3 thru 5': [3, 4, 5], '3-5': [3, 4, 5],
+        '4-6': [4, 5, 6],
+        '5-8': [5, 6, 7, 8],
+        '6 thru 8': [6, 7, 8], '6-8': [6, 7, 8],
+        '3 thru 8': [3, 4, 5, 6, 7, 8], '3-8': [3, 4, 5, 6, 7, 8],
+    }
+    if val in combo_map:
+        return combo_map[val]
+
+    # "N thru M" pattern (e.g. "4 thru 6")
+    if ' thru ' in val:
+        parts = val.split(' thru ')
+        try:
+            start = int(parts[0])
+            end = int(parts[1])
+            return list(range(start, end + 1))
+        except (ValueError, IndexError):
+            pass
+
+    # "N&M" pattern for any two digits not already mapped
+    if '&' in val:
+        parts = val.split('&')
+        try:
+            return [int(p.strip()) for p in parts]
+        except ValueError:
+            pass
+
+    # Middle school / upper school
+    if val in ('middle school', 'upper school'):
+        return [6, 7, 8]
+
+    # Lower school
+    if val in ('lower school',):
+        return [0, 1, 2]
+
+    # Unrecognized → no filter (match all)
+    return None
+
+
+def map_subject_desc_to_assessment(subject_desc):
+    """
+    Map a Subject_Desc value to a list of assessment Subject strings.
+    Returns:
+    - None if "All Subjects" or NULL (match all assessment subjects)
+    - List of strings for known academic subjects (e.g. ['English'])
+    - Empty list [] for non-academic subjects (PE, Art, etc.) → matches nothing
+    """
+    if not subject_desc:
+        return None
+
+    val = subject_desc.strip().lower()
+
+    # "All Subjects" → match all
+    if val in ('all subjects', 'all'):
+        return None
+
+    # Known academic subject mappings
+    subject_map = {
+        'ela': ['English'],
+        'math': ['Math'],
+        'algebra': ['Math'],
+        'science': ['Science'],
+        'social studies': ['Social Studies'],
+        'science and social studies': ['Science', 'Social Studies'],
+        'humanities': ['English', 'Social Studies'],
+    }
+
+    if val in subject_map:
+        return subject_map[val]
+
+    # Non-academic subjects → empty list (no assessment match)
+    return []
