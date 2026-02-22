@@ -96,8 +96,8 @@ bigquery-dashboards/
 
 | File | Purpose | When to Edit |
 |------|---------|--------------|
-| `config.py` | Admin list, school mappings, table names | Adding admins, changing school names |
-| `auth.py` | Permission logic, grade/subject mapping | Changing who can access what, updating grade or subject mappings |
+| `config.py` | Named admin lists, role-based title lists, school mappings, table names | Adding named admins, adding role-based titles, changing school names |
+| `auth.py` | Permission logic (role-based + named), grade/subject mapping | Changing access logic, updating grade or subject mappings |
 | `blueprints/position_control.py` | Position Control admin API | Changing PCF approval logic, permissions |
 | `blueprints/onboarding.py` | Onboarding admin API | Changing onboarding tracking logic, permissions |
 | `blueprints/schools.py` | Schools dashboard API (staff, assessments, students) | Changing assessment fidelity logic, SPED matching |
@@ -277,7 +277,11 @@ Then commit, push, and deploy.
 
 Same as above, but remove the line from the appropriate tier list.
 
-### Adding a School Leader Title
+### Adding a New Role-Based Title
+
+To grant a new job title automatic access to a dashboard, update the appropriate list in `config.py`. No individual emails needed — anyone with that title will get access automatically.
+
+**For Kickboard/Suspensions school leader access:**
 
 **File:** `config.py`
 **Location:** `KICKBOARD_SCHOOL_LEADER_TITLES` list
@@ -292,6 +296,22 @@ KICKBOARD_SCHOOL_LEADER_TITLES = [
     'new title here',  # Add new title (lowercase)
 ]
 ```
+
+**For Schools Dashboard academic role access:**
+
+**File:** `config.py`
+**Location:** `SCHOOLS_DASHBOARD_ROLES` dict
+
+```python
+SCHOOLS_DASHBOARD_ROLES = {
+    'Chief Academic Officer': {'scope': 'all_except_cteam', 'label': 'Chief Academic Officer'},
+    'ExDir of Teach and Learn': {'scope': 'teachers_only', 'label': 'ExDir of Teach and Learn'},
+    'K-8 Content Lead': {'scope': 'teachers_only', 'label': 'K-8 Content Lead'},
+    'New Title': {'scope': 'teachers_only', 'label': 'New Title'},  # Add new role
+}
+```
+
+**For Salary access:** Salary is determined by checking if the title contains "Chief" or "Ex. Dir" — no list to edit. To change the qualifying keywords, edit `auth.py` → `get_salary_access()`.
 
 ### Changing School Mappings
 
@@ -329,6 +349,15 @@ EMAIL_ALIASES = {
 
 ## 7. Understanding the Permission System
 
+### Design Principles
+
+The system uses two types of access control:
+
+1. **Role-based (dynamic):** Access determined by job title or org hierarchy from BigQuery. No code changes needed when people change roles.
+2. **Named (hardcoded):** Access determined by email lists in `config.py`. Requires deployment to change.
+
+Role-based access is preferred. Named lists are used only where access doesn't map to a single job title (e.g., the HR Team includes people with different titles, and Position Control requires granular approval permissions per person).
+
 ### Authentication Flow
 
 ```
@@ -345,53 +374,87 @@ Grant appropriate access     Verify @firstlineschools.org
                              Redirect back
 ```
 
-### Permission Check Order (Kickboard)
+### Role-Based Access Functions
+
+These functions query BigQuery for the user's job title and/or org position. Access transfers automatically when someone changes roles.
+
+| Function | What It Checks | Access Type |
+|----------|---------------|-------------|
+| `get_salary_access(email)` | Job title contains "Chief" or "Ex. Dir" | C-Team → Salary Dashboard |
+| `get_kickboard_access(email)` | Job title in `KICKBOARD_SCHOOL_LEADER_TITLES` → school access; recursive CTE for supervisor downline → staff ID access | School Leaders + Supervisors → Kickboard |
+| `get_suspensions_access(email)` | Job title in `KICKBOARD_SCHOOL_LEADER_TITLES` | School Leaders → Suspensions |
+| `get_schools_dashboard_role(email)` | Job title matches `SCHOOLS_DASHBOARD_ROLES` keys | Academic roles → Schools Dashboard (scoped) |
+| `get_accessible_supervisors(email, name)` | Recursive CTE traversal of org hierarchy | Supervisors → Supervisor Dashboard (downline) |
+
+**Title lists that drive role-based access (in `config.py`):**
+
+```python
+# Kickboard + Suspensions school leader detection
+KICKBOARD_SCHOOL_LEADER_TITLES = [
+    'principal', 'assistant principal', 'dean',
+    'head of school', 'director of culture',
+]
+
+# Schools Dashboard academic role mapping
+SCHOOLS_DASHBOARD_ROLES = {
+    'Chief Academic Officer': {'scope': 'all_except_cteam', ...},
+    'ExDir of Teach and Learn': {'scope': 'teachers_only', ...},
+    'K-8 Content Lead': {'scope': 'teachers_only', ...},
+}
+
+# Salary: checked dynamically — title contains "Chief" or "Ex. Dir"
+```
+
+### Named Access Functions
+
+These functions check hardcoded email lists. Require code deployment to change.
+
+| Function | What It Checks | Named List |
+|----------|---------------|------------|
+| `is_cpo(email)` | CPO tier (Tier 1a) | `CPO_EMAILS` |
+| `is_hr_team(email)` | HR Team tier (Tier 1b) | `HR_TEAM_EMAILS` |
+| `is_hr_admin(email)` | CPO or HR Team | `CPO_EMAILS + HR_TEAM_EMAILS` |
+| `is_schools_team(email)` | Schools Team | `SCHOOLS_TEAM_EMAILS` |
+| `is_schools_admin(email)` | CPO or Schools Team | `CPO_EMAILS + SCHOOLS_TEAM_EMAILS` |
+| `is_admin(email)` | Same as `is_hr_admin()` | Backward compat alias |
+| `get_pcf_access(email)` | Position Control access | `POSITION_CONTROL_ROLES` |
+| `get_pcf_permissions(email)` | PCF granular permissions (can_approve, can_edit_final, etc.) | `POSITION_CONTROL_ROLES` |
+| `get_onboarding_access(email)` | Onboarding access | `ONBOARDING_ROLES` |
+| `get_onboarding_permissions(email)` | Onboarding permissions (can_edit, can_delete, etc.) | `ONBOARDING_ROLES` |
+
+### Other Utility Functions
+
+| Function | Purpose |
+|----------|---------|
+| `resolve_email_alias(email)` | Map alias emails to primary (e.g., zach@esynola.org → zodonnell@firstlineschools.org) |
+| `get_supervisor_name_for_email(email)` | Look up supervisor name from BigQuery by email |
+| `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels for assessment matching |
+| `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings |
+| `compute_grade_band(grade_level_desc)` | Map `Grade_Level_Desc` to grade band bucket (Pre-K, K-2, 3-8) |
+
+### Permission Check Order (Kickboard Example)
 
 ```python
 def get_kickboard_access(email):
-    # 1. Check if admin
-    if is_admin(email):
+    # 1. Named list: is user CPO or Schools Team?
+    if is_schools_admin(email):
         return full_access_to_all_schools
 
-    # 2. Check if school leader (by job title)
-    if job_title contains 'principal', 'dean', etc:
+    # 2. Role-based: is user a school leader by job title?
+    if job_title in KICKBOARD_SCHOOL_LEADER_TITLES:
         return access_to_their_school
 
-    # 3. Check if supervisor (has direct reports)
+    # 3. Role-based: is user a supervisor with downline staff?
     if has_direct_reports:
         return access_to_downline_staff_interactions
 
-    # 4. Check ACL table
+    # 4. ACL table: explicit school grants
     if in_acl_table:
         return access_to_granted_schools
 
     # 5. No access
     return None
 ```
-
-### Key Functions in `auth.py`
-
-| Function | Purpose |
-|----------|---------|
-| `is_cpo(email)` | Check if user is in CPO tier (Tier 1a) |
-| `is_hr_team(email)` | Check if user is in HR Team tier (Tier 1b) |
-| `is_hr_admin(email)` | Check if user is CPO or HR Team |
-| `is_schools_team(email)` | Check if user is in Schools Team |
-| `is_schools_admin(email)` | Check if user is CPO or Schools Team |
-| `is_admin(email)` | Same as `is_hr_admin()` — backward compat |
-| `get_kickboard_access(email)` | Determine Kickboard permissions (hybrid: admin/school leader/supervisor/ACL) |
-| `get_suspensions_access(email)` | Determine Suspensions permissions (admin or school leader) |
-| `get_salary_access(email)` | Determine Salary access (C-Team job titles only, no admin bypass) |
-| `get_schools_dashboard_role(email)` | Determine Schools dashboard scope (admin/job title based) |
-| `get_supervisor_name_for_email(email)` | Look up supervisor from email |
-| `get_accessible_supervisors(email, name)` | Get list of supervisors user can view |
-| `resolve_email_alias(email)` | Map alias emails to primary |
-| `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels |
-| `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings |
-| `get_pcf_access(email)` | Check if user has Position Control Form access |
-| `get_pcf_permissions(email)` | Get detailed PCF permissions (can_approve, can_edit_final, etc.) |
-| `get_onboarding_access(email)` | Check if user has Onboarding Form access |
-| `get_onboarding_permissions(email)` | Get detailed onboarding permissions (can_edit, can_delete, etc.) |
 
 ---
 
@@ -747,17 +810,21 @@ python app.py
 
 ### Key Configuration Locations
 
-| Setting | File | Variable/Section |
-|---------|------|------------------|
-| Admin emails | config.py | ADMIN_EMAILS |
-| School mappings | config.py | KICKBOARD_SCHOOL_MAP |
-| School year start | config.py | CURRENT_SY_START (auto-calculated) |
-| School leader titles | config.py | KICKBOARD_SCHOOL_LEADER_TITLES |
-| Email aliases | config.py | EMAIL_ALIASES |
-| Position Control roles | config.py | POSITION_CONTROL_ROLES |
-| Onboarding roles | config.py | ONBOARDING_ROLES |
-| SMTP email config | config.py | SMTP_EMAIL, SMTP_PASSWORD (env vars) |
-| BigQuery tables | config.py | PROJECT_ID, DATASET_ID, etc. |
+| Setting | File | Variable/Section | Access Type |
+|---------|------|------------------|-------------|
+| CPO emails | config.py | CPO_EMAILS | Named |
+| HR Team emails | config.py | HR_TEAM_EMAILS | Named |
+| Schools Team emails | config.py | SCHOOLS_TEAM_EMAILS | Named |
+| School leader titles (Kickboard/Suspensions) | config.py | KICKBOARD_SCHOOL_LEADER_TITLES | Role-based |
+| Schools Dashboard academic roles | config.py | SCHOOLS_DASHBOARD_ROLES | Role-based |
+| Salary access (C-Team) | auth.py | get_salary_access() — "Chief" or "Ex. Dir" in title | Role-based |
+| Position Control roles | config.py | POSITION_CONTROL_ROLES | Named |
+| Onboarding roles | config.py | ONBOARDING_ROLES | Named |
+| School mappings | config.py | KICKBOARD_SCHOOL_MAP | Config |
+| School year start | config.py | CURRENT_SY_START (auto-calculated) | Config |
+| Email aliases | config.py | EMAIL_ALIASES | Config |
+| SMTP email config | config.py | SMTP_EMAIL, SMTP_PASSWORD (env vars) | Config |
+| BigQuery tables | config.py | PROJECT_ID, DATASET_ID, etc. | Config |
 
 ---
 
@@ -770,4 +837,4 @@ For technical issues:
 4. Check GitHub issues or create a new one
 
 For access/permission issues:
-- Contact an admin from the admin list in config.py
+- Contact CPO or HR Team (see `config.py` → `CPO_EMAILS`, `HR_TEAM_EMAILS`)

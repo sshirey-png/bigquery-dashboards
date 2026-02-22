@@ -5,6 +5,46 @@
 
 ---
 
+## Access Design Principles
+
+FirstLine Schools systems use two types of access control:
+
+### Role-Based (Dynamic) Access
+Access is determined by the employee's **job title** or **position in the org hierarchy**, looked up from the staff database (BigQuery) at login. When someone changes roles, access automatically transfers to whoever holds that title next — **no code changes needed**.
+
+| Access Type | Qualifying Titles | Dashboards / Apps Affected |
+|-------------|-------------------|---------------------------|
+| **C-Team** | Job title contains "Chief" or "Ex. Dir" | Salary Projection |
+| **School Leader** | Principal, Assistant Principal, Dean, Head of School, Director of Culture | Kickboard (school data), Suspensions (school data) |
+| **Schools Academic Roles** | Chief Academic Officer, ExDir of Teach and Learn, K-8 Content Lead | Schools Dashboard (scoped by role) |
+| **Supervisor** | Anyone with direct reports in the org hierarchy | Supervisor Dashboard (own team), Kickboard (downline interactions) |
+| **Sabbatical School Admin** | School Director, Principal, Assistant Principal, Head of School | Sabbatical Program (own school's applications) |
+
+### Named (Hardcoded) Access
+Access is determined by **email address lists** in application code. Requires a code deployment to add or remove people. Used for specific operational teams where membership is controlled centrally and doesn't map cleanly to a single job title.
+
+| List | Location | Purpose |
+|------|----------|---------|
+| CPO (Tier 1a) | `config.py` → `CPO_EMAILS` | Full access to all dashboards |
+| HR Team (Tier 1b) | `config.py` → `HR_TEAM_EMAILS` | Supervisor, HR, Staff List, Position Control, Onboarding |
+| Schools Team | `config.py` → `SCHOOLS_TEAM_EMAILS` | Schools, Kickboard, Suspensions admin |
+| Position Control Roles | `config.py` → `POSITION_CONTROL_ROLES` | Position Control approval workflow |
+| Onboarding Roles | `config.py` → `ONBOARDING_ROLES` | Onboarding management |
+| Referral Admins | `referral-program/app.py` → `ADMIN_USERS` | Referral admin panel |
+| Sabbatical Network Admins | `sabbatical-program/app.py` → `SABBATICAL_NETWORK_ADMINS` | All sabbatical applications |
+
+### Open Access (No Restrictions)
+Some dashboards require only a `@firstlineschools.org` Google login, with no additional permissions:
+- **Supervisor Dashboard** — sees own team only (or all teams for admins)
+- **Staff List** — read-only directory of all staff
+- **Org Chart** — visual org hierarchy
+
+Some apps are fully public with no login at all:
+- **Salary Calculator** — static salary scale reference
+- **Impact Bonus Guide** — informational bonus calculator
+
+---
+
 ## Table of Contents
 
 1. [Supervisor Dashboard (bigquery-dashboards)](#1-supervisor-dashboard-bigquery-dashboards)
@@ -17,27 +57,77 @@
 8. [Position Control Form (position-control-form)](#8-position-control-form-position-control-form)
 9. [Onboarding Form (onboarding-form)](#9-onboarding-form-onboarding-form)
 10. [Cloud Run Services Not in Repos](#10-cloud-run-services-not-in-repos)
-11. [Master Admin List Across All Projects](#11-master-admin-list-across-all-projects)
+11. [Master Access Reference](#11-master-access-reference)
 
 ---
 
 ## 1. Supervisor Dashboard (bigquery-dashboards)
 
 **Repo:** github.com/sshirey-png/bigquery-dashboards
-**Cloud Run:** supervisor-dashboard (serves all dashboards)
+**Cloud Run:** supervisor-dashboard (serves all 10 dashboards)
 **URL:** https://supervisor-dashboard-965913991496.us-central1.run.app
 **Auth:** Google OAuth, `@firstlineschools.org` domain required
 
-### Permission Tiers
+### Role-Based (Dynamic) Access
 
-Access is controlled by three role tiers defined in `config.py`. Each tier grants different dashboard access.
+These dashboards determine access from the employee's **job title** or **org position** in BigQuery. No code changes needed when people change roles.
 
-#### Tier 1a: CPO — full access to everything
+#### Salary Projection — C-Team by Job Title
+- Access granted when job title contains **"Chief"** or **"Ex. Dir"**
+- **No admin bypass** — even CPO gets access through title match, not the admin list
+- Lookup: `auth.py` → `get_salary_access()` queries `staff_master_list_with_function`
+
+#### Kickboard — School Leaders by Job Title
+School leaders automatically see their school's full Kickboard data based on their job title and Location field:
+
+| Qualifying Title | Access Granted |
+|------------------|---------------|
+| Principal | Full data for their school |
+| Assistant Principal | Full data for their school |
+| Dean | Full data for their school |
+| Head of School | Full data for their school |
+| Director of Culture | Full data for their school |
+
+**Source:** `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES`
+**Lookup:** `auth.py` → `get_kickboard_access()` checks title against list, maps Location to school code
+
+#### Suspensions — School Leaders by Job Title
+Same title list as Kickboard. School leaders see their school's suspension data.
+
+**Source:** Uses the same `KICKBOARD_SCHOOL_LEADER_TITLES` list
+**Lookup:** `auth.py` → `get_suspensions_access()`
+
+#### Schools Dashboard — Academic Roles by Job Title
+
+| Qualifying Title | Scope | What They See |
+|------------------|-------|---------------|
+| Chief Academic Officer | all_except_cteam | All staff except Chief/CEO titles |
+| ExDir of Teach and Learn | teachers_only | Only staff with Job_Function = 'Teacher' |
+| K-8 Content Lead | teachers_only | Only staff with Job_Function = 'Teacher' |
+
+**Source:** `config.py` → `SCHOOLS_DASHBOARD_ROLES`
+**Lookup:** `auth.py` → `get_schools_dashboard_role()` queries job title from BigQuery
+
+#### Supervisor Dashboard — Org Hierarchy
+- Any employee with direct reports automatically sees their team's data
+- Supervisors also see all supervisors in their downline (recursive CTE traversal)
+- **No admin list needed** — access follows the org chart
+
+#### Kickboard — Supervisors with Downline
+- Any supervisor with staff in their reporting chain sees Kickboard interactions logged by those staff
+- Uses the same recursive CTE to find all employees in the supervisor's downline
+- This is in addition to (not instead of) school leader access — both can apply
+
+### Named (Hardcoded) Access — Admin Tiers
+
+These grant admin-level access to specific dashboards. Membership is controlled by email lists in `config.py` and requires a code deployment to change.
+
+#### Tier 1a: CPO — full access to all 10 dashboards
 | Email | Name |
 |-------|------|
 | sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
 
-#### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding dashboards
+#### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding
 | Email | Name |
 |-------|------|
 | brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
@@ -46,7 +136,7 @@ Access is controlled by three role tiers defined in `config.py`. Each tier grant
 | csmith@firstlineschools.org | C. Smith |
 | aleibfritz@firstlineschools.org | A. Leibfritz |
 
-#### Schools Team — Schools, Kickboard, Suspensions dashboards
+#### Schools Team — Schools, Kickboard, Suspensions (admin-level)
 | Email | Name |
 |-------|------|
 | sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
@@ -56,6 +146,8 @@ Access is controlled by three role tiers defined in `config.py`. Each tier grant
 
 **Source:** `config.py` lines 25-46
 
+> **Note:** `ADMIN_EMAILS` is computed as `CPO_EMAILS + HR_TEAM_EMAILS` (line 49). Schools Team is a separate list.
+
 ### Email Aliases
 | External Email | Maps To |
 |----------------|---------|
@@ -63,18 +155,18 @@ Access is controlled by three role tiers defined in `config.py`. Each tier grant
 
 ### Dashboard Access Matrix
 
-| Dashboard | Who Can Access | Auth Flag | Data Scope |
-|-----------|---------------|-----------|------------|
-| **Supervisor** | All @firstlineschools.org users | always | Own team + downline (hierarchical) |
-| **HR/Talent** | CPO + HR Team | `hr_dashboard_access` | All staff org-wide |
-| **Schools** | CPO + Schools Team + specific job titles | `schools_dashboard_access` | Filtered by role scope (see below) |
-| **Kickboard** | CPO + Schools Team + School Leaders + Supervisors + ACL | `kickboard_dashboard_access` | Hybrid: schools + staff IDs |
-| **Suspensions** | CPO + Schools Team + School Leaders | `suspensions_dashboard_access` | School-level only |
-| **Salary Projection** | C-Team only (Chief/Ex. Dir in title) | `salary_dashboard_access` | All staff, filterable by school |
-| **Position Control** | PCF role holders (see below) | `pcf_dashboard_access` | All position requests |
-| **Onboarding** | Onboarding role holders (see below) | `onboarding_dashboard_access` | All onboarding submissions |
-| **Staff List** | All @firstlineschools.org users | always | All staff (read-only directory) |
-| **Org Chart** | All @firstlineschools.org users | always | Full org structure |
+| Dashboard | Access Method | Who Can Access | Data Scope |
+|-----------|--------------|---------------|------------|
+| **Supervisor** | Open + Org hierarchy | All staff (own team); CPO + HR Team (all teams) | Own team + downline |
+| **HR/Talent** | Named list | CPO + HR Team | All staff org-wide |
+| **Schools** | Named list + Job title | CPO + Schools Team + Chief Academic Officer + ExDir of Teach and Learn + K-8 Content Lead | Scoped by role |
+| **Kickboard** | Named list + Job title + Org hierarchy + ACL | CPO + Schools Team + School Leaders + Supervisors + ACL | Hybrid: schools + staff IDs |
+| **Suspensions** | Named list + Job title | CPO + Schools Team + School Leaders | School-level |
+| **Salary** | Job title only | C-Team (Chief/Ex. Dir in title) | All staff |
+| **Position Control** | Named list | PCF role holders (8 people) | All requests |
+| **Onboarding** | Named list | Onboarding role holders (5 people) | All submissions |
+| **Staff List** | Open | All @firstlineschools.org users | All staff (read-only) |
+| **Org Chart** | Open | All @firstlineschools.org users | Full org structure |
 
 ### What Each Role Sees in the Nav Dropdown
 
@@ -82,38 +174,25 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 
 | Role | Dashboards Visible |
 |------|--------------------|
-| CPO (sshirey) | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
-| HR Team (brichardson, spence, etc.) | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
-| Schools Team (sdomango, dgoodwin, etc.) | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if C-Team title) |
-| School Leaders (principals, APs, etc.) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if job title qualifies) |
-| Supervisors | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
+| CPO | All 10: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
+| HR Team | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
+| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if their title qualifies as C-Team) |
+| C-Team (by title) | +Salary (in addition to whatever other access they have) |
+| School Leaders (by title) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if their title qualifies) |
+| Supervisors (by org chart) | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
 | All Staff | Supervisor, Staff List, Org Chart |
 
-### Schools Dashboard Roles
-| Job Title | Scope | What They See |
-|-----------|-------|---------------|
-| CPO + Schools Team | all_except_cteam | All staff except Chief/CEO titles |
-| Chief Academic Officer | all_except_cteam | All staff except Chief/CEO titles |
-| ExDir of Teach and Learn | teachers_only | Only Job_Function = 'Teacher' |
-| K-8 Content Lead | teachers_only | Only Job_Function = 'Teacher' |
-
 ### Kickboard Access Tiers (checked in order)
-| Tier | Who | Access Granted |
-|------|-----|---------------|
-| 1. Admin | CPO + Schools Team | All schools, all data |
-| 2. School Leader | principal, assistant principal, dean, head of school, director of culture | Their school's data |
-| 3. Supervisor | Any supervisor in org hierarchy | Their direct/indirect reports (by employee ID) |
-| 4. ACL Fallback | Explicit grants in Google Sheet | Specific school(s) via `fls-data-warehouse.acl.fls_acl_named` |
-
-### Suspensions Access
-| Tier | Who | Access |
-|------|-----|--------|
-| 1. Admin | CPO + Schools Team | All schools |
-| 2. School Leader | Same titles as Kickboard | Their school only |
+| Tier | Who | How Determined | Access Granted |
+|------|-----|---------------|---------------|
+| 1. Admin | CPO + Schools Team | Named email list | All schools, all data |
+| 2. School Leader | Principal, AP, Dean, Head of School, Dir of Culture | Job title lookup | Their school's full data |
+| 3. Supervisor | Any supervisor in org hierarchy | Recursive CTE on org chart | Their direct/indirect reports' interactions (by employee ID) |
+| 4. ACL Fallback | Explicit grants | Google Sheet lookup | Specific school(s) via `fls-data-warehouse.acl.fls_acl_named` |
 
 ### Salary Projection Access
-- C-Team only (job title contains 'Chief' or 'Ex. Dir')
-- **No admin bypass** — strictly job-title based
+- C-Team only — job title must contain **"Chief"** or **"Ex. Dir"** (case-insensitive)
+- **No admin bypass** — strictly job-title based, looked up from BigQuery at login
 - Custom scenario builder with Current/Standard/Custom salary comparison
 - CSV export includes YOS, Current YOS Bonus, and Custom YOS Bonus columns
 
@@ -174,6 +253,11 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 | acl | fls_acl_named | Kickboard ACL fallback | INACCESSIBLE (Drive permissions) |
 | suspensions | iss_rates_25_26 | Suspensions dashboard | OK |
 | suspensions | oss_rates_25_26 | Suspensions dashboard | OK |
+| performance_matters | results_by_test | Schools dashboard (assessment fidelity) | OK |
+| performance_matters | results_raw | Schools dashboard (student drill-down) | OK |
+| class_schedules | class_schedules | Schools dashboard (teacher rosters) | OK |
+| student_rosters | student_roster | Schools dashboard (SPED matching) | OK |
+| sps | 24_25_bottom_25 | Schools dashboard (B25 flagging) | OK |
 
 ---
 
@@ -415,7 +499,35 @@ The **admin panel** is now also available within the main dashboard at `/onboard
 
 ---
 
-## 11. Master Admin List Across All Projects
+## 11. Master Access Reference
+
+### Role-Based (Dynamic) Access — By Job Title
+
+These access grants require **no code changes** when personnel change. Access follows the role automatically.
+
+| Job Title Contains | Dashboard / App | Access Level | Source |
+|--------------------|----------------|-------------|--------|
+| "Chief" or "Ex. Dir" | Salary Projection | Full access (all staff salary data) | `auth.py` → `get_salary_access()` |
+| Principal | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
+| Assistant Principal | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
+| Dean | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
+| Head of School | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
+| Director of Culture | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
+| Chief Academic Officer | Schools Dashboard | All staff except C-Team | `config.py` → `SCHOOLS_DASHBOARD_ROLES` |
+| ExDir of Teach and Learn | Schools Dashboard | Teachers only | `config.py` → `SCHOOLS_DASHBOARD_ROLES` |
+| K-8 Content Lead | Schools Dashboard | Teachers only | `config.py` → `SCHOOLS_DASHBOARD_ROLES` |
+| School Director | Sabbatical Program | Their school's applications | `sabbatical-program/app.py` → `SABBATICAL_SCHOOL_LEADER_TITLES` |
+| Principal | Sabbatical Program | Their school's applications | `sabbatical-program/app.py` → `SABBATICAL_SCHOOL_LEADER_TITLES` |
+| Assistant Principal | Sabbatical Program | Their school's applications | `sabbatical-program/app.py` → `SABBATICAL_SCHOOL_LEADER_TITLES` |
+| Head of School | Sabbatical Program | Their school's applications | `sabbatical-program/app.py` → `SABBATICAL_SCHOOL_LEADER_TITLES` |
+| (Any supervisor) | Supervisor Dashboard | Own team + downline | `auth.py` → `get_accessible_supervisors()` |
+| (Any supervisor) | Kickboard | Downline staff interactions | `auth.py` → `get_kickboard_access()` |
+
+> **Note:** Sabbatical and Kickboard/Suspensions use different school leader title lists. Dean and Director of Culture qualify for Kickboard/Suspensions but not Sabbatical school admin. School Director qualifies for Sabbatical but not Kickboard/Suspensions.
+
+### Named (Hardcoded) Access — By Email
+
+These access grants are tied to specific email addresses in code. Requires a code deployment to change.
 
 | Email | Dashboard Role | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
 |-------|---------------|----------|----------------|-----------------|-------------------|
@@ -438,7 +550,16 @@ The **admin panel** is now also available within the main dashboard at `/onboard
 | kfeil@firstlineschools.org | — | — | — | — | Network Admin |
 | dcavato@firstlineschools.org | — | — | — | — | Network Admin |
 
-**Note:** Salary Calculator, Impact Bonus Guide, Org Chart, and Grow Observations have NO authentication — they are public static sites.
+### Open Access (No Special Permissions)
+
+| Dashboard / App | Auth Required | Who Can Access |
+|----------------|---------------|---------------|
+| Supervisor Dashboard | Google login (@firstlineschools.org) | All staff (sees own team) |
+| Staff List | Google login (@firstlineschools.org) | All staff (read-only directory) |
+| Org Chart | Google login (@firstlineschools.org) | All staff |
+| Salary Calculator | None (public) | Anyone with URL |
+| Impact Bonus Guide | None (public) | Anyone with URL |
+| Grow Observations | None (SQL files only) | Not deployed |
 
 ---
 
@@ -468,8 +589,9 @@ Supervisor, Staff List, and Org Chart links are always visible.
 ## Known Issues
 
 1. **ACL table inaccessible** — `fls-data-warehouse.acl.fls_acl_named` is backed by a Google Sheet that requires Drive permissions not currently granted. Non-blocking (Kickboard ACL fallback only).
-2. **Hardcoded admin lists** — All projects use hardcoded email lists. Changes require code deployment.
-3. **Inconsistent admin lists** — Different projects have different admin sets (e.g., dcavato is in sabbatical but not supervisor-dashboard; dgoodwin is in supervisor-dashboard but not sabbatical).
-4. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
-5. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
-6. **Missing repos** — itr-dashboard Cloud Run service has no corresponding GitHub repo. Legacy services (position-control, bigquery-dashboards) should be decommissioned.
+2. **Named admin lists require deployment** — Admin tiers (CPO, HR Team, Schools Team), Position Control Roles, Onboarding Roles, Referral Admins, and Sabbatical Network Admins are all hardcoded by email. Adding or removing people requires a code change and deployment. Role-based access (Salary, School Leaders, Supervisors, Schools Dashboard academic roles) transfers automatically.
+3. **Inconsistent admin lists across projects** — Different projects have different named admin sets. For example, dcavato is a Sabbatical Network Admin but not in the dashboard admin tiers; dgoodwin is in the dashboard Schools Team but not a Sabbatical Network Admin. This is by design (each project has different operational needs), but should be reviewed periodically.
+4. **Different school leader title lists** — Kickboard/Suspensions uses 5 titles (principal, assistant principal, dean, head of school, director of culture). Sabbatical uses 4 titles (school director, principal, assistant principal, head of school). Dean and Director of Culture do not get Sabbatical school admin access; School Director does not get Kickboard/Suspensions school leader access.
+5. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
+6. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
+7. **Missing repos** — itr-dashboard Cloud Run service has no corresponding GitHub repo. Legacy services (position-control, bigquery-dashboards) should be decommissioned.

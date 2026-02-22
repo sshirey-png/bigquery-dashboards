@@ -98,18 +98,20 @@ See [DEPLOY.md](DEPLOY.md) for full details.
 |-------|----------|----------|
 | [User Guide](docs/USER_GUIDE.md) | End users | How to use each dashboard, navigation, features |
 | [Technical Guide](docs/TECHNICAL_GUIDE.md) | Developers | Code structure, local setup, common changes, deployment |
-| [Access Permissions](docs/ACCESS_PERMISSIONS.md) | System admin | Role matrices, admin lists, auth flags across all projects |
+| [Access Permissions](docs/ACCESS_PERMISSIONS.md) | System admin | Role-based access by job title, named admin tiers, auth flags across all projects |
 
 ## Common Maintenance
 
 | Task | File | What to Change |
 |------|------|----------------|
-| Add/remove admin | `config.py` | `ADMIN_EMAILS` list |
+| Add/remove named admin | `config.py` | `CPO_EMAILS`, `HR_TEAM_EMAILS`, or `SCHOOLS_TEAM_EMAILS` |
+| Add school leader title (role-based) | `config.py` | `KICKBOARD_SCHOOL_LEADER_TITLES` list |
+| Add Schools Dashboard role (role-based) | `config.py` | `SCHOOLS_DASHBOARD_ROLES` dict |
 | Change PCF permissions | `config.py` | `POSITION_CONTROL_ROLES` dict |
 | Change onboarding permissions | `config.py` | `ONBOARDING_ROLES` dict |
-| Update school year start | `config.py` | `CURRENT_SY_START` |
 | Add email alias | `config.py` | `EMAIL_ALIASES` dict |
-| Add school leader title | `config.py` | `KICKBOARD_SCHOOL_LEADER_TITLES` list |
+
+> **Note:** `ADMIN_EMAILS` is computed (`CPO_EMAILS + HR_TEAM_EMAILS`) — don't edit it directly. `CURRENT_SY_START` is auto-calculated from the date — no update needed. Salary access is purely job-title based ("Chief" or "Ex. Dir") — no list to maintain.
 
 After any change: commit, push, and redeploy.
 

@@ -16,6 +16,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 | HR Dashboard | `/hr-dashboard` | Network-wide staff data and filters |
 | Schools Dashboard | `/schools-dashboard` | Academic team view of teacher data |
 | Kickboard Dashboard | `/kickboard-dashboard` | Student behavior tracking and interactions |
+| Suspensions Dashboard | `/suspensions-dashboard` | School-level ISS and OSS suspension rates |
 | Org Chart | `/orgchart` | Visual organization hierarchy |
 | Staff List | `/staff-list-dashboard` | Customizable, filterable staff directory |
 | Salary Projection | `/salary-dashboard` | Salary modeling and scenario planning |
@@ -27,8 +28,8 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 ## 1. Supervisor Dashboard
 
 ### Who Can Access
-- Any staff member who supervises others (appears in `Supervisor_Email` column in staff data)
-- Admins can view all supervisors
+- Any staff member who supervises others (role-based — automatic via org hierarchy)
+- CPO + HR Team (Tier 1a and 1b) can view all supervisors' teams
 
 ### What You See
 - **Your direct reports** and their:
@@ -40,7 +41,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 ### Navigation
 1. Log in with your @firstlineschools.org Google account
 2. If you're a supervisor, you'll see your team automatically
-3. Admins can use the supervisor dropdown to view any team
+3. CPO + HR Team can use the supervisor dropdown to view any team
 
 ---
 
@@ -55,7 +56,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 - Export capabilities
 
 ### Navigation
-1. Log in → Click "HR View" in header (only visible to admins)
+1. Log in → Click "HR View" in the Dashboards dropdown (only visible to CPO + HR Team)
 2. Use filters to narrow down staff
 3. Click on staff members for details
 
@@ -64,11 +65,14 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 ## 3. Schools Dashboard
 
 ### Who Can Access
-- **Schools Team** (Chief Experience Officer, K-8 Content Lead, Dir of Culture, Dir of ESYNOLA) - full access
-- **Chief Academic Officer** - sees all schools (except C-Team)
-- **ExDir of Teach and Learn** - sees teachers only
-- **K-8 Content Lead** - sees teachers only
-- **Admins** - full access
+
+**By named admin list:**
+- **CPO + Schools Team** — full access (all staff except C-Team titles)
+
+**By job title (role-based, no code changes needed):**
+- **Chief Academic Officer** — all staff except C-Team titles
+- **ExDir of Teach and Learn** — teachers only
+- **K-8 Content Lead** — teachers only
 
 ### What You See
 - Staff table with observation data, certification status, action steps, and **assessment fidelity** (completion % and mastery %)
@@ -113,12 +117,12 @@ SPED teachers who push into gen-ed classrooms (co-teaching model) are automatica
 
 ### Who Can Access (Hybrid Permission Model)
 
-| Role | Access Level |
-|------|--------------|
-| **Admins** | All schools, all data |
-| **School Leaders** (Principal, AP, Dean, Head of School, Director of Culture) | Full data for their school |
-| **Supervisors** | Interactions logged by staff in their reporting chain |
-| **ACL Grants** | Specific schools granted via ACL table |
+| Role | Access Method | Access Level |
+|------|--------------|--------------|
+| **CPO + Schools Team** | Named admin list | All schools, all data |
+| **School Leaders** (Principal, Assistant Principal, Dean, Head of School, Director of Culture) | Job title (role-based) | Full data for their school |
+| **Supervisors** | Org hierarchy (role-based) | Interactions logged by staff in their reporting chain |
+| **ACL Grants** | Explicit table entry | Specific schools granted via ACL table |
 
 ### Features
 
@@ -205,11 +209,46 @@ Click on any row to open a detail panel showing all available fields for that st
 
 ## Permission System
 
-### Permission Tiers
+### How Access Works
 
-Access is controlled by role tiers defined in `config.py`. Each tier grants different dashboard access.
+The dashboard system uses **role-based access** wherever possible. Most access is determined by your **job title** or **position in the org chart** — not by a hardcoded list. When someone changes roles, access automatically transfers to the next person in that role without any code changes.
 
-#### Tier 1a: CPO — full access to everything
+### Role-Based (Dynamic) Access
+
+These dashboards determine your access from your job title or org position. No one needs to update any lists when people change roles.
+
+#### Salary Projection — C-Team by Job Title
+- Your job title must contain **"Chief"** or **"Ex. Dir"**
+- Looked up automatically from the staff database at login
+
+#### Kickboard & Suspensions — School Leaders by Job Title
+School leaders automatically see their school's data. The system detects school leaders by these job titles:
+- **Principal**
+- **Assistant Principal**
+- **Dean**
+- **Head of School**
+- **Director of Culture**
+
+Access is scoped to your school based on your `Location` field in the staff database.
+
+#### Schools Dashboard — Academic Roles by Job Title
+
+| Job Title | What You See |
+|-----------|-------------|
+| Chief Academic Officer | All staff except C-Team |
+| ExDir of Teach and Learn | Teachers only |
+| K-8 Content Lead | Teachers only |
+
+#### Supervisor Dashboard — Org Hierarchy
+- Any employee with direct reports automatically sees their team's data
+- You also see supervisors in your downline chain
+- Supervisors additionally get Kickboard access to see interactions logged by staff in their reporting chain
+
+### Named Admin Tiers
+
+Some dashboards require membership in a specific admin list. These are maintained in code and require a deployment to change.
+
+#### Tier 1a: CPO — full access to all 10 dashboards
 | Email | Name |
 |-------|------|
 | sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
@@ -223,7 +262,7 @@ Access is controlled by role tiers defined in `config.py`. Each tier grants diff
 | csmith@firstlineschools.org | C. Smith |
 | aleibfritz@firstlineschools.org | A. Leibfritz |
 
-#### Schools Team — Schools, Kickboard, Suspensions
+#### Schools Team — Schools, Kickboard, Suspensions (admin-level)
 | Email | Name |
 |-------|------|
 | sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
@@ -233,18 +272,18 @@ Access is controlled by role tiers defined in `config.py`. Each tier grants diff
 
 ### Dashboard Access Matrix
 
-| Dashboard | Who Can Access |
-|-----------|---------------|
-| **Supervisor** | All @firstlineschools.org users |
-| **HR/Talent** | CPO + HR Team |
-| **Schools** | CPO + Schools Team + specific job titles |
-| **Kickboard** | CPO + Schools Team + School Leaders + Supervisors + ACL |
-| **Suspensions** | CPO + Schools Team + School Leaders |
-| **Salary Projection** | C-Team only (Chief/Ex. Dir in title) |
-| **Position Control** | PCF role holders (see Position Control section) |
-| **Onboarding** | Onboarding role holders (see Onboarding section) |
-| **Staff List** | All @firstlineschools.org users |
-| **Org Chart** | All @firstlineschools.org users |
+| Dashboard | Access Method | Who Can Access |
+|-----------|--------------|---------------|
+| **Supervisor** | Org hierarchy | All staff (own team); CPO + HR Team (all teams) |
+| **HR/Talent** | Named list | CPO + HR Team |
+| **Schools** | Named list + Job title | CPO + Schools Team + Chief Academic Officer + ExDir of Teach and Learn + K-8 Content Lead |
+| **Kickboard** | Named list + Job title + Org hierarchy + ACL | CPO + Schools Team + School Leaders (by title) + Supervisors (by org chart) + ACL grants |
+| **Suspensions** | Named list + Job title | CPO + Schools Team + School Leaders (by title) |
+| **Salary** | Job title only | C-Team (title contains "Chief" or "Ex. Dir") |
+| **Position Control** | Named list | PCF role holders (see Position Control section) |
+| **Onboarding** | Named list | Onboarding role holders (see Onboarding section) |
+| **Staff List** | Open | All @firstlineschools.org users |
+| **Org Chart** | Open | All @firstlineschools.org users |
 
 ### What You See in the Nav Dropdown
 
@@ -252,49 +291,42 @@ Every dashboard has a "Dashboards" dropdown that shows only the dashboards you c
 
 | Role | Dashboards Visible |
 |------|--------------------|
-| CPO | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
+| CPO | All 10: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
 | HR Team | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
-| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if C-Team title) |
-| School Leaders | Supervisor, Staff List, Kickboard, Suspensions, Org Chart |
-| Supervisors | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
+| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if their title qualifies as C-Team) |
+| C-Team (by title) | +Salary (in addition to whatever other access they have) |
+| School Leaders (by title) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if their title qualifies) |
+| Supervisors (by org chart) | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
 | All Staff | Supervisor, Staff List, Org Chart |
 
 ### How Permissions Work
 
 1. **User logs in** with Google (@firstlineschools.org only)
 2. **System checks** (in order):
-   - Is user in a permission tier? → Tier-based access
-   - Is user a school leader (by job title)? → School-level access
-   - Is user a supervisor? → See their team's data
+   - Is user in a named admin tier (CPO, HR Team, Schools Team)? → Tier-based access
+   - Does user's job title qualify for role-based access (C-Team, School Leader, Academic Role)? → Title-based access
+   - Is user a supervisor (has direct reports)? → Org-hierarchy access
    - Is user in ACL table? → Explicit grants
-3. **Access denied** if none of the above apply
-
-### School Leader Detection (Kickboard/Suspensions)
-
-The system automatically detects school leaders by job title:
-- Principal
-- Assistant Principal
-- Dean
-- Head of School
-- Director of Culture
-
-These users automatically see full data for their school based on their `Location` field in the staff database.
+3. **Access denied** if none of the above apply for the requested dashboard
 
 ---
 
 ## Common Tasks
 
-### Adding a New Admin
+### Adding a New Named Admin
 
-Contact someone with access to the codebase (see Technical Guide) to add the email to `config.py` in the appropriate tier list.
+Contact someone with access to the codebase (see Technical Guide) to add the email to `config.py` in the appropriate tier list. This requires a code deployment.
+
+> **Note:** Many access grants are role-based and don't need admin list changes. If someone becomes a Principal, they automatically get Kickboard and Suspensions access for their school. If someone gets a "Chief" or "Ex. Dir" title, they automatically get Salary access. See the Permission System section above for details.
 
 ### Granting Kickboard Access to Non-Supervisors
 
-Two options:
-1. Add them to the `fls_acl_named` table in BigQuery (grants school-level access)
-2. Add them to the appropriate admin tier in `config.py` (grants full access)
+Three options (in order of preference):
+1. **Role-based (automatic):** If they hold a school leader title (Principal, AP, Dean, Head of School, Director of Culture), access is automatic — no changes needed
+2. **ACL table:** Add them to the `fls_acl_named` table in BigQuery (grants school-level access without code changes)
+3. **Admin tier:** Add them to the Schools Team in `config.py` (grants full admin access — requires deployment)
 
-### Viewing Someone Else's Team (Admins Only)
+### Viewing Someone Else's Team (CPO + HR Team Only)
 
 1. Go to Supervisor Dashboard (`/`)
 2. Use the supervisor dropdown to select the person
@@ -302,13 +334,12 @@ Two options:
 
 ### Checking Who Has Access
 
-The permission system is code-based. See [Access Permissions](ACCESS_PERMISSIONS.md) for the full reference, or:
-1. **Admin tiers**: Check `config.py` → `ADMIN_EMAILS`
-2. **PCF roles**: Check `config.py` → `POSITION_CONTROL_ROLES`
-3. **Onboarding roles**: Check `config.py` → `ONBOARDING_ROLES`
-4. **School Leaders**: Anyone with matching job titles at a school
-5. **Supervisors**: Anyone with direct reports in staff database
-6. **ACL Grants**: Check `fls-data-warehouse.acl.fls_acl_named` in BigQuery
+See [Access Permissions](ACCESS_PERMISSIONS.md) for the full reference. Quick summary:
+1. **Role-based (automatic):** C-Team titles → Salary; School leader titles → Kickboard/Suspensions; Academic titles → Schools; Supervisors → own team + Kickboard
+2. **Named admin tiers**: Check `config.py` → `CPO_EMAILS`, `HR_TEAM_EMAILS`, `SCHOOLS_TEAM_EMAILS`
+3. **PCF roles**: Check `config.py` → `POSITION_CONTROL_ROLES`
+4. **Onboarding roles**: Check `config.py` → `ONBOARDING_ROLES`
+5. **ACL Grants**: Check `fls-data-warehouse.acl.fls_acl_named` in BigQuery
 
 ---
 
@@ -317,8 +348,8 @@ The permission system is code-based. See [Access Permissions](ACCESS_PERMISSIONS
 ### "Access Denied" Error
 
 - Verify you're using your @firstlineschools.org account
-- Check if you should have access (are you a supervisor? admin? school leader?)
-- Contact an admin to verify your permissions
+- Check if you should have access (are you a supervisor? school leader? in a named admin tier?)
+- Contact CPO or HR Team to verify your permissions
 
 ### Data Looks Wrong or Outdated
 
@@ -328,9 +359,9 @@ The permission system is code-based. See [Access Permissions](ACCESS_PERMISSIONS
 ### Can't See Kickboard Dashboard
 
 You need one of:
-- Admin access
-- School leader job title (Principal, AP, Dean)
-- Direct reports (supervisor access)
+- Admin access (CPO, HR Team, or Schools Team)
+- School leader job title (Principal, Assistant Principal, Dean, Head of School, Director of Culture)
+- Direct reports in your reporting chain (supervisor access)
 - Entry in ACL table
 
 ### Page Won't Load
@@ -344,7 +375,8 @@ You need one of:
 ## 6. Salary Projection Dashboard
 
 ### Who Can Access
-- **C-Team only** — job title must contain "Chief" or "Ex. Dir"
+- **C-Team only** — job title must contain "Chief" or "Ex. Dir" (role-based, looked up from staff database at login)
+- No admin bypass — access is strictly determined by job title, not a named list
 
 ### What You See
 - All staff salary data with Current, Standard, and Custom salary comparison
@@ -421,6 +453,22 @@ Onboarding has its own role system:
 2. Use filters to find submissions by status, school, or name
 3. Click a row to open the edit modal
 4. Share Form Link button opens the standalone onboarding form
+
+---
+
+## 9. Suspensions Dashboard
+
+### Who Can Access
+
+**By named admin list:**
+- **CPO + Schools Team** — all schools
+
+**By job title (role-based, no code changes needed):**
+- **School Leaders** (Principal, Assistant Principal, Dean, Head of School, Director of Culture) — their school only
+
+### What You See
+- ISS (In-School Suspension) and OSS (Out-of-School Suspension) rates by school
+- School-level data filtered by your access level
 
 ---
 

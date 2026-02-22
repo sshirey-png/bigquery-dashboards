@@ -20,7 +20,7 @@ This folder contains user guides for the FirstLine Schools Dashboard System.
 
 ### Access Permissions
 **For:** System administrators, anyone managing user access
-**Covers:** Permission tiers, role matrices, admin lists across all projects
+**Covers:** Role-based (dynamic) access by job title, named admin tiers, permission matrices across all projects
 
 - [ACCESS_PERMISSIONS.md](ACCESS_PERMISSIONS.md) - Comprehensive access guide for all projects
 
