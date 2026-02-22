@@ -279,7 +279,6 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 | hr@firstlineschools.org | HR inbox |
 | awatts@firstlineschools.org | A. Watts |
 | jlombas@firstlineschools.org | J. Lombas |
-| tcole@firstlineschools.org | T. Cole |
 | kfeil@firstlineschools.org | ExDir of Teaching and Learning |
 
 **Source:** `sabbatical-program/app.py` lines 53-68
@@ -435,7 +434,6 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 | hr@firstlineschools.org | — | — | — | Admin | Network Admin |
 | awatts@firstlineschools.org | — | — | — | Admin | Network Admin |
 | jlombas@firstlineschools.org | — | — | — | Admin | Network Admin |
-| tcole@firstlineschools.org | — | — | — | — | Network Admin |
 | kfeil@firstlineschools.org | — | — | — | — | Network Admin |
 | dcavato@firstlineschools.org | — | — | — | — | Network Admin |
 
