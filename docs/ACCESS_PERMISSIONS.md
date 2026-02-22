@@ -20,18 +20,18 @@ Access is determined by the employee's **job title** or **position in the org hi
 | **Supervisor** | Anyone with direct reports in the org hierarchy | Supervisor Dashboard (own team), Kickboard (downline interactions) |
 | **Sabbatical School Admin** | School Director, Principal, Assistant Principal, Head of School | Sabbatical Program (own school's applications) |
 
-### Named (Hardcoded) Access
-Access is determined by **email address lists** in application code. Requires a code deployment to add or remove people. Used for specific operational teams where membership is controlled centrally and doesn't map cleanly to a single job title.
+### Title-Based Access
+Access is determined by **job title lists** in application code. When someone changes roles, access automatically transfers to whoever holds that title next — **no code changes needed**. The only email-based exceptions are team inbox addresses (talent@, hr@) which do not correspond to job titles.
 
 | List | Location | Purpose |
 |------|----------|---------|
-| CPO (Tier 1a) | `config.py` → `CPO_EMAILS` | Full access to all dashboards |
-| HR Team (Tier 1b) | `config.py` → `HR_TEAM_EMAILS` | Supervisor, HR, Staff List, Position Control, Onboarding |
-| Schools Team | `config.py` → `SCHOOLS_TEAM_EMAILS` | Schools, Kickboard, Suspensions admin |
-| Position Control Roles | `config.py` → `POSITION_CONTROL_ROLES` | Position Control approval workflow |
-| Onboarding Roles | `config.py` → `ONBOARDING_ROLES` | Onboarding management |
-| Referral Admins | `referral-program/app.py` → `ADMIN_USERS` | Referral admin panel |
-| Sabbatical Network Admins | `sabbatical-program/app.py` → `SABBATICAL_NETWORK_ADMINS` | All sabbatical applications |
+| CPO (Tier 1a) | `config.py` → `CPO_TITLE` | Full access to all dashboards |
+| HR Team (Tier 1b) | `config.py` → `HR_TEAM_TITLES` | Supervisor, HR, Staff List, Position Control, Onboarding |
+| Schools Team | `config.py` → `SCHOOLS_TEAM_TITLES` | Schools, Kickboard, Suspensions admin |
+| Position Control Roles | `config.py` → `POSITION_CONTROL_TITLE_ROLES` | Position Control approval workflow |
+| Onboarding Roles | `config.py` → `ONBOARDING_TITLE_ROLES` | Onboarding management |
+| Referral Admins | `referral-program/app.py` → `REFERRAL_ADMIN_TITLES` + `REFERRAL_ADMIN_EXCEPTIONS` | Referral admin panel |
+| Sabbatical Network Admins | `sabbatical-program/app.py` → `SABBATICAL_NETWORK_ADMIN_TITLES` + `SABBATICAL_ADMIN_EXCEPTIONS` | All sabbatical applications |
 
 ### Open Access (No Restrictions)
 Some dashboards require only a `@firstlineschools.org` Google login, with no additional permissions:
@@ -118,35 +118,32 @@ Same title list as Kickboard. School leaders see their school's suspension data.
 - Uses the same recursive CTE to find all employees in the supervisor's downline
 - This is in addition to (not instead of) school leader access — both can apply
 
-### Named (Hardcoded) Access — Admin Tiers
+### Title-Based Access — Admin Tiers
 
-These grant admin-level access to specific dashboards. Membership is controlled by email lists in `config.py` and requires a code deployment to change.
+These grant admin-level access to specific dashboards. Membership is controlled by job title lists in `config.py`. When someone changes roles, access automatically transfers to whoever holds that title next.
 
 #### Tier 1a: CPO — full access to all 10 dashboards
-| Email | Name |
-|-------|------|
-| sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
+| Job Title | Access |
+|-----------|--------|
+| Chief People Officer | Full access to all 10 dashboards |
 
 #### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding
-| Email | Name |
-|-------|------|
-| brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
-| spence@firstlineschools.org | Sabrina Pence |
-| mtoussaint@firstlineschools.org | M. Toussaint |
-| csmith@firstlineschools.org | C. Smith |
-| aleibfritz@firstlineschools.org | A. Leibfritz |
+| Job Title |
+|-----------|
+| Chief Executive Officer |
+| Chief HR Officer |
+| Manager, HR |
+| Manager Payroll |
 
 #### Schools Team — Schools, Kickboard, Suspensions (admin-level)
-| Email | Name |
-|-------|------|
-| sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
-| dgoodwin@firstlineschools.org | Dawn Goodwin - K-8 Content Lead |
-| krodriguez@firstlineschools.org | Kristin Rodriguez - Dir of Culture |
-| csteele@firstlineschools.org | Charlotte Steele - Dir of ESYNOLA |
+| Job Title |
+|-----------|
+| Chief Experience Officer |
+| K-8 Content Lead |
+| Dir of Culture |
+| Dir of ESYNOLA |
 
-**Source:** `config.py` lines 25-46
-
-> **Note:** `ADMIN_EMAILS` is computed as `CPO_EMAILS + HR_TEAM_EMAILS` (line 49). Schools Team is a separate list.
+**Source:** `config.py` → `CPO_TITLE`, `HR_TEAM_TITLES`, `SCHOOLS_TEAM_TITLES`
 
 ### Email Aliases
 | External Email | Maps To |
@@ -185,7 +182,7 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 ### Kickboard Access Tiers (checked in order)
 | Tier | Who | How Determined | Access Granted |
 |------|-----|---------------|---------------|
-| 1. Admin | CPO + Schools Team | Named email list | All schools, all data |
+| 1. Admin | CPO + Schools Team | Job title list | All schools, all data |
 | 2. School Leader | Principal, AP, Dean, Head of School, Dir of Culture | Job title lookup | Their school's full data |
 | 3. Supervisor | Any supervisor in org hierarchy | Recursive CTE on org chart | Their direct/indirect reports' interactions (by employee ID) |
 | 4. ACL Fallback | Explicit grants | Google Sheet lookup | Specific school(s) via `fls-data-warehouse.acl.fls_acl_named` |
@@ -198,34 +195,32 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 
 ### Position Control Dashboard Access
 
-Separate role system defined in `POSITION_CONTROL_ROLES` in `config.py`:
+Separate role system defined in `POSITION_CONTROL_TITLE_ROLES` in `config.py`:
 
-| Email | Role | Can Approve | Edit Final Status | Create Position | Edit Dates | Delete |
-|-------|------|------------|-------------------|----------------|------------|--------|
-| sshirey@ | super_admin | CEO, Finance, Talent, HR | Yes | Yes | Yes | Yes |
-| spence@ | ceo | CEO | Yes | No | No | No |
-| rcain@ | finance | Finance | No | No | No | No |
-| lhunter@ | finance | Finance | No | No | No | No |
-| brichardson@ | hr | HR, Talent | Yes | Yes | Yes | No |
-| mtoussaint@ | hr | HR | No | No | Yes | No |
-| aleibfritz@ | viewer | — | No | No | No | No |
-| csmith@ | viewer | — | No | No | No | No |
+| Job Title | Role | Can Approve | Edit Final Status | Create Position | Edit Dates | Delete |
+|-----------|------|------------|-------------------|----------------|------------|--------|
+| Chief People Officer | super_admin | CEO, Finance, Talent, HR | Yes | Yes | Yes | Yes |
+| Chief Executive Officer | ceo | CEO | Yes | No | No | No |
+| Chief Operating Officer | finance | Finance | No | No | No | No |
+| Manager Finance | finance | Finance | No | No | No | No |
+| Chief HR Officer | hr | HR, Talent | Yes | Yes | Yes | No |
+| Manager, HR | hr | HR | No | No | Yes | No |
+| Manager Payroll | viewer | — | No | No | No | No |
 
-**Source:** `config.py` `POSITION_CONTROL_ROLES`
+**Source:** `config.py` `POSITION_CONTROL_TITLE_ROLES`
 
 ### Onboarding Dashboard Access
 
-Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
+Separate role system defined in `ONBOARDING_TITLE_ROLES` in `config.py`:
 
-| Email | Role | Can Edit | Can Delete | Can Archive |
-|-------|------|---------|-----------|------------|
-| sshirey@ | super_admin | Yes | Yes | Yes |
-| brichardson@ | hr | Yes | No | Yes |
-| mtoussaint@ | hr | Yes | No | Yes |
-| csmith@ | viewer | No | No | No |
-| aleibfritz@ | viewer | No | No | No |
+| Job Title | Role | Can Edit | Can Delete | Can Archive |
+|-----------|------|---------|-----------|------------|
+| Chief People Officer | super_admin | Yes | Yes | Yes |
+| Chief HR Officer | hr | Yes | No | Yes |
+| Manager, HR | hr | Yes | No | Yes |
+| Manager Payroll | viewer | No | No | No |
 
-**Source:** `config.py` `ONBOARDING_ROLES`
+**Source:** `config.py` `ONBOARDING_TITLE_ROLES`
 
 ### BigQuery Tables
 
@@ -306,26 +301,34 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 **Backend:** Flask + BigQuery
 
 ### Admin Users
-| Email | Role |
-|-------|------|
-| sshirey@firstlineschools.org | CPO (also CC'd on all referrals) |
-| brichardson@firstlineschools.org | Chief of HR |
-| talent@firstlineschools.org | Talent team inbox |
-| hr@firstlineschools.org | HR inbox |
-| awatts@firstlineschools.org | A. Watts |
-| jlombas@firstlineschools.org | J. Lombas |
-| aleibfritz@firstlineschools.org | A. Leibfritz |
 
-**Source:** `referral-program/app.py` lines 49-57
+Access is title-based. When someone changes roles, admin access automatically transfers to whoever holds that title next.
+
+**Admin Titles:**
+| Job Title |
+|-----------|
+| Chief People Officer |
+| Chief HR Officer |
+| Talent Operations Manager |
+| Recruitment Manager |
+| Manager Payroll |
+
+**Team Inbox Exceptions (email-based):**
+| Email |
+|-------|
+| talent@firstlineschools.org |
+| hr@firstlineschools.org |
+
+**Source:** `referral-program/app.py` → `REFERRAL_ADMIN_TITLES` + `REFERRAL_ADMIN_EXCEPTIONS`
 
 ### Access Model
 | Action | Who | Auth Required |
 |--------|-----|--------------|
 | Submit a referral | Anyone (public form) | No |
 | Look up own referrals by email | Anyone | No (email-based lookup) |
-| View all referrals (admin panel) | ADMIN_USERS only | Google OAuth |
-| Update referral status | ADMIN_USERS only | Google OAuth |
-| Delete/archive referrals | ADMIN_USERS only | Google OAuth |
+| View all referrals (admin panel) | Admin titles + exceptions only | Google OAuth |
+| Update referral status | Admin titles + exceptions only | Google OAuth |
+| Delete/archive referrals | Admin titles + exceptions only | Google OAuth |
 | Trigger weekly rollup email | Cloud Scheduler or shared secret | Bearer token |
 
 ### Email Recipients
@@ -353,20 +356,29 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 **Backend:** Flask + BigQuery
 
 ### Network Admins (full access to ALL applications)
-| Email | Role |
-|-------|------|
-| sshirey@firstlineschools.org | Chief People Officer |
-| brichardson@firstlineschools.org | Chief of Human Resources |
-| spence@firstlineschools.org | CEO |
-| sdomango@firstlineschools.org | Chief Experience Officer |
-| dcavato@firstlineschools.org | C-Team |
-| talent@firstlineschools.org | Talent team inbox |
-| hr@firstlineschools.org | HR inbox |
-| awatts@firstlineschools.org | A. Watts |
-| jlombas@firstlineschools.org | J. Lombas |
-| kfeil@firstlineschools.org | ExDir of Teaching and Learning |
 
-**Source:** `sabbatical-program/app.py` lines 53-67
+Access is title-based. When someone changes roles, network admin access automatically transfers to whoever holds that title next.
+
+**Admin Titles:**
+| Job Title |
+|-----------|
+| Chief People Officer |
+| Chief Executive Officer |
+| Chief HR Officer |
+| Chief Experience Officer |
+| Chief Operating Officer |
+| Chief Strat Adv Officer |
+| ExDir of Teach and Learn |
+| Talent Operations Manager |
+| Recruitment Manager |
+
+**Team Inbox Exceptions (email-based):**
+| Email |
+|-------|
+| talent@firstlineschools.org |
+| hr@firstlineschools.org |
+
+**Source:** `sabbatical-program/app.py` → `SABBATICAL_NETWORK_ADMIN_TITLES` + `SABBATICAL_ADMIN_EXCEPTIONS`
 
 ### School-Level Admins (see their school's applications only)
 Job titles that grant school-level access:
@@ -378,7 +390,7 @@ Job titles that grant school-level access:
 ### Access Model
 | Access Level | Who | What They See |
 |-------------|-----|---------------|
-| Network Admin | 10 people listed above | All applications across all schools |
+| Network Admin | Admin titles + team inbox exceptions (listed above) | All applications across all schools |
 | School Admin | School leaders by job title | Their school's applications only |
 | Employee | Any @firstlineschools.org user | Their own application only |
 | Supervisor | Direct supervisor chain | Their direct reports' applications |
@@ -525,30 +537,34 @@ These access grants require **no code changes** when personnel change. Access fo
 
 > **Note:** Sabbatical and Kickboard/Suspensions use different school leader title lists. Dean and Director of Culture qualify for Kickboard/Suspensions but not Sabbatical school admin. School Director qualifies for Sabbatical but not Kickboard/Suspensions.
 
-### Named (Hardcoded) Access — By Email
+### Title-Based Access — By Job Title
 
-These access grants are tied to specific email addresses in code. Requires a code deployment to change.
+These access grants are determined by job title. When someone changes roles, access automatically transfers to whoever holds that title next — no code changes needed.
+
+| Job Title | Dashboard Role | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
+|-----------|---------------|----------|----------------|-----------------|-------------------|
+| Chief People Officer | CPO (Tier 1a) | super_admin | super_admin | Admin | Network Admin |
+| Chief Executive Officer | HR Team (Tier 1b) | ceo | — | — | Network Admin |
+| Chief HR Officer | HR Team (Tier 1b) | hr | hr | Admin | Network Admin |
+| Manager, HR | HR Team (Tier 1b) | hr | hr | — | — |
+| Manager Payroll | HR Team (Tier 1b) | viewer | viewer | Admin | — |
+| Chief Operating Officer | — | finance | — | — | Network Admin |
+| Manager Finance | — | finance | — | — | — |
+| Chief Experience Officer | Schools Team | — | — | — | Network Admin |
+| K-8 Content Lead | Schools Team | — | — | — | — |
+| Dir of Culture | Schools Team | — | — | — | — |
+| Dir of ESYNOLA | Schools Team | — | — | — | — |
+| Talent Operations Manager | — | — | — | Admin | Network Admin |
+| Recruitment Manager | — | — | — | Admin | Network Admin |
+| Chief Strat Adv Officer | — | — | — | — | Network Admin |
+| ExDir of Teach and Learn | — | — | — | — | Network Admin |
+
+**Email-Based Exceptions (team inboxes only):**
 
 | Email | Dashboard Role | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
 |-------|---------------|----------|----------------|-----------------|-------------------|
-| sshirey@firstlineschools.org | CPO (Tier 1a) | super_admin | super_admin | Admin | Network Admin |
-| brichardson@firstlineschools.org | HR Team (Tier 1b) | hr | hr | Admin | Network Admin |
-| spence@firstlineschools.org | HR Team (Tier 1b) | ceo | — | — | Network Admin |
-| mtoussaint@firstlineschools.org | HR Team (Tier 1b) | hr | hr | — | — |
-| csmith@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | — | — |
-| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | Admin | — |
-| rcain@firstlineschools.org | — | finance | — | — | — |
-| lhunter@firstlineschools.org | — | finance | — | — | — |
-| sdomango@firstlineschools.org | Schools Team | — | — | — | Network Admin |
-| dgoodwin@firstlineschools.org | Schools Team | — | — | — | — |
-| krodriguez@firstlineschools.org | Schools Team | — | — | — | — |
-| csteele@firstlineschools.org | Schools Team | — | — | — | — |
-| talent@firstlineschools.org | — | — | — | Admin | Network Admin |
-| hr@firstlineschools.org | — | — | — | Admin | Network Admin |
-| awatts@firstlineschools.org | — | — | — | Admin | Network Admin |
-| jlombas@firstlineschools.org | — | — | — | Admin | Network Admin |
-| kfeil@firstlineschools.org | — | — | — | — | Network Admin |
-| dcavato@firstlineschools.org | — | — | — | — | Network Admin |
+| talent@firstlineschools.org | — | — | — | Admin (exception) | Network Admin (exception) |
+| hr@firstlineschools.org | — | — | — | Admin (exception) | Network Admin (exception) |
 
 ### Open Access (No Special Permissions)
 
@@ -577,9 +593,9 @@ All 10 dashboards have a "Dashboards" dropdown menu in the header. The dropdown 
 | `kickboard_dashboard_access` | Kickboard | `get_kickboard_access()` — CPO + Schools Team + School Leaders + Supervisors + ACL |
 | `suspensions_dashboard_access` | Suspensions | `get_suspensions_access()` — CPO + Schools Team + School Leaders |
 | `salary_dashboard_access` | Salary | `get_salary_access()` — C-Team job titles only |
-| `pcf_dashboard_access` | Position Control | `get_pcf_access()` — `POSITION_CONTROL_ROLES` dict |
+| `pcf_dashboard_access` | Position Control | `get_pcf_access()` — `POSITION_CONTROL_TITLE_ROLES` dict |
 | `pcf_permissions` | (object) | `get_pcf_permissions()` — role, can_approve, can_edit_final, etc. |
-| `onboarding_dashboard_access` | Onboarding | `get_onboarding_access()` — `ONBOARDING_ROLES` dict |
+| `onboarding_dashboard_access` | Onboarding | `get_onboarding_access()` — `ONBOARDING_TITLE_ROLES` dict |
 | `onboarding_permissions` | (object) | `get_onboarding_permissions()` — role, can_edit, can_delete, etc. |
 
 Supervisor, Staff List, and Org Chart links are always visible.
@@ -589,8 +605,8 @@ Supervisor, Staff List, and Org Chart links are always visible.
 ## Known Issues
 
 1. **ACL table inaccessible** — `fls-data-warehouse.acl.fls_acl_named` is backed by a Google Sheet that requires Drive permissions not currently granted. Non-blocking (Kickboard ACL fallback only).
-2. **Named admin lists require deployment** — Admin tiers (CPO, HR Team, Schools Team), Position Control Roles, Onboarding Roles, Referral Admins, and Sabbatical Network Admins are all hardcoded by email. Adding or removing people requires a code change and deployment. Role-based access (Salary, School Leaders, Supervisors, Schools Dashboard academic roles) transfers automatically.
-3. **Inconsistent admin lists across projects** — Different projects have different named admin sets. For example, dcavato is a Sabbatical Network Admin but not in the dashboard admin tiers; dgoodwin is in the dashboard Schools Team but not a Sabbatical Network Admin. This is by design (each project has different operational needs), but should be reviewed periodically.
+2. **Title-based admin access transfers automatically** — Admin access for dashboards, Position Control, Onboarding, Referral Program, and Sabbatical Program is now determined by job title. When someone changes roles, access transfers to whoever holds that title next with no code changes needed. The only email-based exceptions are team inbox addresses (talent@firstlineschools.org, hr@firstlineschools.org) which are hardcoded and require a deployment to change.
+3. **Admin title lists differ across projects by design** — Different projects grant admin access to different job titles based on operational needs. For example, Chief Experience Officer is a Sabbatical Network Admin but not in the dashboard HR Team tier. This is intentional and should be reviewed periodically.
 4. **Different school leader title lists** — Kickboard/Suspensions uses 5 titles (principal, assistant principal, dean, head of school, director of culture). Sabbatical uses 4 titles (school director, principal, assistant principal, head of school). Dean and Director of Culture do not get Sabbatical school admin access; School Director does not get Kickboard/Suspensions school leader access.
 5. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
 6. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.

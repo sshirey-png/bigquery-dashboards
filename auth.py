@@ -9,13 +9,13 @@ from flask import session, jsonify
 from google.cloud import bigquery
 
 from config import (
-    ADMIN_EMAILS, CPO_EMAILS, HR_TEAM_EMAILS, SCHOOLS_TEAM_EMAILS,
+    CPO_TITLE, HR_TEAM_TITLES, SCHOOLS_TEAM_TITLES,
     EMAIL_ALIASES, SCHOOLS_DASHBOARD_ROLES,
     KICKBOARD_SCHOOL_MAP, KICKBOARD_ACL_RAW, KICKBOARD_REVERSE_MAP,
     KICKBOARD_SCHOOL_LEADER_TITLES,
     SUSPENSIONS_SCHOOL_MAP, SUSPENSIONS_REVERSE_MAP,
     PROJECT_ID, DATASET_ID, TABLE_ID,
-    POSITION_CONTROL_ROLES, ONBOARDING_ROLES,
+    POSITION_CONTROL_TITLE_ROLES, ONBOARDING_TITLE_ROLES,
 )
 from extensions import bq_client
 
@@ -42,20 +42,55 @@ def resolve_email_alias(email):
     return EMAIL_ALIASES.get(email.lower(), email)
 
 
+def get_user_job_title(email):
+    """
+    Look up a user's job title from BigQuery staff_master_list_with_function.
+    Resolves email aliases first. Returns title string or empty string.
+    Called once at login, result cached in session.
+    """
+    if not bq_client or not email:
+        return ''
+
+    primary_email = resolve_email_alias(email)
+
+    try:
+        query = f"""
+            SELECT Job_Title
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            AND Employment_Status IN ('Active', 'Leave of absence')
+            LIMIT 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
+            ]
+        )
+        results = list(bq_client.query(query, job_config=job_config).result())
+        if results:
+            title = results[0].Job_Title or ''
+            logger.info(f"Job title for {email}: {title}")
+            return title
+        return ''
+    except Exception as e:
+        logger.error(f"Error looking up job title for {email}: {e}")
+        return ''
+
+
 def is_cpo(email):
     """Check if user is CPO (Tier 1a) — full access to everything."""
     if not email:
         return False
-    emails = [email.lower(), resolve_email_alias(email).lower()]
-    return any(e in [x.lower() for x in CPO_EMAILS] for e in emails)
+    job_title = session.get('user', {}).get('job_title', '')
+    return job_title == CPO_TITLE
 
 
 def is_hr_team(email):
     """Check if user is HR Team (Tier 1b) — Supervisor/HR/Staff List admin."""
     if not email:
         return False
-    emails = [email.lower(), resolve_email_alias(email).lower()]
-    return any(e in [x.lower() for x in HR_TEAM_EMAILS] for e in emails)
+    job_title = session.get('user', {}).get('job_title', '')
+    return job_title in HR_TEAM_TITLES
 
 
 def is_hr_admin(email):
@@ -67,8 +102,8 @@ def is_schools_team(email):
     """Check if user is Schools Team — Schools/Kickboard/Suspensions admin."""
     if not email:
         return False
-    emails = [email.lower(), resolve_email_alias(email).lower()]
-    return any(e in [x.lower() for x in SCHOOLS_TEAM_EMAILS] for e in emails)
+    job_title = session.get('user', {}).get('job_title', '')
+    return job_title in SCHOOLS_TEAM_TITLES
 
 
 def is_schools_admin(email):
@@ -219,46 +254,24 @@ def get_accessible_supervisors(email, supervisor_name):
 def get_schools_dashboard_role(email):
     """
     Determine if a user has access to the Schools Dashboard and what scope.
-    Looks up their job title in staff_master_list_with_function.
+    Reads job title from session (cached at login).
     Returns: dict with 'has_access', 'scope', 'label' or None if no access.
     """
     if not email:
         return None
 
-    primary_email = resolve_email_alias(email)
     if is_schools_admin(email):
         return {'has_access': True, 'scope': 'all_except_cteam', 'label': 'Admin'}
 
-    if not bq_client:
+    job_title = session.get('user', {}).get('job_title', '')
+    if not job_title:
         return None
 
-    try:
-        query = f"""
-            SELECT Job_Title
-            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
-            WHERE LOWER(Email_Address) = LOWER(@email)
-            AND Employment_Status IN ('Active', 'Leave of absence')
-            LIMIT 1
-        """
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
-            ]
-        )
-        results = list(bq_client.query(query, job_config=job_config).result())
-        if not results:
-            return None
+    for role_title, role_info in SCHOOLS_DASHBOARD_ROLES.items():
+        if role_title.lower() in job_title.lower():
+            return {'has_access': True, 'scope': role_info['scope'], 'label': role_info['label']}
 
-        job_title = results[0].Job_Title or ''
-
-        for role_title, role_info in SCHOOLS_DASHBOARD_ROLES.items():
-            if role_title.lower() in job_title.lower():
-                return {'has_access': True, 'scope': role_info['scope'], 'label': role_info['label']}
-
-        return None
-    except Exception as e:
-        logger.error(f"Error checking schools dashboard role for {email}: {e}")
-        return None
+    return None
 
 
 def get_kickboard_access(email):
@@ -506,54 +519,31 @@ def get_salary_access(email):
     Salary Projection Dashboard access - C-Team only.
     Checks if user has 'Chief' or 'Ex. Dir' in their job title.
     No admin bypass - strictly job title based.
+    Reads job title from session (cached at login).
 
     Returns: dict with access details or None if no access.
     """
     if not email:
         return None
 
-    if not bq_client:
+    job_title = session.get('user', {}).get('job_title', '')
+    if not job_title:
         return None
 
-    primary_email = resolve_email_alias(email)
+    job_title_lower = job_title.lower()
 
-    try:
-        query = f"""
-            SELECT Job_Title
-            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
-            WHERE LOWER(Email_Address) = LOWER(@email)
-            AND Employment_Status IN ('Active', 'Leave of absence')
-            LIMIT 1
-        """
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
-            ]
-        )
-        results = list(bq_client.query(query, job_config=job_config).result())
+    # Check for C-Team titles
+    if 'chief' in job_title_lower or 'ex. dir' in job_title_lower or 'ex dir' in job_title_lower:
+        logger.info(f"Salary access granted to {email} with title: {job_title}")
+        return {
+            'has_access': True,
+            'access_type': 'cteam',
+            'job_title': job_title,
+            'label': job_title
+        }
 
-        if not results:
-            return None
-
-        job_title = results[0].Job_Title or ''
-        job_title_lower = job_title.lower()
-
-        # Check for C-Team titles
-        if 'chief' in job_title_lower or 'ex. dir' in job_title_lower or 'ex dir' in job_title_lower:
-            logger.info(f"Salary access granted to {email} with title: {job_title}")
-            return {
-                'has_access': True,
-                'access_type': 'cteam',
-                'job_title': job_title,
-                'label': job_title
-            }
-
-        logger.info(f"Salary access denied to {email} with title: {job_title}")
-        return None
-
-    except Exception as e:
-        logger.error(f"Error checking salary access for {email}: {e}")
-        return None
+    logger.info(f"Salary access denied to {email} with title: {job_title}")
+    return None
 
 
 def compute_grade_band(grade_level_desc):
@@ -720,15 +710,15 @@ def map_subject_desc_to_assessment(subject_desc):
 
 
 def get_pcf_access(email):
-    """Check if user has Position Control Form access."""
-    email = (email or '').lower()
-    return POSITION_CONTROL_ROLES.get(email)
+    """Check if user has Position Control Form access (by job title)."""
+    job_title = session.get('user', {}).get('job_title', '')
+    return POSITION_CONTROL_TITLE_ROLES.get(job_title)
 
 
 def get_pcf_permissions(email):
-    """Get the full permissions dict for a PCF user."""
-    email = (email or '').lower()
-    role_info = POSITION_CONTROL_ROLES.get(email)
+    """Get the full permissions dict for a PCF user (by job title)."""
+    job_title = session.get('user', {}).get('job_title', '')
+    role_info = POSITION_CONTROL_TITLE_ROLES.get(job_title)
     if not role_info:
         return None
     return {
@@ -745,15 +735,15 @@ def get_pcf_permissions(email):
 
 
 def get_onboarding_access(email):
-    """Check if user has Onboarding Form access."""
-    email = (email or '').lower()
-    return ONBOARDING_ROLES.get(email)
+    """Check if user has Onboarding Form access (by job title)."""
+    job_title = session.get('user', {}).get('job_title', '')
+    return ONBOARDING_TITLE_ROLES.get(job_title)
 
 
 def get_onboarding_permissions(email):
-    """Get the full permissions dict for an onboarding user."""
-    email = (email or '').lower()
-    role_info = ONBOARDING_ROLES.get(email)
+    """Get the full permissions dict for an onboarding user (by job title)."""
+    job_title = session.get('user', {}).get('job_title', '')
+    role_info = ONBOARDING_TITLE_ROLES.get(job_title)
     if not role_info:
         return None
     return {

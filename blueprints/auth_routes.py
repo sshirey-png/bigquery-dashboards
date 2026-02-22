@@ -9,7 +9,7 @@ from config import (
 from extensions import oauth
 from auth import (
     is_admin, is_cpo, is_hr_admin, is_schools_admin,
-    get_supervisor_name_for_email, get_accessible_supervisors,
+    get_user_job_title, get_supervisor_name_for_email, get_accessible_supervisors,
     get_schools_dashboard_role, get_kickboard_access, get_suspensions_access,
     get_salary_access, get_pcf_access, get_pcf_permissions,
     get_onboarding_access, get_onboarding_permissions,
@@ -29,6 +29,9 @@ def login():
     if DEV_MODE:
         logger.info(f"DEV MODE: Auto-authenticating as {DEV_USER_EMAIL}")
         email = DEV_USER_EMAIL
+        job_title = get_user_job_title(email)
+        # Set partial session so role functions can read job_title
+        session['user'] = {'email': email, 'job_title': job_title}
         supervisor_name = get_supervisor_name_for_email(email)
         accessible_supervisors = get_accessible_supervisors(email, supervisor_name)
 
@@ -36,6 +39,7 @@ def login():
             'email': email,
             'name': 'Dev User',
             'picture': '',
+            'job_title': job_title,
             'supervisor_name': supervisor_name,
             'is_admin': is_admin(email),
             'accessible_supervisors': accessible_supervisors
@@ -68,6 +72,9 @@ def auth_callback():
             logger.warning(f"Unauthorized domain attempt: {email}")
             return redirect(f'/?error=unauthorized_domain&domain={domain}')
 
+        job_title = get_user_job_title(email)
+        # Set partial session so role functions can read job_title
+        session['user'] = {'email': email, 'job_title': job_title}
         supervisor_name = get_supervisor_name_for_email(email)
         accessible_supervisors = get_accessible_supervisors(email, supervisor_name)
 
@@ -75,6 +82,7 @@ def auth_callback():
             'email': email,
             'name': userinfo.get('name', ''),
             'picture': userinfo.get('picture', ''),
+            'job_title': job_title,
             'supervisor_name': supervisor_name,
             'is_admin': is_admin(email),
             'accessible_supervisors': accessible_supervisors

@@ -57,7 +57,7 @@ cd bigquery-dashboards
 ```
 bigquery-dashboards/
 ├── app.py                 # Main Flask application (slim orchestrator)
-├── config.py              # Configuration and constants (ADMIN_EMAILS, etc.)
+├── config.py              # Configuration and constants (title lists, etc.)
 ├── extensions.py          # BigQuery client and OAuth setup
 ├── auth.py                # Shared authentication helpers
 ├── blueprints/            # Route handlers organized by feature
@@ -96,7 +96,7 @@ bigquery-dashboards/
 
 | File | Purpose | When to Edit |
 |------|---------|--------------|
-| `config.py` | Named admin lists, role-based title lists, school mappings, table names | Adding named admins, adding role-based titles, changing school names |
+| `config.py` | Role-based title lists, school mappings, table names, constants | Adding role-based titles, changing school names |
 | `auth.py` | Permission logic (role-based + named), grade/subject mapping | Changing access logic, updating grade or subject mappings |
 | `blueprints/position_control.py` | Position Control admin API | Changing PCF approval logic, permissions |
 | `blueprints/onboarding.py` | Onboarding admin API | Changing onboarding tracking logic, permissions |
@@ -178,34 +178,30 @@ When `FLASK_ENV=development`, the app:
 5. Deploy to Cloud Run
 ```
 
-### Example: Adding a New Admin
+### Example: Granting Access to a New Job Title
 
-1. **Open `config.py`**
+Admin access is now determined by job title from BigQuery. When someone with a qualifying job title logs in, they receive the appropriate access automatically. There are no email lists to edit.
 
-2. **Find the appropriate tier list** (starting at line 25):
-   - `CPO_EMAILS` — full access to everything
-   - `HR_TEAM_EMAILS` — HR, Supervisor, Staff List, Position Control, Onboarding
-   - `SCHOOLS_TEAM_EMAILS` — Schools, Kickboard, Suspensions
+If a new job title needs to be granted admin access, update the appropriate title list in `config.py`:
 
-3. **Add the new email to the correct tier:**
-   ```python
-   HR_TEAM_EMAILS = [
-       'brichardson@firstlineschools.org',   # Chief of Human Resources
-       # ... existing emails ...
-       'newemail@firstlineschools.org',  # New Person - Title
-   ]
-   ```
+- `CPO_TITLE` — the job title that receives full access to everything
+- `HR_TEAM_TITLES` — job titles that receive HR, Supervisor, Staff List, Position Control, and Onboarding access
+- `SCHOOLS_TEAM_TITLES` — job titles that receive Schools, Kickboard, and Suspensions access
+- `POSITION_CONTROL_TITLE_ROLES` — job titles with Position Control access (with granular permissions per title)
+- `ONBOARDING_TITLE_ROLES` — job titles with Onboarding access (with granular permissions per title)
 
-4. **Save the file**
+For example, to add a new title to the HR team:
 
-5. **Commit and push:**
-   ```bash
-   git add config.py
-   git commit -m "Add [Name] to HR team admin list"
-   git push origin master
-   ```
+```python
+HR_TEAM_TITLES = [
+    'Chief of Human Resources',
+    'HR Director',
+    # ... existing titles ...
+    'New Title Here',  # Add new title
+]
+```
 
-6. **Deploy** (see Section 5)
+Then commit, push, and deploy (see Section 5).
 
 ### School Year Dates
 
@@ -259,23 +255,15 @@ If something breaks, you can rollback in Google Cloud Console:
 
 ### Adding an Admin User
 
-**File:** `config.py`
-**Location:** The appropriate tier list (`CPO_EMAILS`, `HR_TEAM_EMAILS`, or `SCHOOLS_TEAM_EMAILS`)
+Admin access is determined by job title from BigQuery. When someone with a qualifying title logs in, they receive access automatically — no code changes needed.
 
-```python
-HR_TEAM_EMAILS = [
-    # ... existing emails ...
-    'newadmin@firstlineschools.org',  # Name - Title
-]
-```
-
-> **Note:** `ADMIN_EMAILS` is computed automatically (`CPO_EMAILS + HR_TEAM_EMAILS`). Do not edit it directly.
-
-Then commit, push, and deploy.
+If a new job title needs admin access, add it to the appropriate title list in `config.py` (`CPO_TITLE`, `HR_TEAM_TITLES`, `SCHOOLS_TEAM_TITLES`, `POSITION_CONTROL_TITLE_ROLES`, or `ONBOARDING_TITLE_ROLES`), then commit, push, and deploy.
 
 ### Removing an Admin User
 
-Same as above, but remove the line from the appropriate tier list.
+Removing someone's access happens automatically when they leave their role — their job title changes in BigQuery, so they no longer match the qualifying titles. No code changes are needed.
+
+To remove an entire job title from access, remove it from the appropriate title list in `config.py` (`CPO_TITLE`, `HR_TEAM_TITLES`, `SCHOOLS_TEAM_TITLES`, `POSITION_CONTROL_TITLE_ROLES`, or `ONBOARDING_TITLE_ROLES`), then commit, push, and deploy.
 
 ### Adding a New Role-Based Title
 
@@ -351,12 +339,9 @@ EMAIL_ALIASES = {
 
 ### Design Principles
 
-The system uses two types of access control:
+All access is now determined by job title from BigQuery. When a user logs in, their job title is cached in the session and used for all permission checks. Access transfers automatically when someone changes roles — no code changes or deployments needed.
 
-1. **Role-based (dynamic):** Access determined by job title or org hierarchy from BigQuery. No code changes needed when people change roles.
-2. **Named (hardcoded):** Access determined by email lists in `config.py`. Requires deployment to change.
-
-Role-based access is preferred. Named lists are used only where access doesn't map to a single job title (e.g., the HR Team includes people with different titles, and Position Control requires granular approval permissions per person).
+The only email-based exceptions are team inbox emails (talent@firstlineschools.org, hr@firstlineschools.org), which are checked separately since they are shared accounts without individual job titles.
 
 ### Authentication Flow
 
@@ -380,10 +365,10 @@ These functions query BigQuery for the user's job title and/or org position. Acc
 
 | Function | What It Checks | Access Type |
 |----------|---------------|-------------|
-| `get_salary_access(email)` | Job title contains "Chief" or "Ex. Dir" | C-Team → Salary Dashboard |
+| `get_salary_access(email)` | Reads job title from session; title contains "Chief" or "Ex. Dir" | C-Team → Salary Dashboard |
 | `get_kickboard_access(email)` | Job title in `KICKBOARD_SCHOOL_LEADER_TITLES` → school access; recursive CTE for supervisor downline → staff ID access | School Leaders + Supervisors → Kickboard |
 | `get_suspensions_access(email)` | Job title in `KICKBOARD_SCHOOL_LEADER_TITLES` | School Leaders → Suspensions |
-| `get_schools_dashboard_role(email)` | Job title matches `SCHOOLS_DASHBOARD_ROLES` keys | Academic roles → Schools Dashboard (scoped) |
+| `get_schools_dashboard_role(email)` | Reads job title from session; matches `SCHOOLS_DASHBOARD_ROLES` keys | Academic roles → Schools Dashboard (scoped) |
 | `get_accessible_supervisors(email, name)` | Recursive CTE traversal of org hierarchy | Supervisors → Supervisor Dashboard (downline) |
 
 **Title lists that drive role-based access (in `config.py`):**
@@ -405,27 +390,28 @@ SCHOOLS_DASHBOARD_ROLES = {
 # Salary: checked dynamically — title contains "Chief" or "Ex. Dir"
 ```
 
-### Named Access Functions
+### Title-Based Access Functions
 
-These functions check hardcoded email lists. Require code deployment to change.
+These functions check the user's job title from session (cached at login from BigQuery). Access transfers automatically when someone changes roles.
 
-| Function | What It Checks | Named List |
-|----------|---------------|------------|
-| `is_cpo(email)` | CPO tier (Tier 1a) | `CPO_EMAILS` |
-| `is_hr_team(email)` | HR Team tier (Tier 1b) | `HR_TEAM_EMAILS` |
-| `is_hr_admin(email)` | CPO or HR Team | `CPO_EMAILS + HR_TEAM_EMAILS` |
-| `is_schools_team(email)` | Schools Team | `SCHOOLS_TEAM_EMAILS` |
-| `is_schools_admin(email)` | CPO or Schools Team | `CPO_EMAILS + SCHOOLS_TEAM_EMAILS` |
-| `is_admin(email)` | Same as `is_hr_admin()` | Backward compat alias |
-| `get_pcf_access(email)` | Position Control access | `POSITION_CONTROL_ROLES` |
-| `get_pcf_permissions(email)` | PCF granular permissions (can_approve, can_edit_final, etc.) | `POSITION_CONTROL_ROLES` |
-| `get_onboarding_access(email)` | Onboarding access | `ONBOARDING_ROLES` |
-| `get_onboarding_permissions(email)` | Onboarding permissions (can_edit, can_delete, etc.) | `ONBOARDING_ROLES` |
+| Function | What It Checks | Config |
+|----------|---------------|--------|
+| `is_cpo(email)` | Session job_title == CPO_TITLE | `CPO_TITLE` |
+| `is_hr_team(email)` | Session job_title in HR_TEAM_TITLES | `HR_TEAM_TITLES` |
+| `is_hr_admin(email)` | CPO or HR Team | Combined |
+| `is_schools_team(email)` | Session job_title in SCHOOLS_TEAM_TITLES | `SCHOOLS_TEAM_TITLES` |
+| `is_schools_admin(email)` | CPO or Schools Team | Combined |
+| `is_admin(email)` | Same as is_hr_admin() | Backward compat alias |
+| `get_pcf_access(email)` | Session job_title in POSITION_CONTROL_TITLE_ROLES | `POSITION_CONTROL_TITLE_ROLES` |
+| `get_pcf_permissions(email)` | PCF granular permissions by title | `POSITION_CONTROL_TITLE_ROLES` |
+| `get_onboarding_access(email)` | Session job_title in ONBOARDING_TITLE_ROLES | `ONBOARDING_TITLE_ROLES` |
+| `get_onboarding_permissions(email)` | Onboarding permissions by title | `ONBOARDING_TITLE_ROLES` |
 
 ### Other Utility Functions
 
 | Function | Purpose |
 |----------|---------|
+| `get_user_job_title(email)` | Get the user's job title from session (cached at login from BigQuery) |
 | `resolve_email_alias(email)` | Map alias emails to primary (e.g., zach@esynola.org → zodonnell@firstlineschools.org) |
 | `get_supervisor_name_for_email(email)` | Look up supervisor name from BigQuery by email |
 | `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels for assessment matching |
@@ -812,14 +798,14 @@ python app.py
 
 | Setting | File | Variable/Section | Access Type |
 |---------|------|------------------|-------------|
-| CPO emails | config.py | CPO_EMAILS | Named |
-| HR Team emails | config.py | HR_TEAM_EMAILS | Named |
-| Schools Team emails | config.py | SCHOOLS_TEAM_EMAILS | Named |
+| CPO title | config.py | CPO_TITLE | Title-based |
+| HR Team titles | config.py | HR_TEAM_TITLES | Title-based |
+| Schools Team titles | config.py | SCHOOLS_TEAM_TITLES | Title-based |
 | School leader titles (Kickboard/Suspensions) | config.py | KICKBOARD_SCHOOL_LEADER_TITLES | Role-based |
 | Schools Dashboard academic roles | config.py | SCHOOLS_DASHBOARD_ROLES | Role-based |
 | Salary access (C-Team) | auth.py | get_salary_access() — "Chief" or "Ex. Dir" in title | Role-based |
-| Position Control roles | config.py | POSITION_CONTROL_ROLES | Named |
-| Onboarding roles | config.py | ONBOARDING_ROLES | Named |
+| Position Control roles | config.py | POSITION_CONTROL_TITLE_ROLES | Title-based |
+| Onboarding roles | config.py | ONBOARDING_TITLE_ROLES | Title-based |
 | School mappings | config.py | KICKBOARD_SCHOOL_MAP | Config |
 | School year start | config.py | CURRENT_SY_START (auto-calculated) | Config |
 | Email aliases | config.py | EMAIL_ALIASES | Config |
@@ -837,4 +823,4 @@ For technical issues:
 4. Check GitHub issues or create a new one
 
 For access/permission issues:
-- Contact CPO or HR Team (see `config.py` → `CPO_EMAILS`, `HR_TEAM_EMAILS`)
+- Contact CPO or HR Team (see `config.py` → `CPO_TITLE`, `HR_TEAM_TITLES`)

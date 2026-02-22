@@ -246,29 +246,28 @@ Access is scoped to your school based on your `Location` field in the staff data
 
 ### Named Admin Tiers
 
-Some dashboards require membership in a specific admin list. These are maintained in code and require a deployment to change.
+Some dashboards grant admin access based on job title. Access transfers automatically when someone changes roles — no code changes needed.
 
 #### Tier 1a: CPO — full access to all 10 dashboards
-| Email | Name |
-|-------|------|
-| sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
+| Job Title |
+|-----------|
+| Chief People Officer |
 
 #### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding
-| Email | Name |
-|-------|------|
-| brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
-| spence@firstlineschools.org | Sabrina Pence |
-| mtoussaint@firstlineschools.org | M. Toussaint |
-| csmith@firstlineschools.org | C. Smith |
-| aleibfritz@firstlineschools.org | A. Leibfritz |
+| Job Title |
+|-----------|
+| Chief Executive Officer |
+| Chief HR Officer |
+| Manager, HR |
+| Manager Payroll |
 
 #### Schools Team — Schools, Kickboard, Suspensions (admin-level)
-| Email | Name |
-|-------|------|
-| sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
-| dgoodwin@firstlineschools.org | Dawn Goodwin - K-8 Content Lead |
-| krodriguez@firstlineschools.org | Kristin Rodriguez - Dir of Culture |
-| csteele@firstlineschools.org | Charlotte Steele - Dir of ESYNOLA |
+| Job Title |
+|-----------|
+| Chief Experience Officer |
+| K-8 Content Lead |
+| Dir of Culture |
+| Dir of ESYNOLA |
 
 ### Dashboard Access Matrix
 
@@ -303,7 +302,7 @@ Every dashboard has a "Dashboards" dropdown that shows only the dashboards you c
 
 1. **User logs in** with Google (@firstlineschools.org only)
 2. **System checks** (in order):
-   - Is user in a named admin tier (CPO, HR Team, Schools Team)? → Tier-based access
+   - Does user's job title match an admin tier (CPO, HR Team, Schools Team)? → Title-based access
    - Does user's job title qualify for role-based access (C-Team, School Leader, Academic Role)? → Title-based access
    - Is user a supervisor (has direct reports)? → Org-hierarchy access
    - Is user in ACL table? → Explicit grants
@@ -315,9 +314,11 @@ Every dashboard has a "Dashboards" dropdown that shows only the dashboards you c
 
 ### Adding a New Named Admin
 
-Contact someone with access to the codebase (see Technical Guide) to add the email to `config.py` in the appropriate tier list. This requires a code deployment.
+Admin access is now determined by job title, not email. When someone is hired into or moves into a role whose title is in the admin tier lists, they automatically receive the corresponding access. When they leave or change titles, access transfers to their replacement.
 
-> **Note:** Many access grants are role-based and don't need admin list changes. If someone becomes a Principal, they automatically get Kickboard and Suspensions access for their school. If someone gets a "Chief" or "Ex. Dir" title, they automatically get Salary access. See the Permission System section above for details.
+There are no email lists to update. If a new job title needs admin access (one that is not already in the tier lists), contact someone with access to the codebase (see Technical Guide) to add the title to the appropriate list in `config.py`. This requires a code deployment.
+
+> **Note:** Many access grants are role-based beyond the admin tiers and also require no changes. If someone becomes a Principal, they automatically get Kickboard and Suspensions access for their school. If someone gets a "Chief" or "Ex. Dir" title, they automatically get Salary access. See the Permission System section above for details.
 
 ### Granting Kickboard Access to Non-Supervisors
 
@@ -336,9 +337,9 @@ Three options (in order of preference):
 
 See [Access Permissions](ACCESS_PERMISSIONS.md) for the full reference. Quick summary:
 1. **Role-based (automatic):** C-Team titles → Salary; School leader titles → Kickboard/Suspensions; Academic titles → Schools; Supervisors → own team + Kickboard
-2. **Named admin tiers**: Check `config.py` → `CPO_EMAILS`, `HR_TEAM_EMAILS`, `SCHOOLS_TEAM_EMAILS`
-3. **PCF roles**: Check `config.py` → `POSITION_CONTROL_ROLES`
-4. **Onboarding roles**: Check `config.py` → `ONBOARDING_ROLES`
+2. **Named admin tiers**: Check `config.py` → `CPO_TITLE`, `HR_TEAM_TITLES`, `SCHOOLS_TEAM_TITLES`
+3. **PCF roles**: Check `config.py` → `POSITION_CONTROL_TITLE_ROLES`
+4. **Onboarding roles**: Check `config.py` → `ONBOARDING_TITLE_ROLES`
 5. **ACL Grants**: Check `fls-data-warehouse.acl.fls_acl_named` in BigQuery
 
 ---
@@ -390,16 +391,15 @@ You need one of:
 ### Who Can Access
 Position Control has its own role system (separate from the main admin list):
 
-| Email | Role | Can Approve | Can Edit Final Status | Can Create Position |
-|-------|------|------------|----------------------|-------------------|
-| sshirey@ | Super Admin | CEO, Finance, Talent, HR | Yes | Yes |
-| spence@ | CEO | CEO | Yes | No |
-| rcain@ | Finance | Finance | No | No |
-| lhunter@ | Finance | Finance | No | No |
-| brichardson@ | HR | HR, Talent | Yes | Yes |
-| mtoussaint@ | HR | HR | No | No |
-| aleibfritz@ | Viewer | — | No | No |
-| csmith@ | Viewer | — | No | No |
+| Job Title | Role | Can Approve | Can Edit Final Status | Can Create Position |
+|-----------|------|------------|----------------------|-------------------|
+| Chief People Officer | Super Admin | CEO, Finance, Talent, HR | Yes | Yes |
+| Chief Executive Officer | CEO | CEO | Yes | No |
+| Chief Operating Officer | Finance | Finance | No | No |
+| Manager Finance | Finance | Finance | No | No |
+| Chief HR Officer | HR | HR, Talent | Yes | Yes |
+| Manager, HR | HR | HR | No | No |
+| Manager Payroll | Viewer | — | No | No |
 
 ### What You See
 - **Stats cards**: Total requests, Pending, Approved, Denied, Awaiting Offer
@@ -428,13 +428,12 @@ Position Control has its own role system (separate from the main admin list):
 ### Who Can Access
 Onboarding has its own role system:
 
-| Email | Role | Can Edit | Can Delete |
-|-------|------|---------|-----------|
-| sshirey@ | Super Admin | Yes | Yes |
-| brichardson@ | HR | Yes | No |
-| mtoussaint@ | HR | Yes | No |
-| csmith@ | Viewer | No | No |
-| aleibfritz@ | Viewer | No | No |
+| Job Title | Role | Can Edit | Can Delete |
+|-----------|------|---------|-----------|
+| Chief People Officer | Super Admin | Yes | Yes |
+| Chief HR Officer | HR | Yes | No |
+| Manager, HR | HR | Yes | No |
+| Manager Payroll | Viewer | No | No |
 
 ### What You See
 - **Stats cards**: Total submissions, Not Started, In Progress, Complete, Needs Accommodation

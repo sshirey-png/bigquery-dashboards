@@ -22,31 +22,26 @@ GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 DEV_MODE = os.environ.get('FLASK_ENV') == 'development' or not GOOGLE_CLIENT_ID
 DEV_USER_EMAIL = 'sshirey@firstlineschools.org'
 
-# ── Permission Tiers ──
+# ── Role-Based Access (by job title from BigQuery) ──
+
 # Tier 1a: CPO — full access to everything
-CPO_EMAILS = [
-    'sshirey@firstlineschools.org',
+CPO_TITLE = 'Chief People Officer'
+
+# Tier 1b: HR Team — Supervisor, HR, Staff List admin access
+HR_TEAM_TITLES = [
+    'Chief Executive Officer',
+    'Chief HR Officer',
+    'Manager, HR',
+    'Manager Payroll',
 ]
 
-# Tier 1b: HR Team — full access to Supervisor, HR, Staff List dashboards
-HR_TEAM_EMAILS = [
-    'brichardson@firstlineschools.org',   # Chief of Human Resources
-    'spence@firstlineschools.org',        # Sabrina Pence
-    'mtoussaint@firstlineschools.org',    # M. Toussaint
-    'csmith@firstlineschools.org',        # C. Smith
-    'aleibfritz@firstlineschools.org',    # A. Leibfritz
+# Schools Team — Schools, Kickboard, Suspensions admin access
+SCHOOLS_TEAM_TITLES = [
+    'Chief Experience Officer',
+    'K-8 Content Lead',
+    'Dir of Culture',
+    'Dir of ESYNOLA',
 ]
-
-# Schools Team — full access to Schools, Kickboard, Suspensions dashboards
-SCHOOLS_TEAM_EMAILS = [
-    'sdomango@firstlineschools.org',      # Sivi Domango - Chief Experience Officer
-    'dgoodwin@firstlineschools.org',      # Dawn Goodwin - K-8 Content Lead
-    'krodriguez@firstlineschools.org',    # Kristin Rodriguez - Dir of Culture
-    'csteele@firstlineschools.org',       # Charlotte Steele - Dir of ESYNOLA
-]
-
-# Combined: all emails that get "all supervisors" access (backward compat)
-ADMIN_EMAILS = CPO_EMAILS + HR_TEAM_EMAILS
 
 # Email aliases - map alternative emails to primary FirstLine emails
 EMAIL_ALIASES = {
@@ -118,16 +113,15 @@ SPS_BOTTOM_25 = 'fls-data-warehouse.sps.24_25_bottom_25'
 STUDENT_ROSTER = 'fls-data-warehouse.student_rosters.student_roster'
 CLASS_SCHEDULES = 'fls-data-warehouse.class_schedules.class_schedules'
 
-# ── Position Control Form ──
-POSITION_CONTROL_ROLES = {
-    'sshirey@firstlineschools.org': {'role': 'super_admin', 'can_approve': ['ceo_approval', 'finance_approval', 'talent_approval', 'hr_approval'], 'can_edit_final': True, 'can_create_position': True},
-    'spence@firstlineschools.org': {'role': 'ceo', 'can_approve': ['ceo_approval'], 'can_edit_final': True, 'can_create_position': False},
-    'rcain@firstlineschools.org': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
-    'lhunter@firstlineschools.org': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
-    'aleibfritz@firstlineschools.org': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
-    'brichardson@firstlineschools.org': {'role': 'hr', 'can_approve': ['hr_approval', 'talent_approval'], 'can_edit_final': True, 'can_create_position': True},
-    'mtoussaint@firstlineschools.org': {'role': 'hr', 'can_approve': ['hr_approval'], 'can_edit_final': False, 'can_create_position': False},
-    'csmith@firstlineschools.org': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+# ── Position Control Form — permissions by job title ──
+POSITION_CONTROL_TITLE_ROLES = {
+    'Chief People Officer': {'role': 'super_admin', 'can_approve': ['ceo_approval', 'finance_approval', 'talent_approval', 'hr_approval'], 'can_edit_final': True, 'can_create_position': True},
+    'Chief Executive Officer': {'role': 'ceo', 'can_approve': ['ceo_approval'], 'can_edit_final': True, 'can_create_position': False},
+    'Chief Operating Officer': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
+    'Manager Finance': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
+    'Manager Payroll': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+    'Chief HR Officer': {'role': 'hr', 'can_approve': ['hr_approval', 'talent_approval'], 'can_edit_final': True, 'can_create_position': True},
+    'Manager, HR': {'role': 'hr', 'can_approve': ['hr_approval'], 'can_edit_final': False, 'can_create_position': False},
 }
 
 PCF_DATASET_ID = 'position_control_form'
@@ -135,13 +129,12 @@ PCF_TABLE_ID = 'requests'
 PC_DATASET_ID = 'talent_grow_observations'
 PC_TABLE_ID = 'position_control'
 
-# ── Onboarding Form ──
-ONBOARDING_ROLES = {
-    'sshirey@firstlineschools.org': {'role': 'super_admin', 'can_edit': True, 'can_delete': True},
-    'brichardson@firstlineschools.org': {'role': 'hr', 'can_edit': True, 'can_delete': False},
-    'mtoussaint@firstlineschools.org': {'role': 'hr', 'can_edit': True, 'can_delete': False},
-    'csmith@firstlineschools.org': {'role': 'viewer', 'can_edit': False, 'can_delete': False},
-    'aleibfritz@firstlineschools.org': {'role': 'viewer', 'can_edit': False, 'can_delete': False},
+# ── Onboarding Form — permissions by job title ──
+ONBOARDING_TITLE_ROLES = {
+    'Chief People Officer': {'role': 'super_admin', 'can_edit': True, 'can_delete': True},
+    'Chief HR Officer': {'role': 'hr', 'can_edit': True, 'can_delete': False},
+    'Manager, HR': {'role': 'hr', 'can_edit': True, 'can_delete': False},
+    'Manager Payroll': {'role': 'viewer', 'can_edit': False, 'can_delete': False},
 }
 
 ONBOARDING_DATASET_ID = 'onboarding_form'

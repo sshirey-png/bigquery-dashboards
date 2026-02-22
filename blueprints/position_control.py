@@ -18,7 +18,6 @@ from google.cloud import bigquery
 from config import (
     PROJECT_ID, PCF_DATASET_ID, PCF_TABLE_ID,
     PC_DATASET_ID, PC_TABLE_ID,
-    POSITION_CONTROL_ROLES,
     SMTP_EMAIL, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT,
 )
 from extensions import bq_client

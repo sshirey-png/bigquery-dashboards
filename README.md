@@ -47,7 +47,7 @@ Open http://localhost:5000
 ```
 bigquery-dashboards/
 ├── app.py                          # Flask app factory + blueprint registration
-├── config.py                       # Admin lists, role dicts, table names, constants
+├── config.py                       # Role-based title lists, table names, constants
 ├── extensions.py                   # BigQuery client and OAuth setup
 ├── auth.py                         # Permission logic for all dashboards
 ├── blueprints/                     # Route handlers by feature
@@ -104,14 +104,14 @@ See [DEPLOY.md](DEPLOY.md) for full details.
 
 | Task | File | What to Change |
 |------|------|----------------|
-| Add/remove named admin | `config.py` | `CPO_EMAILS`, `HR_TEAM_EMAILS`, or `SCHOOLS_TEAM_EMAILS` |
+| Add/remove admin title | `config.py` | `CPO_TITLE`, `HR_TEAM_TITLES`, or `SCHOOLS_TEAM_TITLES` |
 | Add school leader title (role-based) | `config.py` | `KICKBOARD_SCHOOL_LEADER_TITLES` list |
 | Add Schools Dashboard role (role-based) | `config.py` | `SCHOOLS_DASHBOARD_ROLES` dict |
-| Change PCF permissions | `config.py` | `POSITION_CONTROL_ROLES` dict |
-| Change onboarding permissions | `config.py` | `ONBOARDING_ROLES` dict |
+| Change PCF permissions | `config.py` | `POSITION_CONTROL_TITLE_ROLES` dict |
+| Change onboarding permissions | `config.py` | `ONBOARDING_TITLE_ROLES` dict |
 | Add email alias | `config.py` | `EMAIL_ALIASES` dict |
 
-> **Note:** `ADMIN_EMAILS` is computed (`CPO_EMAILS + HR_TEAM_EMAILS`) — don't edit it directly. `CURRENT_SY_START` is auto-calculated from the date — no update needed. Salary access is purely job-title based ("Chief" or "Ex. Dir") — no list to maintain.
+> **Note:** Admin access is now determined by job title from BigQuery — when someone changes roles, access transfers automatically. `CURRENT_SY_START` is auto-calculated from the date — no update needed. Salary access is purely job-title based ("Chief" or "Ex. Dir") — no list to maintain. Team inbox emails (talent@, hr@) are the only email-based exceptions.
 
 After any change: commit, push, and redeploy.
 
