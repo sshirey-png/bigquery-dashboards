@@ -4,7 +4,7 @@
 
 The FirstLine Schools Dashboard System is a web-based platform that provides staff with access to various data views depending on their role. All dashboards require Google authentication with a `@firstlineschools.org` account.
 
-**Live URL:** https://bigquery-dashboards-965913991496.us-central1.run.app
+**Live URL:** https://supervisor-dashboard-965913991496.us-central1.run.app
 
 ---
 
@@ -47,7 +47,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 ## 2. HR Dashboard
 
 ### Who Can Access
-**Admins only** (see Admin List below)
+**CPO + HR Team** (Tier 1a and 1b)
 
 ### What You See
 - All staff across the network
@@ -116,7 +116,7 @@ SPED teachers who push into gen-ed classrooms (co-teaching model) are automatica
 | Role | Access Level |
 |------|--------------|
 | **Admins** | All schools, all data |
-| **School Leaders** (Principal, AP, Dean, Head of School) | Full data for their school |
+| **School Leaders** (Principal, AP, Dean, Head of School, Director of Culture) | Full data for their school |
 | **Supervisors** | Interactions logged by staff in their reporting chain |
 | **ACL Grants** | Specific schools granted via ACL table |
 
@@ -145,7 +145,7 @@ SPED teachers who push into gen-ed classrooms (co-teaching model) are automatica
 - **Grade**: Filter by grade level
 - **Category**: Filter by interaction category
 - **Staff**: Filter by staff member who logged the interaction
-- **Date Range**: Defaults to current school year (8/4/2025 - today)
+- **Date Range**: Defaults to current school year (dynamically calculated)
 
 ---
 
@@ -276,6 +276,7 @@ The system automatically detects school leaders by job title:
 - Assistant Principal
 - Dean
 - Head of School
+- Director of Culture
 
 These users automatically see full data for their school based on their `Location` field in the staff database.
 

@@ -88,7 +88,8 @@ bigquery-dashboards/
 ├── requirements.txt       # Python dependencies
 └── docs/                  # Documentation
     ├── USER_GUIDE.md
-    └── TECHNICAL_GUIDE.md
+    ├── TECHNICAL_GUIDE.md
+    └── ACCESS_PERMISSIONS.md
 ```
 
 ### Key Files Explained
@@ -154,7 +155,7 @@ bigquery-dashboards/
 
 6. **Open in browser**
    ```
-   http://localhost:8080
+   http://localhost:5000
    ```
 
 ### Development Mode
@@ -181,13 +182,15 @@ When `FLASK_ENV=development`, the app:
 
 1. **Open `config.py`**
 
-2. **Find the `ADMIN_EMAILS` list** (around line 25)
+2. **Find the appropriate tier list** (starting at line 25):
+   - `CPO_EMAILS` — full access to everything
+   - `HR_TEAM_EMAILS` — HR, Supervisor, Staff List, Position Control, Onboarding
+   - `SCHOOLS_TEAM_EMAILS` — Schools, Kickboard, Suspensions
 
-3. **Add the new email:**
+3. **Add the new email to the correct tier:**
    ```python
-   ADMIN_EMAILS = [
-       'sshirey@firstlineschools.org',
-       'brichardson@firstlineschools.org',
+   HR_TEAM_EMAILS = [
+       'brichardson@firstlineschools.org',   # Chief of Human Resources
        # ... existing emails ...
        'newemail@firstlineschools.org',  # New Person - Title
    ]
@@ -198,24 +201,15 @@ When `FLASK_ENV=development`, the app:
 5. **Commit and push:**
    ```bash
    git add config.py
-   git commit -m "Add [Name] to admin list"
+   git commit -m "Add [Name] to HR team admin list"
    git push origin master
    ```
 
 6. **Deploy** (see Section 5)
 
-### Example: Changing the School Year Start Date
+### School Year Dates
 
-1. **Open `config.py`**
-
-2. **Find `CURRENT_SY_START`** (around line 66)
-
-3. **Update the date:**
-   ```python
-   CURRENT_SY_START = '2026-08-03'  # First day of 2026-27 school year
-   ```
-
-4. **Commit, push, and deploy**
+The school year start date is **automatically calculated** in `config.py` (line 91-97). It uses July 1 as the school year boundary — no manual update needed when the school year changes.
 
 ---
 
@@ -228,7 +222,7 @@ The application runs on **Google Cloud Run** in the `talent-demo-482004` project
 
 From the project directory:
 ```bash
-gcloud run deploy bigquery-dashboards \
+gcloud run deploy supervisor-dashboard \
   --source . \
   --region us-central1 \
   --allow-unauthenticated
@@ -244,7 +238,7 @@ gcloud run deploy bigquery-dashboards \
 ### Deployment Takes ~3-5 Minutes
 You'll see progress output. When done:
 ```
-Service URL: https://bigquery-dashboards-965913991496.us-central1.run.app
+Service URL: https://supervisor-dashboard-965913991496.us-central1.run.app
 ```
 
 ### Verifying Deployment
@@ -255,7 +249,7 @@ Service URL: https://bigquery-dashboards-965913991496.us-central1.run.app
 ### Rolling Back
 If something breaks, you can rollback in Google Cloud Console:
 1. Go to https://console.cloud.google.com
-2. Navigate to Cloud Run → bigquery-dashboards
+2. Navigate to Cloud Run → supervisor-dashboard
 3. Click "Revisions" tab
 4. Select a previous revision → "Manage Traffic" → Route 100% to it
 
@@ -266,20 +260,22 @@ If something breaks, you can rollback in Google Cloud Console:
 ### Adding an Admin User
 
 **File:** `config.py`
-**Location:** `ADMIN_EMAILS` list
+**Location:** The appropriate tier list (`CPO_EMAILS`, `HR_TEAM_EMAILS`, or `SCHOOLS_TEAM_EMAILS`)
 
 ```python
-ADMIN_EMAILS = [
+HR_TEAM_EMAILS = [
     # ... existing emails ...
     'newadmin@firstlineschools.org',  # Name - Title
 ]
 ```
 
+> **Note:** `ADMIN_EMAILS` is computed automatically (`CPO_EMAILS + HR_TEAM_EMAILS`). Do not edit it directly.
+
 Then commit, push, and deploy.
 
 ### Removing an Admin User
 
-Same as above, but remove the line instead of adding.
+Same as above, but remove the line from the appropriate tier list.
 
 ### Adding a School Leader Title
 
@@ -292,6 +288,7 @@ KICKBOARD_SCHOOL_LEADER_TITLES = [
     'assistant principal',
     'dean',
     'head of school',
+    'director of culture',
     'new title here',  # Add new title (lowercase)
 ]
 ```
@@ -311,16 +308,9 @@ KICKBOARD_SCHOOL_MAP = {
 }
 ```
 
-### Updating the School Year Date
+### School Year Date
 
-**File:** `config.py`
-**Location:** `CURRENT_SY_START`
-
-```python
-CURRENT_SY_START = '2026-08-03'  # Update to new school year start
-```
-
-Also update the default dates in `kickboard-dashboard.html` (search for `2025-08-04`).
+The school year date (`CURRENT_SY_START`) is **automatically calculated** in `config.py` based on the current date. No manual update is needed when the school year rolls over.
 
 ### Adding an Email Alias
 
@@ -383,13 +373,21 @@ def get_kickboard_access(email):
 
 | Function | Purpose |
 |----------|---------|
-| `is_admin(email)` | Check if user is in admin list |
-| `get_kickboard_access(email)` | Determine Kickboard permissions |
+| `is_cpo(email)` | Check if user is in CPO tier (Tier 1a) |
+| `is_hr_team(email)` | Check if user is in HR Team tier (Tier 1b) |
+| `is_hr_admin(email)` | Check if user is CPO or HR Team |
+| `is_schools_team(email)` | Check if user is in Schools Team |
+| `is_schools_admin(email)` | Check if user is CPO or Schools Team |
+| `is_admin(email)` | Same as `is_hr_admin()` — backward compat |
+| `get_kickboard_access(email)` | Determine Kickboard permissions (hybrid: admin/school leader/supervisor/ACL) |
+| `get_suspensions_access(email)` | Determine Suspensions permissions (admin or school leader) |
+| `get_salary_access(email)` | Determine Salary access (C-Team job titles only, no admin bypass) |
+| `get_schools_dashboard_role(email)` | Determine Schools dashboard scope (admin/job title based) |
 | `get_supervisor_name_for_email(email)` | Look up supervisor from email |
 | `get_accessible_supervisors(email, name)` | Get list of supervisors user can view |
 | `resolve_email_alias(email)` | Map alias emails to primary |
-| `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels (e.g., "7&8" → [7, 8]) |
-| `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings (e.g., "ELA" → ["English"]) |
+| `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels |
+| `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings |
 | `get_pcf_access(email)` | Check if user has Position Control Form access |
 | `get_pcf_permissions(email)` | Get detailed PCF permissions (can_approve, can_edit_final, etc.) |
 | `get_onboarding_access(email)` | Check if user has Onboarding Form access |
@@ -595,7 +593,7 @@ gcloud config set project talent-demo-482004
 **500 Internal Server Error**
 - Check Cloud Run logs:
   ```bash
-  gcloud run logs read bigquery-dashboards --region us-central1
+  gcloud run logs read supervisor-dashboard --region us-central1
   ```
 
 **BigQuery Permission Denied**
@@ -723,7 +721,7 @@ This application is designed to be easily migrated to a different GCP project. A
 
 | Resource | URL |
 |----------|-----|
-| Live Application | https://bigquery-dashboards-965913991496.us-central1.run.app |
+| Live Application | https://supervisor-dashboard-965913991496.us-central1.run.app |
 | GitHub Repository | https://github.com/sshirey-png/bigquery-dashboards |
 | Google Cloud Console | https://console.cloud.google.com/run?project=talent-demo-482004 |
 | BigQuery Console | https://console.cloud.google.com/bigquery?project=talent-demo-482004 |
@@ -732,10 +730,10 @@ This application is designed to be easily migrated to a different GCP project. A
 
 ```bash
 # Deploy
-gcloud run deploy bigquery-dashboards --source . --region us-central1 --allow-unauthenticated
+gcloud run deploy supervisor-dashboard --source . --region us-central1 --allow-unauthenticated
 
 # View logs
-gcloud run logs read bigquery-dashboards --region us-central1
+gcloud run logs read supervisor-dashboard --region us-central1
 
 # Git commit and push
 git add .
@@ -753,7 +751,7 @@ python app.py
 |---------|------|------------------|
 | Admin emails | config.py | ADMIN_EMAILS |
 | School mappings | config.py | KICKBOARD_SCHOOL_MAP |
-| School year start | config.py | CURRENT_SY_START |
+| School year start | config.py | CURRENT_SY_START (auto-calculated) |
 | School leader titles | config.py | KICKBOARD_SCHOOL_LEADER_TITLES |
 | Email aliases | config.py | EMAIL_ALIASES |
 | Position Control roles | config.py | POSITION_CONTROL_ROLES |

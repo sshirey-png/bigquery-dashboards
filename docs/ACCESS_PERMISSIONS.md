@@ -24,8 +24,8 @@
 ## 1. Supervisor Dashboard (bigquery-dashboards)
 
 **Repo:** github.com/sshirey-png/bigquery-dashboards
-**Cloud Run:** bigquery-dashboards (serves all dashboards), supervisor-dashboard (supervisor only)
-**URLs:** https://bigquery-dashboards-daem7b6ydq-uc.a.run.app, https://supervisor-dashboard-daem7b6ydq-uc.a.run.app
+**Cloud Run:** supervisor-dashboard (serves all dashboards)
+**URL:** https://supervisor-dashboard-965913991496.us-central1.run.app
 **Auth:** Google OAuth, `@firstlineschools.org` domain required
 
 ### Permission Tiers
@@ -37,7 +37,7 @@ Access is controlled by three role tiers defined in `config.py`. Each tier grant
 |-------|------|
 | sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
 
-#### Tier 1b: HR Team — Supervisor, HR, Staff List dashboards
+#### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding dashboards
 | Email | Name |
 |-------|------|
 | brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
@@ -181,7 +181,7 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 
 **Repo:** github.com/sshirey-png/salary-scale
 **Cloud Run:** salary-calculator
-**URL:** https://salary-calculator-daem7b6ydq-uc.a.run.app
+**URL:** https://salary-calculator-965913991496.us-central1.run.app
 **Auth:** NONE — Static HTML site, no authentication
 **Backend:** None (Python http.server serves a single `index.html`)
 
@@ -201,7 +201,7 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 
 **Repo:** github.com/sshirey-png/impact-bonus
 **Cloud Run:** impact-bonus
-**URL:** https://impact-bonus-daem7b6ydq-uc.a.run.app
+**URL:** https://impact-bonus-965913991496.us-central1.run.app
 **Auth:** NONE — Static HTML site, no authentication
 **Backend:** None (Python http.server serves a single `index.html`)
 
@@ -217,7 +217,7 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 
 **Repo:** github.com/sshirey-png/referral-program
 **Cloud Run:** staff-referral-program
-**URL:** https://staff-referral-program-daem7b6ydq-uc.a.run.app
+**URL:** https://staff-referral-program-965913991496.us-central1.run.app
 **Auth:** Google OAuth for admin panel; public referral submission form
 **Backend:** Flask + BigQuery
 
@@ -230,8 +230,9 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 | hr@firstlineschools.org | HR inbox |
 | awatts@firstlineschools.org | A. Watts |
 | jlombas@firstlineschools.org | J. Lombas |
+| aleibfritz@firstlineschools.org | A. Leibfritz |
 
-**Source:** `referral-program/app.py` lines 49-56
+**Source:** `referral-program/app.py` lines 49-57
 
 ### Access Model
 | Action | Who | Auth Required |
@@ -263,7 +264,7 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 
 **Repo:** github.com/sshirey-png/sabbatical-program
 **Cloud Run:** sabbatical-program
-**URL:** https://sabbatical-program-daem7b6ydq-uc.a.run.app
+**URL:** https://sabbatical-program-965913991496.us-central1.run.app
 **Auth:** Google OAuth, `@firstlineschools.org` domain required
 **Backend:** Flask + BigQuery
 
@@ -281,7 +282,7 @@ Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
 | jlombas@firstlineschools.org | J. Lombas |
 | kfeil@firstlineschools.org | ExDir of Teaching and Learning |
 
-**Source:** `sabbatical-program/app.py` lines 53-68
+**Source:** `sabbatical-program/app.py` lines 53-67
 
 ### School-Level Admins (see their school's applications only)
 Job titles that grant school-level access:
@@ -293,7 +294,7 @@ Job titles that grant school-level access:
 ### Access Model
 | Access Level | Who | What They See |
 |-------------|-----|---------------|
-| Network Admin | 11 people listed above | All applications across all schools |
+| Network Admin | 10 people listed above | All applications across all schools |
 | School Admin | School leaders by job title | Their school's applications only |
 | Employee | Any @firstlineschools.org user | Their own application only |
 | Supervisor | Direct supervisor chain | Their direct reports' applications |
@@ -361,7 +362,7 @@ Job titles that grant school-level access:
 
 ## 8. Position Control Form (position-control-form)
 
-**Repo:** github.com/sshirey-png/position-control-form *(needs to be created)*
+**Repo:** github.com/sshirey-png/position-control-form
 **Cloud Run:** position-control-form
 **URL:** https://position-control-form-965913991496.us-central1.run.app
 **Auth:** Google OAuth for admin panel; public form submission
@@ -384,7 +385,7 @@ The **admin panel** is now also available within the main dashboard at `/positio
 
 ## 9. Onboarding Form (onboarding-form)
 
-**Repo:** github.com/sshirey-png/onboarding-form *(needs to be created)*
+**Repo:** github.com/sshirey-png/onboarding-form
 **Cloud Run:** onboarding-form
 **URL:** https://onboarding-form-965913991496.us-central1.run.app
 **Auth:** Google OAuth for admin panel; public form for new hires
@@ -404,13 +405,13 @@ The **admin panel** is now also available within the main dashboard at `/onboard
 
 ---
 
-## 10. Cloud Run Services Not in Repos
-
-These Cloud Run services exist but their source repos were not found on GitHub:
+## 10. Cloud Run Services Without Repos
 
 | Service | URL | Notes |
 |---------|-----|-------|
-| itr-dashboard | https://itr-dashboard-daem7b6ydq-uc.a.run.app | Intent-to-return dashboard (no repo found) |
+| itr-dashboard | https://itr-dashboard-965913991496.us-central1.run.app | Intent-to-return dashboard (no repo found) |
+| position-control | https://position-control-965913991496.us-central1.run.app | Legacy position control service (replaced by position-control-form) |
+| bigquery-dashboards | https://bigquery-dashboards-965913991496.us-central1.run.app | Legacy deployment (replaced by supervisor-dashboard) |
 
 ---
 
@@ -423,7 +424,7 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 | spence@firstlineschools.org | HR Team (Tier 1b) | ceo | — | — | Network Admin |
 | mtoussaint@firstlineschools.org | HR Team (Tier 1b) | hr | hr | — | — |
 | csmith@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | — | — |
-| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | — | — |
+| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | Admin | — |
 | rcain@firstlineschools.org | — | finance | — | — | — |
 | lhunter@firstlineschools.org | — | finance | — | — | — |
 | sdomango@firstlineschools.org | Schools Team | — | — | — | Network Admin |
@@ -445,7 +446,7 @@ These Cloud Run services exist but their source repos were not found on GitHub:
 
 **Status:** Complete (deployed Feb 13, 2026)
 
-All 8 dashboards now have a "Dashboards" dropdown menu in the header. The dropdown is role-aware: it only shows links to dashboards the logged-in user has permission to access. Each page omits its own self-link.
+All 10 dashboards have a "Dashboards" dropdown menu in the header. The dropdown is role-aware: it only shows links to dashboards the logged-in user has permission to access. Each page omits its own self-link.
 
 ### Auth Flags (returned by `/api/auth/status`)
 | Flag | Grants Nav Link To | Based On |
@@ -460,7 +461,7 @@ All 8 dashboards now have a "Dashboards" dropdown menu in the header. The dropdo
 | `onboarding_dashboard_access` | Onboarding | `get_onboarding_access()` — `ONBOARDING_ROLES` dict |
 | `onboarding_permissions` | (object) | `get_onboarding_permissions()` — role, can_edit, can_delete, etc. |
 
-Supervisor, Staff List, Org Chart, and Data Portal links are always visible.
+Supervisor, Staff List, and Org Chart links are always visible.
 
 ---
 
@@ -471,4 +472,4 @@ Supervisor, Staff List, Org Chart, and Data Portal links are always visible.
 3. **Inconsistent admin lists** — Different projects have different admin sets (e.g., dcavato is in sabbatical but not supervisor-dashboard; dgoodwin is in supervisor-dashboard but not sabbatical).
 4. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
 5. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
-6. **Missing repos** — itr-dashboard Cloud Run service has no corresponding GitHub repo. Position Control Form and Onboarding Form repos need to be created on GitHub (source exists locally).
+6. **Missing repos** — itr-dashboard Cloud Run service has no corresponding GitHub repo. Legacy services (position-control, bigquery-dashboards) should be decommissioned.

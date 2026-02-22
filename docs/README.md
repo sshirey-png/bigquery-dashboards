@@ -26,7 +26,7 @@ This folder contains user guides for the FirstLine Schools Dashboard System.
 
 ## Quick Links
 
-- **Live Application:** https://bigquery-dashboards-965913991496.us-central1.run.app
+- **Live Application:** https://supervisor-dashboard-965913991496.us-central1.run.app
 - **Position Control Dashboard:** https://supervisor-dashboard-965913991496.us-central1.run.app/position-control-dashboard
 - **Onboarding Dashboard:** https://supervisor-dashboard-965913991496.us-central1.run.app/onboarding-dashboard
 - **GitHub Repository:** https://github.com/sshirey-png/bigquery-dashboards
