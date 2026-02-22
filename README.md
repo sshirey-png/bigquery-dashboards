@@ -1,338 +1,135 @@
-# Supervisor Dashboard
+# FirstLine Schools Dashboard System
 
-A live, interactive web dashboard for supervisors to monitor their team's performance, observations, time off balances, and intent to return status. Built with Flask backend and modern JavaScript frontend, powered by BigQuery.
+A unified web platform for FirstLine Schools staff to access HR, academic, and operational dashboards. Built with Flask and BigQuery, deployed on Google Cloud Run.
 
-## Features
+**Live URL:** https://supervisor-dashboard-965913991496.us-central1.run.app
 
-- **Live BigQuery Integration**: Real-time data from your BigQuery `supervisor_dashboard_data` view
-- **Supervisor Selection**: Choose from a dropdown of all supervisors
-- **Team Overview**: View all staff members with key metrics at a glance
-- **Color-Coded Alerts**:
-  - 🔴 Red: Action needed (missing observations, low PTO, intent not to return)
-  - 🟡 Yellow: Warnings (pending responses, approaching deadlines)
-  - 🟢 Green: All requirements met
-- **Detailed Staff Profiles**: Click any staff member for complete information
-- **Search & Filters**: Find staff by name or filter by alert status
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Real-Time Refresh**: Update data on demand
+## Dashboards
+
+| Dashboard | URL Path | Purpose |
+|-----------|----------|---------|
+| Supervisor | `/` | View direct reports — observations, certifications, time off, intent to return |
+| HR/Talent | `/hr-dashboard` | Network-wide staff data with filters |
+| Schools | `/schools-dashboard` | Academic team view — teacher data, assessment fidelity |
+| Kickboard | `/kickboard-dashboard` | Student behavior tracking and interactions |
+| Suspensions | `/suspensions-dashboard` | ISS/OSS rates by school |
+| Salary Projection | `/salary-dashboard` | Salary modeling with scenario builder |
+| Position Control | `/position-control-dashboard` | Manage position requests and approvals |
+| Onboarding | `/onboarding-dashboard` | Track new hire onboarding progress |
+| Staff List | `/staff-list-dashboard` | Filterable, exportable staff directory |
+| Org Chart | `/orgchart` | Visual organization hierarchy |
+
+All dashboards require Google OAuth with a `@firstlineschools.org` account. A role-aware nav dropdown shows only the dashboards each user can access.
 
 ## Quick Start
 
-### 1. Install Dependencies
-
 ```bash
+# Clone
+git clone https://github.com/sshirey-png/bigquery-dashboards.git
+cd bigquery-dashboards
+
+# Install
 pip install -r requirements.txt
-```
 
-### 2. Set Up BigQuery Authentication
-
-**Option A: Application Default Credentials (Recommended)**
-```bash
+# Authenticate with GCP
 gcloud auth application-default login
-```
 
-**Option B: Service Account JSON**
-1. Download your service account JSON file from Google Cloud Console
-2. Set the environment variable:
-   ```bash
-   # Windows
-   set GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\your\credentials.json
-
-   # Mac/Linux
-   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json
-   ```
-
-### 3. Start the Flask Server
-
-```bash
+# Run locally (bypasses OAuth)
+set FLASK_ENV=development    # Windows
+export FLASK_ENV=development # Mac/Linux
 python app.py
 ```
 
-The server will start on `http://localhost:5000`
+Open http://localhost:5000
 
-### 4. Access the Dashboard
+## Project Structure
 
-Open your browser and navigate to:
 ```
-http://localhost:5000
-```
-
-1. Select your supervisor name from the dropdown
-2. Click "View Dashboard"
-3. Explore your team's data
-
-## BigQuery Data Requirements
-
-The application expects a BigQuery view named `supervisor_dashboard_data` in the following location:
-- **Project**: `talent-demo-482004`
-- **Dataset**: `talent_grow_observations`
-- **View**: `supervisor_dashboard_data`
-
-### Required Fields
-
-The view should contain these columns:
-
-**Identification:**
-- `Supervisor_Name` - Name of the supervisor
-- `Staff_Name` - Name of the staff member
-- `Email_Address` or `Email` - Staff email
-- `Job_Title` - Staff job title
-
-**Personal Info:**
-- `Hire_Date` - Date staff was hired
-- `Birthday` - Staff birthday
-
-**Time Off:**
-- `PTO_Hours` - PTO balance
-- `Vacation_Hours` - Vacation balance
-- `Personal_Hours` - Personal time balance
-- `Sick_Hours` - Sick time balance
-
-**Observations:**
-- `Total_Observations` - Total number of observations
-- `Last_Observation_Type` - Type of last observation
-- `Last_Observation_Date` - Date of last observation
-- `SR1_Status` or `SR1_Complete` - SR1 completion status
-- `SR2_Status` or `SR2_Complete` - SR2 completion status
-- `PMAP1_Status` or `PMAP1_Complete` - PMAP1 completion status
-
-**Performance:**
-- `IAP_Count` - Number of IAPs
-- `Writeup_Count` - Number of write-ups
-- `Intent_To_Return_Status` - Whether staff intends to return
-- `Intent_To_Return_Response_Date` - Date of response
-- `NPS_Score` - Net Promoter Score
-
-### Example Query to Create View
-
-```sql
-CREATE OR REPLACE VIEW `talent-demo-482004.talent_grow_observations.supervisor_dashboard_data` AS
-SELECT
-    supervisor_name AS Supervisor_Name,
-    staff_name AS Staff_Name,
-    email AS Email_Address,
-    job_title AS Job_Title,
-    hire_date AS Hire_Date,
-    birthday AS Birthday,
-    pto_hours AS PTO_Hours,
-    vacation_hours AS Vacation_Hours,
-    personal_hours AS Personal_Hours,
-    sick_hours AS Sick_Hours,
-    total_observations AS Total_Observations,
-    last_observation_type AS Last_Observation_Type,
-    last_observation_date AS Last_Observation_Date,
-    sr1_complete AS SR1_Complete,
-    sr2_complete AS SR2_Complete,
-    pmap1_complete AS PMAP1_Complete,
-    iap_count AS IAP_Count,
-    writeup_count AS Writeup_Count,
-    intent_to_return AS Intent_To_Return_Status,
-    intent_response_date AS Intent_To_Return_Response_Date,
-    nps_score AS NPS_Score
-FROM your_source_table;
+bigquery-dashboards/
+├── app.py                          # Flask app factory + blueprint registration
+├── config.py                       # Admin lists, role dicts, table names, constants
+├── extensions.py                   # BigQuery client and OAuth setup
+├── auth.py                         # Permission logic for all dashboards
+├── blueprints/                     # Route handlers by feature
+│   ├── auth_routes.py              #   Login, logout, /api/auth/status
+│   ├── supervisor.py               #   Supervisor dashboard API
+│   ├── hr.py                       #   HR dashboard API
+│   ├── schools.py                  #   Schools dashboard API (incl. assessment fidelity)
+│   ├── kickboard.py                #   Kickboard dashboard API
+│   ├── suspensions.py              #   Suspensions dashboard API
+│   ├── salary.py                   #   Salary projection API
+│   ├── position_control.py         #   Position Control Form admin API
+│   ├── onboarding.py               #   Onboarding Form admin API
+│   ├── staff_list.py               #   Staff List API
+│   ├── orgchart.py                 #   Org chart API
+│   └── health.py                   #   Health check
+├── index.html                      # Supervisor Dashboard frontend
+├── hr-dashboard.html               # HR Dashboard frontend
+├── schools-dashboard.html          # Schools Dashboard frontend
+├── kickboard-dashboard.html        # Kickboard Dashboard frontend
+├── suspensions-dashboard.html      # Suspensions Dashboard frontend
+├── salary-dashboard.html           # Salary Dashboard frontend
+├── position-control-dashboard.html # Position Control admin frontend
+├── onboarding-dashboard.html       # Onboarding admin frontend
+├── staff-list-dashboard.html       # Staff List frontend
+├── orgchart.html                   # Org Chart frontend
+├── Dockerfile                      # Container build
+├── requirements.txt                # Python dependencies
+└── docs/                           # Documentation
+    ├── USER_GUIDE.md               #   End-user guide for all dashboards
+    ├── TECHNICAL_GUIDE.md          #   Developer/maintenance guide
+    └── ACCESS_PERMISSIONS.md       #   Master access control reference
 ```
 
-## Dashboard Sections
+## Deployment
 
-### List View
-Displays all staff members in a sortable table with:
-- Name (clickable for details)
-- Job Title
-- Years of Service
-- Time Off Balance
-- Total Observations
-- SR1/SR2/PMAP1 Status (✓ or ✗)
-- Intent to Return (Yes/No/Pending)
-- NPS Score
-- Alert Status (color-coded badge)
-
-### Detail View
-Click any staff member to see complete profile:
-- **Personal Information**: Full details, hire date, years of service
-- **Time Off Balances**: All time off types with hours
-- **Observations & Performance**: Complete observation history and status
-- **Intent to Return & Satisfaction**: Intent status and NPS score
-- **Alerts & Action Items**: All alerts with color-coding and recommendations
-
-### Search & Filters
-- **Search**: Type staff name to filter list
-- **All Staff**: Show everyone
-- **With Alerts**: Show only staff with red or yellow alerts
-- **Action Needed**: Show only staff with red alerts
-
-## Alert Logic
-
-### Red Alerts (Action Needed)
-- Missing required observations (SR1, SR2, or PMAP1 incomplete)
-- Intent to Return: "No"
-- Low time off balance (< 20 hours)
-
-### Yellow Alerts (Warning)
-- Intent to Return: Pending or no response
-- Medium time off balance (20-40 hours)
-- Disciplinary actions on record (IAPs or write-ups)
-
-### Green (Good Standing)
-- All observations complete
-- Intent to Return: "Yes"
-- Adequate time off balance (≥ 40 hours)
-
-## API Endpoints
-
-The Flask backend provides two API endpoints:
-
-### GET /api/supervisors
-Returns list of all unique supervisor names.
-
-**Example:**
 ```bash
-curl http://localhost:5000/api/supervisors
+gcloud run deploy supervisor-dashboard \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
 ```
 
-**Response:**
-```json
-["John Smith", "Jane Doe", "Bob Johnson"]
-```
+See [DEPLOY.md](DEPLOY.md) for full details.
 
-### GET /api/staff/<supervisor_name>
-Returns all staff data for the specified supervisor.
+## Documentation
 
-**Example:**
-```bash
-curl http://localhost:5000/api/staff/John%20Smith
-```
+| Guide | Audience | Contents |
+|-------|----------|----------|
+| [User Guide](docs/USER_GUIDE.md) | End users | How to use each dashboard, navigation, features |
+| [Technical Guide](docs/TECHNICAL_GUIDE.md) | Developers | Code structure, local setup, common changes, deployment |
+| [Access Permissions](docs/ACCESS_PERMISSIONS.md) | System admin | Role matrices, admin lists, auth flags across all projects |
 
-**Response:**
-```json
-[
-  {
-    "Staff_Name": "Alice Brown",
-    "Job_Title": "Teacher",
-    "Hire_Date": "2020-08-15",
-    "SR1_Complete": true,
-    "SR2_Complete": false,
-    ...
-  }
-]
-```
+## Common Maintenance
 
-### GET /api/health
-Health check endpoint to verify server and BigQuery connection status.
+| Task | File | What to Change |
+|------|------|----------------|
+| Add/remove admin | `config.py` | `ADMIN_EMAILS` list |
+| Change PCF permissions | `config.py` | `POSITION_CONTROL_ROLES` dict |
+| Change onboarding permissions | `config.py` | `ONBOARDING_ROLES` dict |
+| Update school year start | `config.py` | `CURRENT_SY_START` |
+| Add email alias | `config.py` | `EMAIL_ALIASES` dict |
+| Add school leader title | `config.py` | `KICKBOARD_SCHOOL_LEADER_TITLES` list |
 
-**Example:**
-```bash
-curl http://localhost:5000/api/health
-```
+After any change: commit, push, and redeploy.
 
-## Troubleshooting
+## GCP Project
 
-### "BigQuery client not initialized"
-- Ensure you've run `gcloud auth application-default login`
-- Or set `GOOGLE_APPLICATION_CREDENTIALS` environment variable
-- Verify your credentials have BigQuery read access
+- **Project:** `talent-demo-482004`
+- **Region:** `us-central1`
+- **Service:** `supervisor-dashboard`
 
-### "Failed to fetch supervisors"
-- Check that the BigQuery view exists and is accessible
-- Verify the view has a `Supervisor_Name` column
-- Ensure your credentials have permissions to query the dataset
+## Related Repos
 
-### "Failed to load staff data"
-- Verify the supervisor name exists in the data
-- Check that all required columns are present in the view
-- Review the Flask server logs for detailed error messages
-
-### Port 5000 already in use
-```bash
-# Windows
-netstat -ano | findstr :5000
-taskkill /PID <process_id> /F
-
-# Mac/Linux
-lsof -i :5000
-kill -9 <process_id>
-```
-
-Or change the port in `app.py`:
-```python
-app.run(debug=True, port=8080, host='0.0.0.0')
-```
-
-## Development
-
-### Running in Debug Mode
-The Flask app runs in debug mode by default, providing:
-- Auto-reload on code changes
-- Detailed error messages
-- Request logging
-
-### Customizing Alert Thresholds
-Edit the JavaScript alert logic in `index.html` (around line 675):
-
-```javascript
-// Check PTO balance
-const ptoHours = parseFloat(staff.PTO_Hours) || parseFloat(staff.Vacation_Hours) || 0;
-if (ptoHours < 20) {  // Change this threshold
-    alerts.push({ level: 'red', message: `Low time off balance (${ptoHours.toFixed(1)} hours)` });
-} else if (ptoHours < 40) {  // Change this threshold
-    alerts.push({ level: 'yellow', message: `Medium time off balance (${ptoHours.toFixed(1)} hours)` });
-}
-```
-
-### Adjusting BigQuery Configuration
-Edit the constants in `app.py`:
-
-```python
-PROJECT_ID = 'your-project-id'
-DATASET_ID = 'your-dataset-id'
-TABLE_ID = 'your-view-name'
-```
-
-## Production Deployment
-
-For production deployment, consider:
-
-1. **Use Gunicorn** instead of Flask development server:
-   ```bash
-   pip install gunicorn
-   gunicorn -w 4 -b 0.0.0.0:5000 app:app
-   ```
-
-2. **Deploy to Google Cloud Run**:
-   - Containerize the application
-   - Deploy with BigQuery permissions
-   - Use service account authentication
-
-3. **Add Authentication**:
-   - Implement OAuth or SSO
-   - Restrict supervisor access to their own teams
-   - Add role-based access control
-
-4. **Enable HTTPS**:
-   - Use a reverse proxy (nginx, Apache)
-   - Configure SSL certificates
-   - Update CORS settings
-
-## File Structure
-
-```
-bigquery_dashboards/
-├── app.py                      # Flask backend with BigQuery integration
-├── index.html                  # Supervisor dashboard (frontend)
-├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-├── deploy_to_gcs.py           # GCS deployment script (legacy)
-├── serve_dashboard.py         # Simple HTTP server (legacy)
-└── update_dashboard*.py       # Old SR2/PMAP2 scripts (legacy)
-```
-
-## Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review Flask server logs for error messages
-3. Verify BigQuery view schema matches requirements
-4. Check browser console for frontend JavaScript errors
+| Repo | Purpose |
+|------|---------|
+| [position-control-form](https://github.com/sshirey-png/position-control-form) | Standalone PCF submission form (public) |
+| [onboarding-form](https://github.com/sshirey-png/onboarding-form) | Standalone onboarding submission form (public) |
+| [referral-program](https://github.com/sshirey-png/referral-program) | Staff referral program |
+| [sabbatical-program](https://github.com/sshirey-png/sabbatical-program) | Sabbatical program |
+| [salary-scale](https://github.com/sshirey-png/salary-scale) | Salary calculator (static) |
+| [impact-bonus](https://github.com/sshirey-png/impact-bonus) | Impact bonus guide (static) |
 
 ## License
 
-Internal use only - Talent Grow Observations Dashboard
+Internal use only — FirstLine Schools
