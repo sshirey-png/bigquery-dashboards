@@ -205,35 +205,71 @@ Click on any row to open a detail panel showing all available fields for that st
 
 ## Permission System
 
-### Admin Users
+### Permission Tiers
 
-Admins have full access to ALL dashboards and ALL data. Current admin list:
+Access is controlled by role tiers defined in `config.py`. Each tier grants different dashboard access.
 
-| Email | Name | Role |
-|-------|------|------|
-| sshirey@firstlineschools.org | Scott Shirey | Chief People Officer |
-| brichardson@firstlineschools.org | Brittney Richardson | Chief of Human Resources |
-| spence@firstlineschools.org | Sabrina Pence | |
-| mtoussaint@firstlineschools.org | M. Toussaint | |
-| csmith@firstlineschools.org | C. Smith | |
-| aleibfritz@firstlineschools.org | A. Leibfritz | |
-| sdomango@firstlineschools.org | Sivi Domango | Chief Experience Officer |
-| dgoodwin@firstlineschools.org | Dawn Goodwin | K-8 Content Lead |
-| rjohnson@firstlineschools.org | Rameisha Johnson | Manager Family Engagement |
-| krodriguez@firstlineschools.org | Kristin Rodriguez | Dir of Culture |
-| csteele@firstlineschools.org | Charlotte Steele | Dir of ESYNOLA |
+#### Tier 1a: CPO — full access to everything
+| Email | Name |
+|-------|------|
+| sshirey@firstlineschools.org | Scott Shirey - Chief People Officer |
+
+#### Tier 1b: HR Team — Supervisor, HR, Staff List, Position Control, Onboarding
+| Email | Name |
+|-------|------|
+| brichardson@firstlineschools.org | Brittney Richardson - Chief of Human Resources |
+| spence@firstlineschools.org | Sabrina Pence |
+| mtoussaint@firstlineschools.org | M. Toussaint |
+| csmith@firstlineschools.org | C. Smith |
+| aleibfritz@firstlineschools.org | A. Leibfritz |
+
+#### Schools Team — Schools, Kickboard, Suspensions
+| Email | Name |
+|-------|------|
+| sdomango@firstlineschools.org | Sivi Domango - Chief Experience Officer |
+| dgoodwin@firstlineschools.org | Dawn Goodwin - K-8 Content Lead |
+| krodriguez@firstlineschools.org | Kristin Rodriguez - Dir of Culture |
+| csteele@firstlineschools.org | Charlotte Steele - Dir of ESYNOLA |
+
+### Dashboard Access Matrix
+
+| Dashboard | Who Can Access |
+|-----------|---------------|
+| **Supervisor** | All @firstlineschools.org users |
+| **HR/Talent** | CPO + HR Team |
+| **Schools** | CPO + Schools Team + specific job titles |
+| **Kickboard** | CPO + Schools Team + School Leaders + Supervisors + ACL |
+| **Suspensions** | CPO + Schools Team + School Leaders |
+| **Salary Projection** | C-Team only (Chief/Ex. Dir in title) |
+| **Position Control** | PCF role holders (see Position Control section) |
+| **Onboarding** | Onboarding role holders (see Onboarding section) |
+| **Staff List** | All @firstlineschools.org users |
+| **Org Chart** | All @firstlineschools.org users |
+
+### What You See in the Nav Dropdown
+
+Every dashboard has a "Dashboards" dropdown that shows only the dashboards you can access.
+
+| Role | Dashboards Visible |
+|------|--------------------|
+| CPO | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
+| HR Team | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
+| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if C-Team title) |
+| School Leaders | Supervisor, Staff List, Kickboard, Suspensions, Org Chart |
+| Supervisors | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
+| All Staff | Supervisor, Staff List, Org Chart |
 
 ### How Permissions Work
 
 1. **User logs in** with Google (@firstlineschools.org only)
 2. **System checks** (in order):
-   - Is user in ADMIN_EMAILS list? → Full access
+   - Is user in a permission tier? → Tier-based access
+   - Is user a school leader (by job title)? → School-level access
    - Is user a supervisor? → See their team's data
-   - Does user have specific role? → Role-based access
    - Is user in ACL table? → Explicit grants
 3. **Access denied** if none of the above apply
 
-### School Leader Detection (Kickboard)
+### School Leader Detection (Kickboard/Suspensions)
 
 The system automatically detects school leaders by job title:
 - Principal
@@ -245,30 +281,17 @@ These users automatically see full data for their school based on their `Locatio
 
 ---
 
-## Data Sources
-
-All data comes from Google BigQuery:
-
-| Data | Source Table |
-|------|--------------|
-| Staff Information | `talent-demo-482004.talent_grow_observations.staff_master_list_with_function` |
-| Supervisor Dashboard | `talent-demo-482004.talent_grow_observations.supervisor_dashboard_data` |
-| Kickboard Interactions | `fls-data-warehouse.kickboard.interactions` |
-| Kickboard ACL | `fls-data-warehouse.acl.fls_acl_named` |
-
----
-
 ## Common Tasks
 
 ### Adding a New Admin
 
-Contact someone with access to the codebase (see Technical Guide) to add the email to `config.py` in the `ADMIN_EMAILS` list.
+Contact someone with access to the codebase (see Technical Guide) to add the email to `config.py` in the appropriate tier list.
 
 ### Granting Kickboard Access to Non-Supervisors
 
 Two options:
 1. Add them to the `fls_acl_named` table in BigQuery (grants school-level access)
-2. Add them to the `ADMIN_EMAILS` list (grants full access)
+2. Add them to the appropriate admin tier in `config.py` (grants full access)
 
 ### Viewing Someone Else's Team (Admins Only)
 
@@ -278,11 +301,13 @@ Two options:
 
 ### Checking Who Has Access
 
-The permission system is code-based. To see who has access:
-1. **Admins**: Check `config.py` → `ADMIN_EMAILS`
-2. **School Leaders**: Anyone with matching job titles at a school
-3. **Supervisors**: Anyone with direct reports in staff database
-4. **ACL Grants**: Check `fls-data-warehouse.acl.fls_acl_named` in BigQuery
+The permission system is code-based. See [Access Permissions](ACCESS_PERMISSIONS.md) for the full reference, or:
+1. **Admin tiers**: Check `config.py` → `ADMIN_EMAILS`
+2. **PCF roles**: Check `config.py` → `POSITION_CONTROL_ROLES`
+3. **Onboarding roles**: Check `config.py` → `ONBOARDING_ROLES`
+4. **School Leaders**: Anyone with matching job titles at a school
+5. **Supervisors**: Anyone with direct reports in staff database
+6. **ACL Grants**: Check `fls-data-warehouse.acl.fls_acl_named` in BigQuery
 
 ---
 
