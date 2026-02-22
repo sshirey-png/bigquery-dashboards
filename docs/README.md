@@ -18,10 +18,17 @@ This folder contains user guides for the FirstLine Schools Dashboard System.
 - [TECHNICAL_GUIDE.md](TECHNICAL_GUIDE.md) - Markdown version (view on GitHub)
 - [TECHNICAL_GUIDE.docx](TECHNICAL_GUIDE.docx) - Word version (download for offline use)
 
+### Access Permissions
+**For:** System administrators, anyone managing user access
+**Covers:** Permission tiers, role matrices, admin lists across all projects
+
+- [ACCESS_PERMISSIONS.md](ACCESS_PERMISSIONS.md) - Comprehensive access guide for all projects
+
 ## Quick Links
 
 - **Live Application:** https://bigquery-dashboards-965913991496.us-central1.run.app
-- **Kickboard Dashboard:** https://bigquery-dashboards-965913991496.us-central1.run.app/kickboard-dashboard
+- **Position Control Dashboard:** https://supervisor-dashboard-965913991496.us-central1.run.app/position-control-dashboard
+- **Onboarding Dashboard:** https://supervisor-dashboard-965913991496.us-central1.run.app/onboarding-dashboard
 - **GitHub Repository:** https://github.com/sshirey-png/bigquery-dashboards
 
 ## Getting Help

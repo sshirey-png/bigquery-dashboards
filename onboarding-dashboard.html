@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Dashboard - FirstLine Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        'fls-orange': '#e47727',
+                        'fls-orange-dark': '#c9621c',
+                        'fls-navy': '#002f60',
+                        'fls-blue': '#094aad',
+                        'fls-light-blue': '#e8f4f8',
+                        'fls-gold': '#f8d47a',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Open Sans', system-ui, -apple-system, sans-serif; }
+        .status-not-started { background-color: #fef3c7; color: #92400e; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-complete { background-color: #dcfce7; color: #166534; }
+        .loader {
+            border: 3px solid #e2e8f0; border-top: 3px solid #e47727;
+            border-radius: 50%; width: 24px; height: 24px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header / Nav -->
+    <header class="sticky top-0 z-50 bg-fls-navy border-b border-fls-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-4">
+                    <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
+                    <div>
+                        <h1 class="text-lg font-semibold text-white">Onboarding</h1>
+                        <p class="text-xs text-orange-200">New hire onboarding tracker</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative" id="navDropdown">
+                        <button id="navDropdownBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                            Dashboards
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="navDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+                            <a href="/" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Supervisor</a>
+                            <a href="/hr-dashboard" id="navHR" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">HR View</a>
+                            <a href="/staff-list-dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Staff List</a>
+                            <a href="/schools-dashboard" id="navSchools" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Schools</a>
+                            <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
+                            <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                            <a href="/salary-dashboard" id="navSalary" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Salary</a>
+                            <a href="/position-control-dashboard" id="navPCF" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Position Control</a>
+                            <a href="/onboarding-dashboard" id="navOnboarding" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Onboarding</a>
+                            <hr class="my-1 border-gray-200">
+                            <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
+                        </div>
+                    </div>
+                    <button onclick="loadAdminData()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                    <a href="/logout" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-fls-navy">Onboarding Admin</h1>
+                <p class="text-gray-600">Manage new hire onboarding submissions</p>
+            </div>
+            <a href="https://onboarding-form-965913991496.us-central1.run.app" target="_blank"
+                class="inline-flex items-center gap-2 bg-fls-orange hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition shadow-md hover:shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                </svg>
+                Share Form Link
+            </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-3xl font-bold text-fls-navy" id="statTotal">0</div>
+                <div class="text-sm text-gray-600">Total Submissions</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-3xl font-bold text-yellow-600" id="statNotStarted">0</div>
+                <div class="text-sm text-gray-600">Not Started</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-3xl font-bold text-blue-600" id="statInProgress">0</div>
+                <div class="text-sm text-gray-600">In Progress</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-3xl font-bold text-green-600" id="statComplete">0</div>
+                <div class="text-sm text-gray-600">Complete</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4">
+                <div class="text-3xl font-bold text-purple-600" id="statAccommodation">0</div>
+                <div class="text-sm text-gray-600">Needs Accommodation</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow p-4 mb-6">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                    <input type="text" id="adminSearch" placeholder="Search by name, email, or school..."
+                        onkeyup="filterSubmissions()"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                </div>
+                <select id="statusFilter" onchange="filterSubmissions()"
+                    class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                    <option value="">All Statuses</option>
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Complete">Complete</option>
+                </select>
+                <select id="schoolFilter" onchange="filterSubmissions()"
+                    class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                    <option value="">All Schools</option>
+                    <option value="Arthur Ashe">Arthur Ashe</option>
+                    <option value="Samuel Green">Samuel Green</option>
+                    <option value="Langston Hughes">Langston Hughes</option>
+                    <option value="Phillis Wheatley">Phillis Wheatley</option>
+                    <option value="Network">Network</option>
+                </select>
+                <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap px-2">
+                    <input type="checkbox" id="showArchived" onchange="filterSubmissions()"
+                        class="w-4 h-4 text-fls-orange focus:ring-fls-orange rounded">
+                    <span class="text-sm text-gray-700">Show Archived</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200" onclick="sortTable('submitted_at')">Date</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">School</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">T-Shirt</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Certs</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200" onclick="sortTable('onboarding_status')">Status</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTable"></tbody>
+                </table>
+            </div>
+            <div id="adminLoading" class="text-center py-8 text-gray-500"><div class="loader mx-auto mb-2"></div>Loading...</div>
+            <div id="adminNoData" class="hidden text-center py-8 text-gray-500">No submissions found.</div>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold text-fls-navy">Onboarding Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="editId">
+
+                <!-- Read-only info -->
+                <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                    <div><span class="text-gray-500">ID:</span> <span id="modalId" class="font-mono font-semibold"></span></div>
+                    <div><span class="text-gray-500">Submitted:</span> <span id="modalDate"></span></div>
+                    <div><span class="text-gray-500">Name:</span> <span id="modalName" class="font-semibold"></span></div>
+                    <div><span class="text-gray-500">Preferred:</span> <span id="modalPreferred"></span></div>
+                    <div><span class="text-gray-500">Email:</span> <span id="modalEmail"></span></div>
+                    <div><span class="text-gray-500">School:</span> <span id="modalSchool"></span></div>
+                    <div><span class="text-gray-500">T-Shirt:</span> <span id="modalTshirt"></span></div>
+                    <div><span class="text-gray-500">Dietary:</span> <span id="modalDietary"></span></div>
+                    <div><span class="text-gray-500">Allergies:</span> <span id="modalAllergies"></span></div>
+                    <div><span class="text-gray-500">ADA:</span> <span id="modalAda"></span></div>
+                    <div><span class="text-gray-500">Reading Cert:</span> <span id="modalReading"></span></div>
+                    <div><span class="text-gray-500">Numeracy:</span> <span id="modalNumeracy"></span></div>
+                </div>
+
+                <hr class="my-6">
+
+                <!-- Editable admin fields -->
+                <div class="space-y-4">
+                    <h4 class="text-md font-semibold text-fls-navy">Onboarding Tracking</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Onboarding Status</label>
+                            <select id="editStatus" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                                <option value="Not Started">Not Started</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Complete">Complete</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input type="date" id="editStartDate" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Position Title</label>
+                            <input type="text" id="editPosition" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Badge Printed</label>
+                            <select id="editBadge" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Equipment Issued</label>
+                            <select id="editEquipment" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Orientation Complete</label>
+                            <select id="editOrientation" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin Notes</label>
+                        <textarea id="editNotes" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-sm text-gray-500">
+                    <span class="font-medium">Last Updated:</span> <span id="modalUpdated"></span> by <span id="modalUpdatedBy"></span>
+                </div>
+            </div>
+            <div class="p-6 border-t bg-gray-50 flex justify-between">
+                <div class="flex gap-2">
+                    <button onclick="toggleArchive()" id="archiveBtn" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition">Archive</button>
+                    <button onclick="deleteSub()" id="deleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition">Delete</button>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition">Cancel</button>
+                    <button onclick="saveSub()" id="saveBtn" class="bg-fls-orange hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                        <span>Save Changes</span>
+                        <div id="saveLoader" class="loader hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-fls-navy text-white py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm opacity-80">
+            <p>FirstLine Schools - New Hire Onboarding</p>
+            <p class="mt-1">Questions? Contact <a href="mailto:hr@firstlineschools.org" class="underline">hr@firstlineschools.org</a></p>
+        </div>
+    </footer>
+
+    <script>
+        let allSubmissions = [];
+        let currentSort = { field: 'submitted_at', direction: 'desc' };
+        let userPermissions = null;
+
+        // Nav dropdown toggle
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdownBtn = document.getElementById('navDropdownBtn');
+            const dropdownMenu = document.getElementById('navDropdownMenu');
+            dropdownBtn.addEventListener('click', () => dropdownMenu.classList.toggle('hidden'));
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('navDropdown').contains(e.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
+
+            checkAuth();
+        });
+
+        // Auth check
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login?next=/onboarding-dashboard';
+                    return;
+                }
+                if (!data.onboarding_dashboard_access) {
+                    document.querySelector('main').innerHTML = '<div class="max-w-7xl mx-auto px-4 py-16 text-center"><h2 class="text-2xl font-bold text-gray-700 mb-4">Access Denied</h2><p class="text-gray-500">You don\'t have permission to view the Onboarding dashboard.</p><a href="/" class="mt-4 inline-block text-fls-orange hover:underline">Back to Dashboard</a></div>';
+                    return;
+                }
+                userPermissions = data.onboarding_permissions;
+                // Show nav links based on permissions
+                if (data.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
+                if (data.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
+                if (data.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
+                if (data.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+                if (data.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
+                if (data.pcf_dashboard_access) document.getElementById('navPCF')?.classList.remove('hidden');
+                if (data.onboarding_dashboard_access) document.getElementById('navOnboarding')?.classList.remove('hidden');
+                loadAdminData();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+            }
+        }
+
+        // Load admin data
+        async function loadAdminData() {
+            document.getElementById('adminLoading').classList.remove('hidden');
+            document.getElementById('adminNoData').classList.add('hidden');
+            try {
+                const [statsRes, subsRes] = await Promise.all([
+                    fetch('/api/onboarding/admin/stats'),
+                    fetch('/api/onboarding/admin/submissions')
+                ]);
+                const stats = await statsRes.json();
+                const subsData = await subsRes.json();
+                document.getElementById('statTotal').textContent = stats.total;
+                document.getElementById('statNotStarted').textContent = stats.not_started;
+                document.getElementById('statInProgress').textContent = stats.in_progress;
+                document.getElementById('statComplete').textContent = stats.complete;
+                document.getElementById('statAccommodation').textContent = stats.needs_accommodation;
+                allSubmissions = subsData.submissions;
+                filterSubmissions();
+            } catch (e) { console.error('Failed to load admin data:', e); }
+            finally { document.getElementById('adminLoading').classList.add('hidden'); }
+        }
+
+        // Filter submissions
+        function filterSubmissions() {
+            const search = document.getElementById('adminSearch').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const school = document.getElementById('schoolFilter').value;
+            const showArchived = document.getElementById('showArchived').checked;
+
+            let filtered = allSubmissions.filter(s => {
+                const matchSearch = !search || (s.first_name + ' ' + s.last_name)?.toLowerCase().includes(search) || s.email?.toLowerCase().includes(search) || s.school_location?.toLowerCase().includes(search);
+                const matchStatus = !status || s.onboarding_status === status;
+                const matchSchool = !school || s.school_location === school;
+                const matchArchived = showArchived || !s.is_archived;
+                return matchSearch && matchStatus && matchSchool && matchArchived;
+            });
+
+            filtered.sort((a, b) => {
+                let aV = a[currentSort.field] || '', bV = b[currentSort.field] || '';
+                if (currentSort.field === 'submitted_at') { aV = new Date(aV); bV = new Date(bV); }
+                if (aV < bV) return currentSort.direction === 'asc' ? -1 : 1;
+                if (aV > bV) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            renderTable(filtered);
+        }
+
+        // Sort table
+        function sortTable(field) {
+            if (currentSort.field === field) currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            else { currentSort.field = field; currentSort.direction = 'desc'; }
+            filterSubmissions();
+        }
+
+        // Render table
+        function renderTable(subs) {
+            const tbody = document.getElementById('adminTable');
+            tbody.innerHTML = '';
+            if (subs.length === 0) { document.getElementById('adminNoData').classList.remove('hidden'); return; }
+            document.getElementById('adminNoData').classList.add('hidden');
+
+            subs.forEach(s => {
+                const date = s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : '-';
+                const sc = getStatusClass(s.onboarding_status);
+                const arc = s.is_archived ? 'opacity-50' : '';
+                const arcBadge = s.is_archived ? ' <span class="ml-1 px-1.5 py-0.5 bg-gray-200 text-gray-500 text-xs rounded">Archived</span>' : '';
+                const readingBadge = s.reading_certification && s.reading_certification !== 'N/A' ? `<span class="text-xs ${s.reading_certification === 'Yes' ? 'text-green-600' : s.reading_certification === 'No' ? 'text-red-600' : 'text-yellow-600'}">R:${s.reading_certification}</span>` : '';
+                const numBadge = s.numeracy_coursework && s.numeracy_coursework !== 'N/A' ? `<span class="text-xs ${s.numeracy_coursework === 'Yes' ? 'text-green-600' : s.numeracy_coursework === 'No' ? 'text-red-600' : 'text-yellow-600'}"> N:${s.numeracy_coursework}</span>` : '';
+
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50 ${arc}">
+                        <td class="px-4 py-3 text-sm">${date}</td>
+                        <td class="px-4 py-3"><div class="font-medium">${escapeHtml(s.preferred_name || (s.first_name + ' ' + s.last_name))}${arcBadge}</div><div class="text-xs text-gray-500">${escapeHtml(s.email)}</div></td>
+                        <td class="px-4 py-3 text-sm">${escapeHtml(s.school_location)}</td>
+                        <td class="px-4 py-3 text-sm">${escapeHtml(s.tshirt_size)}</td>
+                        <td class="px-4 py-3 text-sm">${readingBadge} ${numBadge}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs font-medium ${sc}">${escapeHtml(s.onboarding_status)}</span></td>
+                        <td class="px-4 py-3"><button onclick="openEditModal('${s.submission_id}')" class="text-fls-navy hover:text-blue-700 font-medium text-sm">Edit</button></td>
+                    </tr>`;
+            });
+        }
+
+        // Open edit modal
+        function openEditModal(id) {
+            const s = allSubmissions.find(x => x.submission_id === id);
+            if (!s) return;
+            const p = userPermissions || {};
+
+            document.getElementById('editId').value = id;
+            document.getElementById('modalId').textContent = id;
+            document.getElementById('modalDate').textContent = s.submitted_at ? new Date(s.submitted_at).toLocaleString() : '-';
+            document.getElementById('modalName').textContent = s.first_name + ' ' + s.last_name;
+            document.getElementById('modalPreferred').textContent = s.preferred_name;
+            document.getElementById('modalEmail').textContent = s.email;
+            document.getElementById('modalSchool').textContent = s.school_location;
+            document.getElementById('modalTshirt').textContent = s.tshirt_size;
+            document.getElementById('modalDietary').textContent = s.dietary_needs;
+            document.getElementById('modalAllergies').textContent = s.food_allergies;
+            document.getElementById('modalAda').textContent = s.ada_accommodation;
+            document.getElementById('modalReading').textContent = s.reading_certification;
+            document.getElementById('modalNumeracy').textContent = s.numeracy_coursework;
+            document.getElementById('modalUpdated').textContent = s.updated_at ? new Date(s.updated_at).toLocaleString() : '-';
+            document.getElementById('modalUpdatedBy').textContent = s.updated_by || '-';
+
+            // Editable fields
+            document.getElementById('editStatus').value = s.onboarding_status || 'Not Started';
+            document.getElementById('editStartDate').value = s.start_date || '';
+            document.getElementById('editPosition').value = s.position_title || '';
+            document.getElementById('editBadge').value = s.badge_printed || 'No';
+            document.getElementById('editEquipment').value = s.equipment_issued || 'No';
+            document.getElementById('editOrientation').value = s.orientation_complete || 'No';
+            document.getElementById('editNotes').value = s.admin_notes || '';
+
+            // Role-based field access
+            const editable = p.can_edit;
+            ['editStatus','editStartDate','editPosition','editBadge','editEquipment','editOrientation','editNotes'].forEach(eid => {
+                const el = document.getElementById(eid);
+                el.disabled = !editable;
+                el.classList.toggle('opacity-50', !editable);
+                el.classList.toggle('cursor-not-allowed', !editable);
+            });
+
+            document.getElementById('deleteBtn').classList.toggle('hidden', !p.can_delete);
+            document.getElementById('archiveBtn').classList.toggle('hidden', !p.can_archive);
+            document.getElementById('saveBtn').classList.toggle('hidden', !!p.is_viewer);
+
+            const archiveBtn = document.getElementById('archiveBtn');
+            if (s.is_archived) {
+                archiveBtn.textContent = 'Unarchive';
+                archiveBtn.className = 'px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition';
+            } else {
+                archiveBtn.textContent = 'Archive';
+                archiveBtn.className = 'px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition';
+            }
+
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+        }
+
+        // Save submission
+        async function saveSub() {
+            const id = document.getElementById('editId').value;
+            const saveBtn = document.getElementById('saveBtn');
+            const loader = document.getElementById('saveLoader');
+            saveBtn.disabled = true; loader.classList.remove('hidden');
+
+            const updates = {
+                onboarding_status: document.getElementById('editStatus').value,
+                start_date: document.getElementById('editStartDate').value,
+                position_title: document.getElementById('editPosition').value,
+                badge_printed: document.getElementById('editBadge').value,
+                equipment_issued: document.getElementById('editEquipment').value,
+                orientation_complete: document.getElementById('editOrientation').value,
+                admin_notes: document.getElementById('editNotes').value,
+            };
+
+            try {
+                const res = await fetch(`/api/onboarding/admin/submissions/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) });
+                if (res.ok) { closeModal(); loadAdminData(); }
+                else { const err = await res.json(); alert(err.error || 'Failed to save'); }
+            } catch (e) { alert('Network error.'); }
+            finally { saveBtn.disabled = false; loader.classList.add('hidden'); }
+        }
+
+        // Archive / Unarchive
+        async function toggleArchive() {
+            const id = document.getElementById('editId').value;
+            const s = allSubmissions.find(x => x.submission_id === id);
+            if (!s) return;
+            const action = s.is_archived ? 'unarchive' : 'archive';
+            if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this submission?`)) return;
+            try {
+                const res = await fetch(`/api/onboarding/admin/submissions/${id}/${action}`, { method: 'PATCH' });
+                if (res.ok) { closeModal(); loadAdminData(); }
+                else { const err = await res.json(); alert(err.error || 'Failed'); }
+            } catch (e) { alert('Network error.'); }
+        }
+
+        // Delete submission
+        async function deleteSub() {
+            const id = document.getElementById('editId').value;
+            if (!confirm('PERMANENTLY DELETE this submission?')) return;
+            if (!confirm('This cannot be undone. Delete?')) return;
+            try {
+                const res = await fetch(`/api/onboarding/admin/submissions/${id}`, { method: 'DELETE' });
+                if (res.ok) { closeModal(); loadAdminData(); }
+                else { const err = await res.json(); alert(err.error || 'Failed'); }
+            } catch (e) { alert('Network error.'); }
+        }
+
+        // Helpers
+        function getStatusClass(status) {
+            return { 'Not Started': 'status-not-started', 'In Progress': 'status-in-progress', 'Complete': 'status-complete' }[status] || 'bg-gray-100 text-gray-700';
+        }
+        function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+        // Modal keyboard/click-outside handlers
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+        document.getElementById('editModal').addEventListener('click', e => { if (e.target === document.getElementById('editModal')) closeModal(); });
+    </script>
+</body>
+</html>

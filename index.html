@@ -312,6 +312,8 @@
                                 <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
                                 <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
                                 <a href="/salary-dashboard" id="navSalary" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Salary</a>
+                                <a href="/position-control-dashboard" id="navPCF" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Position Control</a>
+                                <a href="/onboarding-dashboard" id="navOnboarding" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Onboarding</a>
 
                                 <hr class="my-1 border-gray-200">
                                 <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
@@ -1134,6 +1136,8 @@
                     if (data.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
                     if (data.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
                     if (data.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
+                    if (data.pcf_dashboard_access) document.getElementById('navPCF')?.classList.remove('hidden');
+                    if (data.onboarding_dashboard_access) document.getElementById('navOnboarding')?.classList.remove('hidden');
 
                     // Check accessible supervisors
                     if (accessibleSupervisors.length === 0) {

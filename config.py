@@ -117,3 +117,38 @@ SPS_BOTTOM_25 = 'fls-data-warehouse.sps.24_25_bottom_25'
 # Student Rosters & Class Schedules
 STUDENT_ROSTER = 'fls-data-warehouse.student_rosters.student_roster'
 CLASS_SCHEDULES = 'fls-data-warehouse.class_schedules.class_schedules'
+
+# ── Position Control Form ──
+POSITION_CONTROL_ROLES = {
+    'sshirey@firstlineschools.org': {'role': 'super_admin', 'can_approve': ['ceo_approval', 'finance_approval', 'talent_approval', 'hr_approval'], 'can_edit_final': True, 'can_create_position': True},
+    'spence@firstlineschools.org': {'role': 'ceo', 'can_approve': ['ceo_approval'], 'can_edit_final': True, 'can_create_position': False},
+    'rcain@firstlineschools.org': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
+    'lhunter@firstlineschools.org': {'role': 'finance', 'can_approve': ['finance_approval'], 'can_edit_final': False, 'can_create_position': False},
+    'aleibfritz@firstlineschools.org': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+    'brichardson@firstlineschools.org': {'role': 'hr', 'can_approve': ['hr_approval', 'talent_approval'], 'can_edit_final': True, 'can_create_position': True},
+    'mtoussaint@firstlineschools.org': {'role': 'hr', 'can_approve': ['hr_approval'], 'can_edit_final': False, 'can_create_position': False},
+    'csmith@firstlineschools.org': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+}
+
+PCF_DATASET_ID = 'position_control_form'
+PCF_TABLE_ID = 'requests'
+PC_DATASET_ID = 'talent_grow_observations'
+PC_TABLE_ID = 'position_control'
+
+# ── Onboarding Form ──
+ONBOARDING_ROLES = {
+    'sshirey@firstlineschools.org': {'role': 'super_admin', 'can_edit': True, 'can_delete': True},
+    'brichardson@firstlineschools.org': {'role': 'hr', 'can_edit': True, 'can_delete': False},
+    'mtoussaint@firstlineschools.org': {'role': 'hr', 'can_edit': True, 'can_delete': False},
+    'csmith@firstlineschools.org': {'role': 'viewer', 'can_edit': False, 'can_delete': False},
+    'aleibfritz@firstlineschools.org': {'role': 'viewer', 'can_edit': False, 'can_delete': False},
+}
+
+ONBOARDING_DATASET_ID = 'onboarding_form'
+ONBOARDING_TABLE_ID = 'submissions'
+
+# ── Email (SMTP) ──
+SMTP_EMAIL = os.environ.get('SMTP_EMAIL', 'talent@firstlineschools.org')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587

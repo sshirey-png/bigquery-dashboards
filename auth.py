@@ -15,6 +15,7 @@ from config import (
     KICKBOARD_SCHOOL_LEADER_TITLES,
     SUSPENSIONS_SCHOOL_MAP, SUSPENSIONS_REVERSE_MAP,
     PROJECT_ID, DATASET_ID, TABLE_ID,
+    POSITION_CONTROL_ROLES, ONBOARDING_ROLES,
 )
 from extensions import bq_client
 
@@ -716,3 +717,49 @@ def map_subject_desc_to_assessment(subject_desc):
 
     # Non-academic subjects → empty list (no assessment match)
     return []
+
+
+def get_pcf_access(email):
+    """Check if user has Position Control Form access."""
+    email = (email or '').lower()
+    return POSITION_CONTROL_ROLES.get(email)
+
+
+def get_pcf_permissions(email):
+    """Get the full permissions dict for a PCF user."""
+    email = (email or '').lower()
+    role_info = POSITION_CONTROL_ROLES.get(email)
+    if not role_info:
+        return None
+    return {
+        'role': role_info['role'],
+        'can_approve': role_info['can_approve'],
+        'can_edit_final': role_info['can_edit_final'],
+        'can_create_position': role_info['can_create_position'],
+        'can_edit_notes': role_info['role'] != 'viewer',
+        'can_edit_dates': role_info['role'] in ('super_admin', 'hr'),
+        'can_archive': role_info['role'] != 'viewer',
+        'can_delete': role_info['role'] == 'super_admin',
+        'is_viewer': role_info['role'] == 'viewer',
+    }
+
+
+def get_onboarding_access(email):
+    """Check if user has Onboarding Form access."""
+    email = (email or '').lower()
+    return ONBOARDING_ROLES.get(email)
+
+
+def get_onboarding_permissions(email):
+    """Get the full permissions dict for an onboarding user."""
+    email = (email or '').lower()
+    role_info = ONBOARDING_ROLES.get(email)
+    if not role_info:
+        return None
+    return {
+        'role': role_info['role'],
+        'can_edit': role_info['can_edit'],
+        'can_delete': role_info['can_delete'],
+        'can_archive': role_info['role'] != 'viewer',
+        'is_viewer': role_info['role'] == 'viewer',
+    }

@@ -18,6 +18,9 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 | Kickboard Dashboard | `/kickboard-dashboard` | Student behavior tracking and interactions |
 | Org Chart | `/orgchart` | Visual organization hierarchy |
 | Staff List | `/staff-list-dashboard` | Customizable, filterable staff directory |
+| Salary Projection | `/salary-dashboard` | Salary modeling and scenario planning |
+| Position Control | `/position-control-dashboard` | Manage position control form requests and approvals |
+| Onboarding | `/onboarding-dashboard` | Track and manage new hire onboarding submissions |
 
 ---
 
@@ -309,6 +312,89 @@ You need one of:
 - Try a hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)
 - Clear browser cache
 - Try a different browser
+
+---
+
+## 6. Salary Projection Dashboard
+
+### Who Can Access
+- **C-Team only** — job title must contain "Chief" or "Ex. Dir"
+
+### What You See
+- All staff salary data with Current, Standard, and Custom salary comparison
+- Custom scenario builder for modeling salary changes
+- CSV export with YOS and bonus columns
+
+---
+
+## 7. Position Control Dashboard
+
+### Who Can Access
+Position Control has its own role system (separate from the main admin list):
+
+| Email | Role | Can Approve | Can Edit Final Status | Can Create Position |
+|-------|------|------------|----------------------|-------------------|
+| sshirey@ | Super Admin | CEO, Finance, Talent, HR | Yes | Yes |
+| spence@ | CEO | CEO | Yes | No |
+| rcain@ | Finance | Finance | No | No |
+| lhunter@ | Finance | Finance | No | No |
+| brichardson@ | HR | HR, Talent | Yes | Yes |
+| mtoussaint@ | HR | HR | No | No |
+| aleibfritz@ | Viewer | — | No | No |
+| csmith@ | Viewer | — | No | No |
+
+### What You See
+- **Stats cards**: Total requests, Pending, Approved, Denied, Awaiting Offer
+- **Filterable, sortable table** of all position control form requests
+- **Archive/Unarchive** toggle to hide completed requests
+- **Edit modal** with role-based field access (approval fields, final status, offer dates, admin notes)
+- **Create Position** button for approved requests (creates entry in position control table)
+
+### How It Works
+1. School leaders submit position requests via the **standalone Position Control Form** (separate app)
+2. Requests appear on this dashboard for HR/Finance/CEO review
+3. Each approver sets their approval field (Approved/Denied)
+4. Final status is set by authorized users
+5. Once fully approved, HR can "Create Position" to add to the position control table
+
+### Navigation
+1. Log in → "Position Control" appears in the Dashboards dropdown (if you have access)
+2. Use filters to find requests by status, school year, or request type
+3. Click a request row to open the edit modal
+4. Submit New Request link opens the standalone form app
+
+---
+
+## 8. Onboarding Dashboard
+
+### Who Can Access
+Onboarding has its own role system:
+
+| Email | Role | Can Edit | Can Delete |
+|-------|------|---------|-----------|
+| sshirey@ | Super Admin | Yes | Yes |
+| brichardson@ | HR | Yes | No |
+| mtoussaint@ | HR | Yes | No |
+| csmith@ | Viewer | No | No |
+| aleibfritz@ | Viewer | No | No |
+
+### What You See
+- **Stats cards**: Total submissions, Not Started, In Progress, Complete, Needs Accommodation
+- **Filterable, sortable table** of all onboarding form submissions
+- **Archive/Unarchive** toggle
+- **Edit modal** for updating onboarding status, position title, badge printed, equipment issued, orientation complete, start date, and admin notes
+
+### How It Works
+1. New hires fill out the **standalone Onboarding Form** (separate app)
+2. Submissions appear on this dashboard for HR to track and manage
+3. HR updates status fields as the new hire progresses through onboarding
+4. Completed onboardings can be archived
+
+### Navigation
+1. Log in → "Onboarding" appears in the Dashboards dropdown (if you have access)
+2. Use filters to find submissions by status, school, or name
+3. Click a row to open the edit modal
+4. Share Form Link button opens the standalone onboarding form
 
 ---
 

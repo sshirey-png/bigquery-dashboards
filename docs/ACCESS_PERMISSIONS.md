@@ -1,6 +1,6 @@
 # Access Permissions & Authorization Guide — All Projects
 
-**Last Updated:** 2026-02-19
+**Last Updated:** 2026-02-21
 **GCP Project:** talent-demo-482004
 
 ---
@@ -14,8 +14,10 @@
 5. [Sabbatical Program (sabbatical-program)](#5-sabbatical-program-sabbatical-program)
 6. [Org Chart (firstline-orgchart)](#6-org-chart-firstline-orgchart)
 7. [Grow Observations (grow-observations)](#7-grow-observations-grow-observations)
-8. [Cloud Run Services Not in Repos](#8-cloud-run-services-not-in-repos)
-9. [Master Admin List Across All Projects](#9-master-admin-list-across-all-projects)
+8. [Position Control Form (position-control-form)](#8-position-control-form-position-control-form)
+9. [Onboarding Form (onboarding-form)](#9-onboarding-form-onboarding-form)
+10. [Cloud Run Services Not in Repos](#10-cloud-run-services-not-in-repos)
+11. [Master Admin List Across All Projects](#11-master-admin-list-across-all-projects)
 
 ---
 
@@ -69,6 +71,8 @@ Access is controlled by three role tiers defined in `config.py`. Each tier grant
 | **Kickboard** | CPO + Schools Team + School Leaders + Supervisors + ACL | `kickboard_dashboard_access` | Hybrid: schools + staff IDs |
 | **Suspensions** | CPO + Schools Team + School Leaders | `suspensions_dashboard_access` | School-level only |
 | **Salary Projection** | C-Team only (Chief/Ex. Dir in title) | `salary_dashboard_access` | All staff, filterable by school |
+| **Position Control** | PCF role holders (see below) | `pcf_dashboard_access` | All position requests |
+| **Onboarding** | Onboarding role holders (see below) | `onboarding_dashboard_access` | All onboarding submissions |
 | **Staff List** | All @firstlineschools.org users | always | All staff (read-only directory) |
 | **Org Chart** | All @firstlineschools.org users | always | Full org structure |
 
@@ -78,8 +82,8 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 
 | Role | Dashboards Visible |
 |------|--------------------|
-| CPO (sshirey) | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Org Chart |
-| HR Team (brichardson, spence, etc.) | Supervisor, HR, Staff List, Org Chart |
+| CPO (sshirey) | All: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
+| HR Team (brichardson, spence, etc.) | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
 | Schools Team (sdomango, dgoodwin, etc.) | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if C-Team title) |
 | School Leaders (principals, APs, etc.) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if job title qualifies) |
 | Supervisors | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
@@ -113,6 +117,37 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 - Custom scenario builder with Current/Standard/Custom salary comparison
 - CSV export includes YOS, Current YOS Bonus, and Custom YOS Bonus columns
 
+### Position Control Dashboard Access
+
+Separate role system defined in `POSITION_CONTROL_ROLES` in `config.py`:
+
+| Email | Role | Can Approve | Edit Final Status | Create Position | Edit Dates | Delete |
+|-------|------|------------|-------------------|----------------|------------|--------|
+| sshirey@ | super_admin | CEO, Finance, Talent, HR | Yes | Yes | Yes | Yes |
+| spence@ | ceo | CEO | Yes | No | No | No |
+| rcain@ | finance | Finance | No | No | No | No |
+| lhunter@ | finance | Finance | No | No | No | No |
+| brichardson@ | hr | HR, Talent | Yes | Yes | Yes | No |
+| mtoussaint@ | hr | HR | No | No | Yes | No |
+| aleibfritz@ | viewer | — | No | No | No | No |
+| csmith@ | viewer | — | No | No | No | No |
+
+**Source:** `config.py` `POSITION_CONTROL_ROLES`
+
+### Onboarding Dashboard Access
+
+Separate role system defined in `ONBOARDING_ROLES` in `config.py`:
+
+| Email | Role | Can Edit | Can Delete | Can Archive |
+|-------|------|---------|-----------|------------|
+| sshirey@ | super_admin | Yes | Yes | Yes |
+| brichardson@ | hr | Yes | No | Yes |
+| mtoussaint@ | hr | Yes | No | Yes |
+| csmith@ | viewer | No | No | No |
+| aleibfritz@ | viewer | No | No | No |
+
+**Source:** `config.py` `ONBOARDING_ROLES`
+
 ### BigQuery Tables
 
 #### talent-demo-482004 (primary)
@@ -123,6 +158,13 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 | talent_grow_observations | ldg_action_steps | Action steps (LDG sync) |
 | talent_grow_observations | ldg_meetings | Meetings (LDG sync) |
 | Salary | salary_schedule | Salary dashboard |
+
+#### talent-demo-482004 (Position Control & Onboarding)
+| Dataset | Table | Used By |
+|---------|-------|---------|
+| position_control_form | requests | Position Control dashboard |
+| talent_grow_observations | position_control | Position Control (create position target) |
+| onboarding_form | submissions | Onboarding dashboard |
 
 #### fls-data-warehouse (shared project)
 | Dataset | Table | Used By | Status |
@@ -318,38 +360,84 @@ Job titles that grant school-level access:
 
 ---
 
-## 8. Cloud Run Services Not in Repos
+## 8. Position Control Form (position-control-form)
+
+**Repo:** github.com/sshirey-png/position-control-form *(needs to be created)*
+**Cloud Run:** position-control-form
+**URL:** https://position-control-form-965913991496.us-central1.run.app
+**Auth:** Google OAuth for admin panel; public form submission
+**Backend:** Flask + BigQuery
+
+### Dual Deployment
+This app serves two purposes:
+1. **Public form** — School leaders submit position requests (no admin login required for submission)
+2. **Admin panel** — HR/Finance/CEO review and approve requests (OAuth required)
+
+The **admin panel** is now also available within the main dashboard at `/position-control-dashboard`, sharing the same BigQuery tables. The standalone app continues to serve as the submission form.
+
+### BigQuery Tables
+| Dataset | Table | Purpose |
+|---------|-------|---------|
+| position_control_form | requests | All PCF requests |
+| talent_grow_observations | position_control | Position control master table |
+
+---
+
+## 9. Onboarding Form (onboarding-form)
+
+**Repo:** github.com/sshirey-png/onboarding-form *(needs to be created)*
+**Cloud Run:** onboarding-form
+**URL:** https://onboarding-form-965913991496.us-central1.run.app
+**Auth:** Google OAuth for admin panel; public form for new hires
+**Backend:** Flask + BigQuery
+
+### Dual Deployment
+This app serves two purposes:
+1. **Public form** — New hires fill out onboarding information
+2. **Admin panel** — HR tracks and manages onboarding progress (OAuth required)
+
+The **admin panel** is now also available within the main dashboard at `/onboarding-dashboard`, sharing the same BigQuery tables. The standalone app continues to serve as the submission form.
+
+### BigQuery Tables
+| Dataset | Table | Purpose |
+|---------|-------|---------|
+| onboarding_form | submissions | All onboarding submissions |
+
+---
+
+## 10. Cloud Run Services Not in Repos
 
 These Cloud Run services exist but their source repos were not found on GitHub:
 
 | Service | URL | Notes |
 |---------|-----|-------|
 | itr-dashboard | https://itr-dashboard-daem7b6ydq-uc.a.run.app | Intent-to-return dashboard (no repo found) |
-| position-control | https://position-control-daem7b6ydq-uc.a.run.app | Position control dashboard (no repo found) |
 
 ---
 
-## 9. Master Admin List Across All Projects
+## 11. Master Admin List Across All Projects
 
-| Email | Dashboard Role | Referral Program | Sabbatical Program |
-|-------|---------------|-----------------|-------------------|
-| sshirey@firstlineschools.org | CPO (Tier 1a) | Admin | Network Admin |
-| brichardson@firstlineschools.org | HR Team (Tier 1b) | Admin | Network Admin |
-| spence@firstlineschools.org | HR Team (Tier 1b) | — | Network Admin |
-| mtoussaint@firstlineschools.org | HR Team (Tier 1b) | — | — |
-| csmith@firstlineschools.org | HR Team (Tier 1b) | — | — |
-| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | — | — |
-| sdomango@firstlineschools.org | Schools Team | — | Network Admin |
-| dgoodwin@firstlineschools.org | Schools Team | — | — |
-| krodriguez@firstlineschools.org | Schools Team | — | — |
-| csteele@firstlineschools.org | Schools Team | — | — |
-| talent@firstlineschools.org | — | Admin | Network Admin |
-| hr@firstlineschools.org | — | Admin | Network Admin |
-| awatts@firstlineschools.org | — | Admin | Network Admin |
-| jlombas@firstlineschools.org | — | Admin | Network Admin |
-| tcole@firstlineschools.org | — | — | Network Admin |
-| kfeil@firstlineschools.org | — | — | Network Admin |
-| dcavato@firstlineschools.org | — | — | Network Admin |
+| Email | Dashboard Role | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
+|-------|---------------|----------|----------------|-----------------|-------------------|
+| sshirey@firstlineschools.org | CPO (Tier 1a) | super_admin | super_admin | Admin | Network Admin |
+| brichardson@firstlineschools.org | HR Team (Tier 1b) | hr | hr | Admin | Network Admin |
+| spence@firstlineschools.org | HR Team (Tier 1b) | ceo | — | — | Network Admin |
+| mtoussaint@firstlineschools.org | HR Team (Tier 1b) | hr | hr | — | — |
+| csmith@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | — | — |
+| aleibfritz@firstlineschools.org | HR Team (Tier 1b) | viewer | viewer | — | — |
+| rcain@firstlineschools.org | — | finance | — | — | — |
+| lhunter@firstlineschools.org | — | finance | — | — | — |
+| sdomango@firstlineschools.org | Schools Team | — | — | — | Network Admin |
+| dgoodwin@firstlineschools.org | Schools Team | — | — | — | — |
+| krodriguez@firstlineschools.org | Schools Team | — | — | — | — |
+| csteele@firstlineschools.org | Schools Team | — | — | — | — |
+| talent@firstlineschools.org | — | — | — | Admin | Network Admin |
+| hr@firstlineschools.org | — | — | — | Admin | Network Admin |
+| awatts@firstlineschools.org | — | — | — | Admin | Network Admin |
+| jlombas@firstlineschools.org | — | — | — | Admin | Network Admin |
+| tcole@firstlineschools.org | — | — | — | — | Network Admin |
+| kfeil@firstlineschools.org | — | — | — | — | Network Admin |
+| dcavato@firstlineschools.org | — | — | — | — | Network Admin |
 
 **Note:** Salary Calculator, Impact Bonus Guide, Org Chart, and Grow Observations have NO authentication — they are public static sites.
 
@@ -369,6 +457,10 @@ All 8 dashboards now have a "Dashboards" dropdown menu in the header. The dropdo
 | `kickboard_dashboard_access` | Kickboard | `get_kickboard_access()` — CPO + Schools Team + School Leaders + Supervisors + ACL |
 | `suspensions_dashboard_access` | Suspensions | `get_suspensions_access()` — CPO + Schools Team + School Leaders |
 | `salary_dashboard_access` | Salary | `get_salary_access()` — C-Team job titles only |
+| `pcf_dashboard_access` | Position Control | `get_pcf_access()` — `POSITION_CONTROL_ROLES` dict |
+| `pcf_permissions` | (object) | `get_pcf_permissions()` — role, can_approve, can_edit_final, etc. |
+| `onboarding_dashboard_access` | Onboarding | `get_onboarding_access()` — `ONBOARDING_ROLES` dict |
+| `onboarding_permissions` | (object) | `get_onboarding_permissions()` — role, can_edit, can_delete, etc. |
 
 Supervisor, Staff List, Org Chart, and Data Portal links are always visible.
 
@@ -381,4 +473,4 @@ Supervisor, Staff List, Org Chart, and Data Portal links are always visible.
 3. **Inconsistent admin lists** — Different projects have different admin sets (e.g., dcavato is in sabbatical but not supervisor-dashboard; dgoodwin is in supervisor-dashboard but not sabbatical).
 4. **Public referral form** — Staff Referral Program accepts submissions without authentication. Anyone with the URL can submit.
 5. **Salary/bonus data public** — Salary Calculator and Impact Bonus contain all compensation data in client-side JavaScript, visible to anyone with the URL.
-6. **Missing repos** — itr-dashboard and position-control Cloud Run services have no corresponding GitHub repos.
+6. **Missing repos** — itr-dashboard Cloud Run service has no corresponding GitHub repo. Position Control Form and Onboarding Form repos need to be created on GitHub (source exists locally).

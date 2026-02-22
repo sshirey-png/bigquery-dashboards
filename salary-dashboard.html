@@ -125,6 +125,8 @@
                                 <a href="/schools-dashboard" id="navSchools" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Schools</a>
                                 <a href="/kickboard-dashboard" id="navKickboard" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Kickboard</a>
                                 <a href="/suspensions-dashboard" id="navSuspensions" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Suspensions</a>
+                                <a href="/position-control-dashboard" id="navPCF" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Position Control</a>
+                                <a href="/onboarding-dashboard" id="navOnboarding" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Onboarding</a>
                                 <hr class="my-1 border-gray-200">
                                 <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
                                 <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
@@ -708,6 +710,8 @@
                         if (authData.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
                         if (authData.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
                         if (authData.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
+                        if (authData.pcf_dashboard_access) document.getElementById('navPCF')?.classList.remove('hidden');
+                        if (authData.onboarding_dashboard_access) document.getElementById('navOnboarding')?.classList.remove('hidden');
 
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('dashboardScreen').classList.remove('hidden');

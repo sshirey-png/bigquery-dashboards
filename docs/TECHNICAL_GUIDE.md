@@ -70,6 +70,8 @@ bigquery-dashboards/
 │   ├── suspensions.py     # Suspensions dashboard routes
 │   ├── staff_list.py      # Staff List dashboard routes
 │   ├── salary.py          # Salary dashboard routes
+│   ├── position_control.py # Position Control Form admin routes
+│   ├── onboarding.py      # Onboarding Form admin routes
 │   ├── orgchart.py        # Org chart routes
 │   └── health.py          # Health check endpoint
 ├── index.html             # Supervisor Dashboard frontend
@@ -79,6 +81,8 @@ bigquery-dashboards/
 ├── suspensions-dashboard.html # Suspensions Dashboard frontend
 ├── staff-list-dashboard.html  # Staff List Dashboard frontend
 ├── salary-dashboard.html      # Salary Dashboard frontend
+├── position-control-dashboard.html # Position Control admin frontend
+├── onboarding-dashboard.html      # Onboarding admin frontend
 ├── orgchart.html          # Org Chart frontend
 ├── Dockerfile             # Container build instructions
 ├── requirements.txt       # Python dependencies
@@ -93,6 +97,8 @@ bigquery-dashboards/
 |------|---------|--------------|
 | `config.py` | Admin list, school mappings, table names | Adding admins, changing school names |
 | `auth.py` | Permission logic, grade/subject mapping | Changing who can access what, updating grade or subject mappings |
+| `blueprints/position_control.py` | Position Control admin API | Changing PCF approval logic, permissions |
+| `blueprints/onboarding.py` | Onboarding admin API | Changing onboarding tracking logic, permissions |
 | `blueprints/schools.py` | Schools dashboard API (staff, assessments, students) | Changing assessment fidelity logic, SPED matching |
 | `blueprints/kickboard.py` | Kickboard API endpoints | Changing Kickboard data/features |
 | `schools-dashboard.html` | Schools dashboard UI | Changing assessment display, modals, summary table |
@@ -384,6 +390,10 @@ def get_kickboard_access(email):
 | `resolve_email_alias(email)` | Map alias emails to primary |
 | `map_grade_desc_to_levels(grade_level_desc)` | Convert staff `Grade_Level_Desc` to list of integer grade levels (e.g., "7&8" → [7, 8]) |
 | `map_subject_desc_to_assessment(subject_desc)` | Convert staff `Subject_Desc` to assessment subject strings (e.g., "ELA" → ["English"]) |
+| `get_pcf_access(email)` | Check if user has Position Control Form access |
+| `get_pcf_permissions(email)` | Get detailed PCF permissions (can_approve, can_edit_final, etc.) |
+| `get_onboarding_access(email)` | Check if user has Onboarding Form access |
+| `get_onboarding_permissions(email)` | Get detailed onboarding permissions (can_edit, can_delete, etc.) |
 
 ---
 
@@ -499,6 +509,49 @@ Key Columns:
 - Bottom_25th (STRING) - 'Yes' if in bottom 25th
 - ELA_25th (STRING)
 - Math_25th (STRING)
+```
+
+#### Position Control Form Requests
+```
+Table: talent-demo-482004.position_control_form.requests
+
+Key Columns:
+- request_id (STRING)
+- submitted_at (TIMESTAMP)
+- requestor_name (STRING)
+- requestor_email (STRING)
+- request_type (STRING)
+- position_title (STRING)
+- employee_name (STRING)
+- ceo_approval (STRING) - Pending/Approved/Denied
+- finance_approval (STRING)
+- talent_approval (STRING)
+- hr_approval (STRING)
+- final_status (STRING)
+- offer_sent (DATE)
+- offer_signed (DATE)
+- position_id (STRING)
+- is_archived (BOOL)
+```
+
+#### Onboarding Form Submissions
+```
+Table: talent-demo-482004.onboarding_form.submissions
+
+Key Columns:
+- submission_id (STRING)
+- submitted_at (TIMESTAMP)
+- email (STRING)
+- first_name (STRING)
+- last_name (STRING)
+- school_location (STRING)
+- onboarding_status (STRING) - Not Started/In Progress/Complete
+- start_date (DATE)
+- position_title (STRING)
+- badge_printed (STRING)
+- equipment_issued (STRING)
+- orientation_complete (STRING)
+- is_archived (BOOL)
 ```
 
 ### Assessment Fidelity Architecture
@@ -703,6 +756,9 @@ python app.py
 | School year start | config.py | CURRENT_SY_START |
 | School leader titles | config.py | KICKBOARD_SCHOOL_LEADER_TITLES |
 | Email aliases | config.py | EMAIL_ALIASES |
+| Position Control roles | config.py | POSITION_CONTROL_ROLES |
+| Onboarding roles | config.py | ONBOARDING_ROLES |
+| SMTP email config | config.py | SMTP_EMAIL, SMTP_PASSWORD (env vars) |
 | BigQuery tables | config.py | PROJECT_ID, DATASET_ID, etc. |
 
 ---

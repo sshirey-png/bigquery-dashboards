@@ -53,6 +53,8 @@ def create_app():
     from blueprints.staff_list import bp as staff_list_bp
     from blueprints.suspensions import bp as suspensions_bp
     from blueprints.salary import bp as salary_bp
+    from blueprints.position_control import bp as pcf_bp
+    from blueprints.onboarding import bp as onboarding_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -64,6 +66,8 @@ def create_app():
     app.register_blueprint(staff_list_bp)
     app.register_blueprint(suspensions_bp)
     app.register_blueprint(salary_bp)
+    app.register_blueprint(pcf_bp)
+    app.register_blueprint(onboarding_bp)
 
     # Prevent browser caching of HTML pages so deploys take effect immediately
     @app.after_request
