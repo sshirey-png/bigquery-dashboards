@@ -48,6 +48,8 @@ def login():
 
     google = oauth.create_client('google')
     redirect_uri = url_for('auth.auth_callback', _external=True)
+    # Force new-format Cloud Run URL so OAuth callback matches registered URI
+    redirect_uri = redirect_uri.replace('daem7b6ydq-uc.a.run.app', '965913991496.us-central1.run.app')
     return google.authorize_redirect(redirect_uri)
 
 
