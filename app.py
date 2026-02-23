@@ -3,7 +3,7 @@ Flask backend for Supervisor Dashboard
 App factory + blueprint registration
 """
 
-from flask import Flask
+from flask import Flask, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
@@ -68,6 +68,23 @@ def create_app():
     app.register_blueprint(salary_bp)
     app.register_blueprint(pcf_bp)
     app.register_blueprint(onboarding_bp)
+
+    # Refresh job title from BigQuery on every authenticated request so
+    # role/access changes take effect without re-login
+    @app.before_request
+    def refresh_user_role():
+        if 'user' in session:
+            from auth import get_user_job_title
+            user = session['user']
+            email = user.get('email', '')
+            if email:
+                fresh_title = get_user_job_title(email)
+                if fresh_title != user.get('job_title', ''):
+                    logger.info(f"Job title changed for {email}: "
+                                f"'{user.get('job_title', '')}' -> '{fresh_title}'")
+                    user['job_title'] = fresh_title
+                    session['user'] = user
+                    session.modified = True
 
     # Prevent browser caching of HTML pages so deploys take effect immediately
     @app.after_request

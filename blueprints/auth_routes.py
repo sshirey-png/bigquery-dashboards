@@ -107,7 +107,9 @@ def logout():
 
 @bp.route('/api/auth/status')
 def auth_status():
-    """Return current authentication status"""
+    """Return current authentication status.
+    Note: job title is refreshed from BigQuery by the before_request hook in app.py,
+    so role checks here always use the latest title."""
     if 'user' in session:
         user = session['user']
         user_email = user.get('email', '').lower()
