@@ -15,6 +15,7 @@ from config import (
     KICKBOARD_SCHOOL_LEADER_TITLES,
     SUSPENSIONS_SCHOOL_MAP, SUSPENSIONS_REVERSE_MAP,
     PROJECT_ID, DATASET_ID, TABLE_ID,
+    STAFFING_BOARD_C_TEAM_KEYWORDS, STAFFING_BOARD_EXTRA_TITLES,
     POSITION_CONTROL_TITLE_ROLES, ONBOARDING_TITLE_ROLES,
 )
 from extensions import bq_client
@@ -734,6 +735,18 @@ def get_user_location(email):
     except Exception as e:
         logger.error(f"Error looking up location for {email}: {e}")
         return ''
+
+
+def get_staffing_board_access(email):
+    """Check if user has Staffing Board read access (by job title)."""
+    job_title = session.get('user', {}).get('job_title', '')
+    if not job_title:
+        return False
+    title_lower = job_title.lower()
+    for keyword in STAFFING_BOARD_C_TEAM_KEYWORDS:
+        if keyword.lower() in title_lower:
+            return True
+    return job_title in STAFFING_BOARD_EXTRA_TITLES
 
 
 def get_pcf_access(email):

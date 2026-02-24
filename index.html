@@ -360,7 +360,6 @@
                             <tr class="border-b border-slate-200 bg-slate-50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Staff Member</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start / Years</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Birthday</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off (1/31)</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap min-w-[70px]">Total Obs</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Last Obs</th>
@@ -1060,7 +1059,7 @@
                     if (data.kickboard_dashboard_access) document.getElementById('navKickboard')?.classList.remove('hidden');
                     if (data.suspensions_dashboard_access) document.getElementById('navSuspensions')?.classList.remove('hidden');
                     if (data.salary_dashboard_access) document.getElementById('navSalary')?.classList.remove('hidden');
-                    if (data.pcf_dashboard_access) document.getElementById('navPCF')?.classList.remove('hidden');
+                    if (data.staffing_board_access) document.getElementById('navPCF')?.classList.remove('hidden');
                     if (data.onboarding_dashboard_access) document.getElementById('navOnboarding')?.classList.remove('hidden');
 
                     // Check accessible supervisors
@@ -1387,9 +1386,6 @@
                         <div class="text-sm text-slate-600">${formatDate(staff.Last_Hire_Date)}</div>
                         <div class="text-xs text-slate-400">${yearsOfService} yr${staff.years_of_service === 1 ? '' : 's'}</div>
                         ${getSabbaticalDisplay(staff)}
-                    </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-sm text-slate-600">${formatBirthday(staff.Date_of_Birth)}</span>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="w-24">

@@ -113,6 +113,19 @@ SPS_BOTTOM_25 = 'fls-data-warehouse.sps.24_25_bottom_25'
 STUDENT_ROSTER = 'fls-data-warehouse.student_rosters.student_roster'
 CLASS_SCHEDULES = 'fls-data-warehouse.class_schedules.class_schedules'
 
+# ── Staffing Board — read access by job title ──
+# C-Team titles use a contains-match ("Chief" or "Ex. Dir"), same as salary dashboard
+STAFFING_BOARD_C_TEAM_KEYWORDS = ['Chief', 'Ex. Dir']
+# Additional titles that get Staffing Board read access beyond C-Team
+STAFFING_BOARD_EXTRA_TITLES = [
+    'School Director',
+    'Manager, HR',
+    'Manager Payroll',
+    'Manager Finance',
+    'Talent Ops Manager',
+    'Recruitment Manager',
+]
+
 # ── Position Control Form — permissions by job title ──
 POSITION_CONTROL_TITLE_ROLES = {
     'Chief People Officer': {'role': 'super_admin', 'can_approve': ['ceo_approval', 'finance_approval', 'talent_approval', 'hr_approval'], 'can_edit_final': True, 'can_create_position': True},

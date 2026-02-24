@@ -12,7 +12,7 @@ from auth import (
     get_user_job_title, get_user_location, get_supervisor_name_for_email,
     get_accessible_supervisors,
     get_schools_dashboard_role, get_kickboard_access, get_suspensions_access,
-    get_salary_access, get_pcf_access, get_pcf_permissions,
+    get_salary_access, get_staffing_board_access, get_pcf_access, get_pcf_permissions,
     get_onboarding_access, get_onboarding_permissions,
 )
 
@@ -125,6 +125,7 @@ def auth_status():
         suspensions_access = get_suspensions_access(user_email)
         salary_access = get_salary_access(user_email)
         pcf_access = get_pcf_access(user_email)
+        staffing_board_access = get_staffing_board_access(user_email)
         onboarding_access = get_onboarding_access(user_email)
         return jsonify({
             'authenticated': True,
@@ -140,6 +141,7 @@ def auth_status():
             'kickboard_access': kickboard_access,
             'suspensions_dashboard_access': suspensions_access is not None,
             'salary_dashboard_access': salary_access is not None,
+            'staffing_board_access': staffing_board_access,
             'pcf_dashboard_access': pcf_access is not None,
             'pcf_permissions': get_pcf_permissions(user_email),
             'onboarding_dashboard_access': onboarding_access is not None,
@@ -159,6 +161,7 @@ def auth_status():
         'kickboard_access': None,
         'suspensions_dashboard_access': False,
         'salary_dashboard_access': False,
+        'staffing_board_access': False,
         'pcf_dashboard_access': False,
         'pcf_permissions': None,
         'onboarding_dashboard_access': False,
