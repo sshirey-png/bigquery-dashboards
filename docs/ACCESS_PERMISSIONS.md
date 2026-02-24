@@ -1,6 +1,6 @@
 # Access Permissions & Authorization Guide — All Projects
 
-**Last Updated:** 2026-02-21
+**Last Updated:** 2026-02-24
 **GCP Project:** talent-demo-482004
 
 ---
@@ -14,7 +14,7 @@ Access is determined by the employee's **job title** or **position in the org hi
 
 | Access Type | Qualifying Titles | Dashboards / Apps Affected |
 |-------------|-------------------|---------------------------|
-| **C-Team** | Job title contains "Chief" or "Ex. Dir" | Salary Projection |
+| **C-Team** | Job title contains "Chief" or "Ex. Dir" | Salary Projection, Staffing Board |
 | **School Leader** | Principal, Assistant Principal, Dean, Head of School, Director of Culture | Kickboard (school data), Suspensions (school data) |
 | **Schools Academic Roles** | Chief Academic Officer, ExDir of Teach and Learn, K-8 Content Lead | Schools Dashboard (scoped by role) |
 | **Supervisor** | Anyone with direct reports in the org hierarchy | Supervisor Dashboard (own team), Kickboard (downline interactions) |
@@ -28,6 +28,7 @@ Access is determined by **job title lists** in application code. When someone ch
 | CPO (Tier 1a) | `config.py` → `CPO_TITLE` | Full access to all dashboards |
 | HR Team (Tier 1b) | `config.py` → `HR_TEAM_TITLES` | Supervisor, HR, Staff List, Position Control, Onboarding |
 | Schools Team | `config.py` → `SCHOOLS_TEAM_TITLES` | Schools, Kickboard, Suspensions admin |
+| Staffing Board Access | `config.py` → `STAFFING_BOARD_C_TEAM_KEYWORDS` + `STAFFING_BOARD_EXTRA_TITLES` | Staffing Board read access (nav link + standalone app) |
 | Position Control Roles | `config.py` → `POSITION_CONTROL_TITLE_ROLES` | Position Control approval workflow |
 | Onboarding Roles | `config.py` → `ONBOARDING_TITLE_ROLES` | Onboarding management |
 | Referral Admins | `referral-program/app.py` → `REFERRAL_ADMIN_TITLES` + `REFERRAL_ADMIN_EXCEPTIONS` | Referral admin panel |
@@ -56,8 +57,9 @@ Some apps are fully public with no login at all:
 7. [Grow Observations (grow-observations)](#7-grow-observations-grow-observations)
 8. [Position Control Form (position-control-form)](#8-position-control-form-position-control-form)
 9. [Onboarding Form (onboarding-form)](#9-onboarding-form-onboarding-form)
-10. [Cloud Run Services Not in Repos](#10-cloud-run-services-not-in-repos)
-11. [Master Access Reference](#11-master-access-reference)
+10. [Staffing Board (position-control)](#10-staffing-board-position-control)
+11. [Cloud Run Services Not in Repos](#11-cloud-run-services-not-in-repos)
+12. [Master Access Reference](#12-master-access-reference)
 
 ---
 
@@ -160,6 +162,7 @@ These grant admin-level access to specific dashboards. Membership is controlled 
 | **Kickboard** | Named list + Job title + Org hierarchy + ACL | CPO + Schools Team + School Leaders + Supervisors + ACL | Hybrid: schools + staff IDs |
 | **Suspensions** | Named list + Job title | CPO + Schools Team + School Leaders | School-level |
 | **Salary** | Job title only | C-Team (Chief/Ex. Dir in title) | All staff |
+| **Staffing Board** | Job title (keyword + list) | C-Team + School Directors + HR/Finance/Talent titles | All positions (read-only for non-Talent) |
 | **Position Control** | Named list | PCF role holders (8 people) | All requests |
 | **Onboarding** | Named list | Onboarding role holders (5 people) | All submissions |
 | **Staff List** | Open | All @firstlineschools.org users | All staff (read-only) |
@@ -171,10 +174,11 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 
 | Role | Dashboards Visible |
 |------|--------------------|
-| CPO | All 10: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
-| HR Team | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
-| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if their title qualifies as C-Team) |
-| C-Team (by title) | +Salary (in addition to whatever other access they have) |
+| CPO | All 10: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Staffing Board, Position Control, Onboarding, Org Chart |
+| HR Team | Supervisor, HR, Staff List, Staffing Board, Position Control, Onboarding, Org Chart |
+| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary, +Staffing Board if their title qualifies as C-Team) |
+| C-Team (by title) | +Salary, +Staffing Board (in addition to whatever other access they have) |
+| School Directors (by title) | Supervisor, Staff List, Staffing Board, Org Chart |
 | School Leaders (by title) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if their title qualifies) |
 | Supervisors (by org chart) | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
 | All Staff | Supervisor, Staff List, Org Chart |
@@ -192,6 +196,33 @@ Every dashboard has a "Dashboards" dropdown menu that shows only the dashboards 
 - **No admin bypass** — strictly job-title based, looked up from BigQuery at login
 - Custom scenario builder with Current/Standard/Custom salary comparison
 - CSV export includes YOS, Current YOS Bonus, and Custom YOS Bonus columns
+
+### Staffing Board Access
+
+**Repo:** github.com/sshirey-png/position-control
+**Cloud Run:** position-control
+**URL:** https://position-control-965913991496.us-central1.run.app
+**Auth:** Google OAuth, `@firstlineschools.org` domain required
+
+Read access uses a two-part check — C-Team keyword match plus an explicit title list:
+
+| Access Method | Qualifying Criteria | Source |
+|--------------|-------------------|--------|
+| C-Team keyword | Job title contains "Chief" or "Ex. Dir" (case-insensitive) | `config.py` → `STAFFING_BOARD_C_TEAM_KEYWORDS` (both repos) |
+| Extra titles | School Director, Manager HR, Manager Payroll, Manager Finance, Talent Ops Manager, Recruitment Manager | `config.py` → `STAFFING_BOARD_EXTRA_TITLES` / `STAFFING_BOARD_TITLES` |
+
+Write access (add/edit/delete positions) is restricted to Talent team titles only:
+
+| Qualifying Title | Source |
+|-----------------|--------|
+| Chief People Officer | `position-control/config.py` → `TALENT_TITLES` |
+| Chief Human Resources Officer | `position-control/config.py` → `TALENT_TITLES` |
+| Talent Ops Manager | `position-control/config.py` → `TALENT_TITLES` |
+| Recruitment Manager | `position-control/config.py` → `TALENT_TITLES` |
+
+**Nav link visibility** in the supervisor dashboard dropdown is controlled by the `staffing_board_access` auth flag, which uses the same keyword + title list check.
+
+**Job title refresh:** Both the standalone Staffing Board and the supervisor dashboard use a `before_request` hook to refresh the user's job title from BigQuery on every request. Role changes take effect immediately — no logout required.
 
 ### Position Control Dashboard Access
 
@@ -501,17 +532,53 @@ The **admin panel** is now also available within the main dashboard at `/onboard
 
 ---
 
-## 10. Cloud Run Services Without Repos
+## 10. Staffing Board (position-control)
+
+**Repo:** github.com/sshirey-png/position-control
+**Cloud Run:** position-control
+**URL:** https://position-control-965913991496.us-central1.run.app
+**Auth:** Google OAuth, `@firstlineschools.org` domain required
+**Backend:** Flask + BigQuery
+
+### Access Model
+The Staffing Board uses role-based access determined by job title — no hardcoded email lists.
+
+| Access Level | How Determined | What They Can Do |
+|-------------|---------------|-----------------|
+| **Read** | C-Team keyword match ("Chief" / "Ex. Dir") OR explicit title list | View all positions, filter, search |
+| **Write** | Talent team title list | Add, edit, delete positions |
+
+**Read access titles** (beyond C-Team keyword match):
+School Director, Manager HR, Manager Payroll, Manager Finance, Talent Ops Manager, Recruitment Manager
+
+**Write access titles:**
+Chief People Officer, Chief Human Resources Officer, Talent Ops Manager, Recruitment Manager
+
+**Source:** `position-control/config.py` → `STAFFING_BOARD_C_TEAM_KEYWORDS`, `STAFFING_BOARD_TITLES`, `TALENT_TITLES`
+
+### Nav Link Visibility
+The Staffing Board link appears in the supervisor dashboard dropdown for users with `staffing_board_access`. This is a separate flag from `pcf_dashboard_access` (Position Control admin), using the same C-Team keyword + extra title check.
+
+**Source:** `bigquery-dashboards/config.py` → `STAFFING_BOARD_C_TEAM_KEYWORDS`, `STAFFING_BOARD_EXTRA_TITLES`
+
+### BigQuery Tables
+| Dataset | Table | Purpose |
+|---------|-------|---------|
+| talent_grow_observations | position_control | All staffing positions |
+| talent_grow_observations | staff_master_list_with_function | Job title lookup for access control |
+
+---
+
+## 11. Cloud Run Services Without Repos
 
 | Service | URL | Notes |
 |---------|-----|-------|
 | itr-dashboard | https://itr-dashboard-965913991496.us-central1.run.app | Intent-to-return dashboard (no repo found) |
-| position-control | https://position-control-965913991496.us-central1.run.app | Legacy position control service (replaced by position-control-form) |
 | bigquery-dashboards | https://bigquery-dashboards-965913991496.us-central1.run.app | Legacy deployment (replaced by supervisor-dashboard) |
 
 ---
 
-## 11. Master Access Reference
+## 12. Master Access Reference
 
 ### Role-Based (Dynamic) Access — By Job Title
 
@@ -520,6 +587,8 @@ These access grants require **no code changes** when personnel change. Access fo
 | Job Title Contains | Dashboard / App | Access Level | Source |
 |--------------------|----------------|-------------|--------|
 | "Chief" or "Ex. Dir" | Salary Projection | Full access (all staff salary data) | `auth.py` → `get_salary_access()` |
+| "Chief" or "Ex. Dir" | Staffing Board | Read access (all positions) | `auth.py` → `get_staffing_board_access()` / `position-control/config.py` → `STAFFING_BOARD_C_TEAM_KEYWORDS` |
+| School Director | Staffing Board | Read access (all positions) | `config.py` → `STAFFING_BOARD_EXTRA_TITLES` / `position-control/config.py` → `STAFFING_BOARD_TITLES` |
 | Principal | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
 | Assistant Principal | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
 | Dean | Kickboard, Suspensions | Their school's data | `config.py` → `KICKBOARD_SCHOOL_LEADER_TITLES` |
@@ -541,23 +610,24 @@ These access grants require **no code changes** when personnel change. Access fo
 
 These access grants are determined by job title. When someone changes roles, access automatically transfers to whoever holds that title next — no code changes needed.
 
-| Job Title | Dashboard Role | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
-|-----------|---------------|----------|----------------|-----------------|-------------------|
-| Chief People Officer | CPO (Tier 1a) | super_admin | super_admin | Admin | Network Admin |
-| Chief Executive Officer | HR Team (Tier 1b) | ceo | — | — | Network Admin |
-| Chief HR Officer | HR Team (Tier 1b) | hr | hr | Admin | Network Admin |
-| Manager, HR | HR Team (Tier 1b) | hr | hr | — | — |
-| Manager Payroll | HR Team (Tier 1b) | viewer | viewer | Admin | — |
-| Chief Operating Officer | — | finance | — | — | Network Admin |
-| Manager Finance | — | finance | — | — | — |
-| Chief Experience Officer | Schools Team | — | — | — | Network Admin |
-| K-8 Content Lead | Schools Team | — | — | — | — |
-| Dir of Culture | Schools Team | — | — | — | — |
-| Dir of ESYNOLA | Schools Team | — | — | — | — |
-| Talent Operations Manager | — | — | — | Admin | Network Admin |
-| Recruitment Manager | — | — | — | Admin | Network Admin |
-| Chief Strat Adv Officer | — | — | — | — | Network Admin |
-| ExDir of Teach and Learn | — | — | — | — | Network Admin |
+| Job Title | Dashboard Role | Staffing Board | PCF Role | Onboarding Role | Referral Program | Sabbatical Program |
+|-----------|---------------|---------------|----------|----------------|-----------------|-------------------|
+| Chief People Officer | CPO (Tier 1a) | Read + Write | super_admin | super_admin | Admin | Network Admin |
+| Chief Executive Officer | HR Team (Tier 1b) | Read | ceo | — | — | Network Admin |
+| Chief HR Officer | HR Team (Tier 1b) | Read + Write | hr | hr | Admin | Network Admin |
+| Manager, HR | HR Team (Tier 1b) | Read | hr | hr | — | — |
+| Manager Payroll | HR Team (Tier 1b) | Read | viewer | viewer | Admin | — |
+| Chief Operating Officer | — | Read | finance | — | — | Network Admin |
+| Manager Finance | — | Read | finance | — | — | — |
+| Chief Experience Officer | Schools Team | Read | — | — | — | Network Admin |
+| K-8 Content Lead | Schools Team | — | — | — | — | — |
+| Dir of Culture | Schools Team | — | — | — | — | — |
+| Dir of ESYNOLA | Schools Team | — | — | — | — | — |
+| School Director | — | Read | viewer | — | — | School Admin |
+| Talent Operations Manager | — | Read + Write | — | — | Admin | Network Admin |
+| Recruitment Manager | — | Read + Write | — | — | Admin | Network Admin |
+| Chief Strat Adv Officer | — | Read | — | — | — | Network Admin |
+| ExDir of Teach and Learn | — | Read | — | — | — | Network Admin |
 
 **Email-Based Exceptions (team inboxes only):**
 
@@ -593,6 +663,7 @@ All 10 dashboards have a "Dashboards" dropdown menu in the header. The dropdown 
 | `kickboard_dashboard_access` | Kickboard | `get_kickboard_access()` — CPO + Schools Team + School Leaders + Supervisors + ACL |
 | `suspensions_dashboard_access` | Suspensions | `get_suspensions_access()` — CPO + Schools Team + School Leaders |
 | `salary_dashboard_access` | Salary | `get_salary_access()` — C-Team job titles only |
+| `staffing_board_access` | Staffing Board | `get_staffing_board_access()` — C-Team keywords + `STAFFING_BOARD_EXTRA_TITLES` |
 | `pcf_dashboard_access` | Position Control | `get_pcf_access()` — `POSITION_CONTROL_TITLE_ROLES` dict |
 | `pcf_permissions` | (object) | `get_pcf_permissions()` — role, can_approve, can_edit_final, etc. |
 | `onboarding_dashboard_access` | Onboarding | `get_onboarding_access()` — `ONBOARDING_TITLE_ROLES` dict |
