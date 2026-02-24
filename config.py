@@ -33,6 +33,7 @@ HR_TEAM_TITLES = [
     'Chief HR Officer',
     'Manager, HR',
     'Manager Payroll',
+    'Manager Benefits',
 ]
 
 # Schools Team — Schools, Kickboard, Suspensions admin access
