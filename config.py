@@ -119,6 +119,7 @@ STAFFING_BOARD_C_TEAM_KEYWORDS = ['Chief', 'Ex. Dir']
 # Additional titles that get Staffing Board read access beyond C-Team
 STAFFING_BOARD_EXTRA_TITLES = [
     'School Director',
+    'ExDir of Teach and Learn',
     'Manager, HR',
     'Manager Payroll',
     'Manager Finance',
