@@ -75,6 +75,12 @@ def row_to_dict(row):
         'updated_at': row.updated_at.isoformat() if row.updated_at else '',
         'updated_by': row.updated_by or '',
         'is_archived': bool(getattr(row, 'is_archived', False) or False),
+        'school': getattr(row, 'school', '') or '',
+        'hire_type': getattr(row, 'hire_type', '') or '',
+        'employee_email': getattr(row, 'employee_email', '') or '',
+        'candidate_email': getattr(row, 'candidate_email', '') or '',
+        'candidate_position_id': getattr(row, 'candidate_position_id', '') or '',
+        'linked_position_id': getattr(row, 'linked_position_id', '') or '',
     }
 
 

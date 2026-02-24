@@ -120,6 +120,245 @@ def refresh_session():
         return jsonify({'error': str(e)}), 500
 
 
+@bp.route('/api/team/staff', methods=['GET'])
+@login_required
+def get_team_staff():
+    """
+    Get all staff members across ALL accessible supervisors, plus the user themselves.
+    No supervisor parameter needed — uses the session's accessible_supervisors directly.
+    """
+    if not bq_client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    user = session.get('user', {})
+    accessible_supervisors = user.get('accessible_supervisors', [])
+    user_email = user.get('email', '')
+
+    if not accessible_supervisors:
+        return jsonify([])
+
+    try:
+        query = f"""
+            WITH latest_accruals AS (
+                SELECT
+                    `Person Number` as Person_Number,
+                    `Accrual Code Name` as Accrual_Code_Name,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_`) as max_hours,
+                    (`Earned to Date _Hours_` + `Pending Grants _Hours_` - COALESCE(`Taken to Date _Hours_`, 0)) as remaining_hours
+                FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                WHERE `Date Balance as of Date` = (
+                    SELECT MAX(`Date Balance as of Date`)
+                    FROM `{PROJECT_ID}.payroll_validation.accrual_balance`
+                )
+            ),
+            accrual_pivoted AS (
+                SELECT
+                    Person_Number,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN remaining_hours END) as pto_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'PTO' THEN max_hours END) as pto_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN remaining_hours END) as vacation_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Vacation' THEN max_hours END) as vacation_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN remaining_hours END) as personal_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Personal Time' THEN max_hours END) as personal_max,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN remaining_hours END) as sick_available,
+                    MAX(CASE WHEN Accrual_Code_Name = 'Sick' THEN max_hours END) as sick_max
+                FROM latest_accruals
+                GROUP BY Person_Number
+            ),
+            sabbatical_apps AS (
+                SELECT
+                    LOWER(employee_email) as employee_email,
+                    application_id,
+                    status,
+                    start_date,
+                    end_date
+                FROM `{PROJECT_ID}.sabbatical.applications`
+                WHERE status NOT IN ('Denied')
+            ),
+            published_obs_counts AS (
+                SELECT
+                    teacher_internal_id,
+                    COUNT(*) as total_published,
+                    COUNTIF(observation_type = 'Self-Reflection 1') as sr1_finalized,
+                    COUNTIF(observation_type = 'PMAP 1') as pmap1_finalized,
+                    COUNTIF(observation_type = 'Self-Reflection 2') as sr2_finalized,
+                    COUNTIF(observation_type = 'PMAP 2') as pmap2_finalized
+                FROM (
+                    SELECT DISTINCT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        observer_name,
+                        rubric_form
+                    FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                    WHERE teacher_internal_id IS NOT NULL
+                    AND is_published = 1
+                    AND observed_at >= '{CURRENT_SY_START}'
+                )
+                GROUP BY teacher_internal_id
+            )
+            SELECT
+                s.Employee_Number,
+                s.first_name,
+                s.last_name,
+                s.Email_Address,
+                s.Date_of_Birth,
+                s.Location_Name,
+                s.Supervisor_Name__Unsecured_,
+                s.Supervisor_Email,
+                s.job_title,
+                s.Employment_Status,
+                s.Last_Hire_Date,
+                s.Job_Function,
+                s.years_of_service,
+                s.pto_hours_left,
+                s.vacation_hours_left,
+                s.personal_hours_left,
+                s.sick_hours_left,
+                s.total_goals,
+                COALESCE(poc.total_published, 0) as total_observations,
+                s.last_observation_date,
+                COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
+                COALESCE(poc.sr2_finalized, 0) as self_reflection_2_count,
+                COALESCE(poc.pmap1_finalized, 0) as pmap_1_count,
+                COALESCE(poc.pmap2_finalized, 0) as pmap_2_count,
+                s.iap_count,
+                s.writeup_count,
+                s.last_observation_type,
+                s.intent_to_return,
+                s.intent_response_status,
+                s.nps_score,
+                CONCAT(s.first_name, ' ', s.last_name) AS Staff_Name,
+                a.pto_available,
+                a.pto_max,
+                a.vacation_available,
+                a.vacation_max,
+                a.personal_available,
+                a.personal_max,
+                a.sick_available,
+                a.sick_max,
+                sml.Salary_or_Hourly,
+                sab.application_id as sabbatical_app_id,
+                sab.status as sabbatical_status,
+                sab.start_date as sabbatical_start,
+                sab.end_date as sabbatical_end
+            FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}` s
+            LEFT JOIN accrual_pivoted a ON s.Employee_Number = a.Person_Number
+            LEFT JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` sml
+                ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
+            LEFT JOIN published_obs_counts poc
+                ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            LEFT JOIN sabbatical_apps sab
+                ON LOWER(s.Email_Address) = sab.employee_email
+            WHERE s.Supervisor_Name__Unsecured_ IN UNNEST(@supervisors)
+               OR LOWER(s.Email_Address) = LOWER(@user_email)
+            ORDER BY s.last_name, s.first_name
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ArrayQueryParameter("supervisors", "STRING", accessible_supervisors),
+                bigquery.ScalarQueryParameter("user_email", "STRING", user_email),
+            ]
+        )
+
+        logger.info(f"Fetching team staff data for {user_email} ({len(accessible_supervisors)} supervisors)")
+        query_job = bq_client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        staff_data = []
+        for row in results:
+            staff_member = dict(row.items())
+
+            for key, value in staff_member.items():
+                if hasattr(value, 'isoformat'):
+                    staff_member[key] = value.isoformat()
+
+            staff_data.append(staff_member)
+
+        logger.info(f"Found {len(staff_data)} total team staff members for {user_email}")
+
+        return jsonify(staff_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching team staff for {user_email}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/api/team/action-steps', methods=['GET'])
+@login_required
+def get_team_action_steps():
+    """
+    Get action steps for ALL staff across all accessible supervisors.
+    Returns a dict of email -> list of action steps.
+    """
+    if not bq_client:
+        return jsonify({'error': 'BigQuery client not initialized'}), 500
+
+    user = session.get('user', {})
+    accessible_supervisors = user.get('accessible_supervisors', [])
+
+    if not accessible_supervisors:
+        return jsonify({})
+
+    try:
+        query = f"""
+            SELECT
+                a._id,
+                a.name,
+                a.user_email,
+                a.user_name,
+                a.creator_name,
+                a.creator_email,
+                a.progress_percent,
+                a.tags,
+                a.created,
+                a.lastModified
+            FROM `{PROJECT_ID}.{DATASET_ID}.ldg_action_steps` a
+            INNER JOIN `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function` s
+                ON LOWER(a.user_email) = LOWER(s.Email_Address)
+            WHERE s.Supervisor_Name__Unsecured_ IN UNNEST(@supervisors)
+            AND a.archivedAt IS NULL
+            AND a.created >= '{CURRENT_SY_START}'
+            ORDER BY a.user_email, a.created DESC
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ArrayQueryParameter("supervisors", "STRING", accessible_supervisors),
+            ]
+        )
+
+        logger.info(f"Fetching team action steps for {len(accessible_supervisors)} supervisors")
+        query_job = bq_client.query(query, job_config=job_config)
+        results = query_job.result()
+
+        action_steps = {}
+        for row in results:
+            email = row.user_email.lower() if row.user_email else ''
+            step = {
+                'id': row._id,
+                'name': row.name,
+                'user_name': row.user_name,
+                'creator_name': row.creator_name,
+                'creator_email': row.creator_email,
+                'progress_percent': row.progress_percent,
+                'tags': row.tags,
+                'created': row.created.isoformat() if row.created else None,
+                'lastModified': row.lastModified.isoformat() if row.lastModified else None
+            }
+            if email not in action_steps:
+                action_steps[email] = []
+            action_steps[email].append(step)
+
+        logger.info(f"Found action steps for {len(action_steps)} staff members across all supervisors")
+        return jsonify(action_steps)
+
+    except Exception as e:
+        logger.error(f"Error fetching team action steps: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @bp.route('/api/staff/<supervisor_name>', methods=['GET'])
 @login_required
 def get_staff(supervisor_name):

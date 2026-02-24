@@ -210,8 +210,8 @@
                     <select id="typeFilter" onchange="filterRequests()"
                         class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
                         <option value="">All Types</option>
-                        <option value="New Hire - Vacancy">New Hire - Vacancy</option>
-                        <option value="New Hire - Replacement">New Hire - Replacement</option>
+                        <option value="Open Position">Open Position</option>
+                        <option value="New Position">New Position</option>
                         <option value="Additional Comp (Stipend)">Additional Comp (Stipend)</option>
                         <option value="Status Change">Status Change</option>
                         <option value="Title/Role Change">Title/Role Change</option>
@@ -219,6 +219,12 @@
                         <option value="Temp Hire">Temp Hire</option>
                         <option value="Before/After School">Before/After School</option>
                         <option value="Supervisor Change">Supervisor Change</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="schoolFilter" onchange="filterRequests()"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-fls-orange focus:border-fls-orange">
+                        <option value="">All Schools</option>
                     </select>
                 </div>
                 <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap px-2">
@@ -238,6 +244,7 @@
                             <th class="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200" onclick="sortTable('submitted_at')">Date</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-700">Requestor</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-700">Type</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">School</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-700">Position</th>
                             <th class="px-4 py-3 text-center font-semibold text-gray-700">Approvals</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200" onclick="sortTable('final_status')">Status</th>
@@ -293,6 +300,14 @@
                     <div>
                         <span class="text-gray-500">Type:</span>
                         <span id="modalType"></span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Action Requested:</span>
+                        <span id="modalHireType"></span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">School:</span>
+                        <span id="modalSchool" class="font-semibold"></span>
                     </div>
                     <div>
                         <span class="text-gray-500">Hours:</span>
@@ -472,6 +487,8 @@
         let allRequests = [];
         let currentSort = { field: 'submitted_at', direction: 'desc' };
         let userPermissions = null;
+        let userSchool = '';
+        let userRole = '';
 
         // Nav dropdown toggle
         document.addEventListener('DOMContentLoaded', () => {
@@ -504,6 +521,8 @@
                     return;
                 }
                 userPermissions = data.pcf_permissions;
+                userSchool = data.user?.location || '';
+                userRole = userPermissions?.role || '';
                 // Show nav links based on access
                 if (data.hr_dashboard_access) document.getElementById('navHR')?.classList.remove('hidden');
                 if (data.schools_dashboard_access) document.getElementById('navSchools')?.classList.remove('hidden');
@@ -540,6 +559,7 @@
                 document.getElementById('statAwaitingOffer').textContent = stats.awaiting_offer;
 
                 allRequests = requestsData.requests;
+                populateSchoolFilter();
                 filterRequests();
             } catch (error) {
                 console.error('Failed to load admin data:', error);
@@ -548,11 +568,38 @@
             }
         }
 
+        // Populate school filter dropdown from request data
+        function populateSchoolFilter() {
+            const schoolSet = new Set();
+            allRequests.forEach(req => {
+                const school = (req.school || '').trim();
+                if (school) schoolSet.add(school);
+            });
+            const schools = Array.from(schoolSet).sort();
+            const select = document.getElementById('schoolFilter');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">All Schools</option>';
+            schools.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                select.appendChild(opt);
+            });
+            // Pre-select user's school for viewers (School Directors)
+            if (!currentVal && userRole === 'viewer' && userSchool) {
+                const match = schools.find(s => s.toLowerCase() === userSchool.toLowerCase());
+                if (match) select.value = match;
+            } else {
+                select.value = currentVal;
+            }
+        }
+
         // Filter and render requests
         function filterRequests() {
             const searchTerm = document.getElementById('adminSearch').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
             const typeFilter = document.getElementById('typeFilter').value;
+            const schoolFilterVal = document.getElementById('schoolFilter').value;
             const showArchived = document.getElementById('showArchived').checked;
 
             let filtered = allRequests.filter(req => {
@@ -560,13 +607,15 @@
                     req.requestor_name?.toLowerCase().includes(searchTerm) ||
                     req.requestor_email?.toLowerCase().includes(searchTerm) ||
                     req.position_title?.toLowerCase().includes(searchTerm) ||
-                    req.employee_name?.toLowerCase().includes(searchTerm);
+                    req.employee_name?.toLowerCase().includes(searchTerm) ||
+                    req.school?.toLowerCase().includes(searchTerm);
 
                 const matchesStatus = !statusFilter || req.final_status === statusFilter;
                 const matchesType = !typeFilter || req.request_type === typeFilter;
+                const matchesSchool = !schoolFilterVal || (req.school || '').trim() === schoolFilterVal;
                 const matchesArchived = showArchived || !req.is_archived;
 
-                return matchesSearch && matchesStatus && matchesType && matchesArchived;
+                return matchesSearch && matchesStatus && matchesType && matchesSchool && matchesArchived;
             });
 
             // Sort
@@ -637,6 +686,7 @@
                             <div class="text-xs text-gray-500">${escapeHtml(req.requestor_email)}</div>
                         </td>
                         <td class="px-4 py-3 text-sm">${escapeHtml(req.request_type)}</td>
+                        <td class="px-4 py-3 text-sm">${escapeHtml(req.school)}</td>
                         <td class="px-4 py-3 text-sm">${escapeHtml(req.position_title)}</td>
                         <td class="px-4 py-3 text-center">${approvals}</td>
                         <td class="px-4 py-3">
@@ -664,6 +714,8 @@
             document.getElementById('modalRequestor').textContent = req.requestor_name;
             document.getElementById('modalRequestorEmail').textContent = req.requestor_email;
             document.getElementById('modalType').textContent = req.request_type;
+            document.getElementById('modalHireType').textContent = req.hire_type || '-';
+            document.getElementById('modalSchool').textContent = req.school || '-';
             document.getElementById('modalHours').textContent = req.hours_status;
             document.getElementById('modalPosition').textContent = req.position_title;
             document.getElementById('modalReportsTo').textContent = req.reports_to || '-';

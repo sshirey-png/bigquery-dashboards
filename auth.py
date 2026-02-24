@@ -709,6 +709,33 @@ def map_subject_desc_to_assessment(subject_desc):
     return []
 
 
+def get_user_location(email):
+    """Look up user's school/location from staff_master_list_with_function."""
+    if not bq_client or not email:
+        return ''
+    primary_email = resolve_email_alias(email)
+    try:
+        query = f"""
+            SELECT Location
+            FROM `{PROJECT_ID}.{DATASET_ID}.staff_master_list_with_function`
+            WHERE LOWER(Email_Address) = LOWER(@email)
+            AND Employment_Status IN ('Active', 'Leave of absence')
+            LIMIT 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("email", "STRING", primary_email)
+            ]
+        )
+        results = list(bq_client.query(query, job_config=job_config).result())
+        if results:
+            return results[0].Location or ''
+        return ''
+    except Exception as e:
+        logger.error(f"Error looking up location for {email}: {e}")
+        return ''
+
+
 def get_pcf_access(email):
     """Check if user has Position Control Form access (by job title)."""
     job_title = session.get('user', {}).get('job_title', '')

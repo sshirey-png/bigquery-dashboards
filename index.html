@@ -130,34 +130,6 @@
             background: #94a3b8;
         }
 
-        /* Segmented control */
-        .segmented-control {
-            display: flex;
-            background-color: #f1f5f9;
-            border-radius: 0.75rem;
-            padding: 4px;
-        }
-
-        .segment-btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #64748b;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .segment-btn:hover {
-            color: #334155;
-        }
-
-        .segment-btn.active {
-            background-color: #e47727;
-            color: white;
-            box-shadow: 0 1px 3px 0 rgba(228, 119, 39, 0.3), 0 1px 2px -1px rgba(228, 119, 39, 0.2);
-        }
-
         /* Avatar gradient */
         .avatar-gradient {
             background: linear-gradient(135deg, #094aad 0%, #002f60 100%);
@@ -216,50 +188,6 @@
                     <p class="text-sm text-slate-500">Checking authentication...</p>
                 </div>
 
-                <!-- Supervisor Selection (shown after auth for users with multiple supervisors) -->
-                <div id="supervisorSelection" class="hidden">
-                    <div class="flex items-center gap-2 mb-4">
-                        <img id="loginUserPic" src="" alt="" class="w-10 h-10 rounded-full">
-                        <div>
-                            <p class="text-sm font-medium text-slate-900" id="loginUserName"></p>
-                            <p class="text-xs text-slate-500" id="loginUserEmail"></p>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="supervisorSelect" class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                            Select a Supervisor to View
-                        </label>
-                        <div class="relative">
-                            <select id="supervisorSelect" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
-                                <option value="">Select a supervisor...</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between mt-2">
-                            <p class="text-xs text-slate-400">You have access to <span id="accessibleCount">0</span> supervisors</p>
-                            <button id="refreshSupervisorsBtn" onclick="refreshSupervisorList()" class="text-xs text-slate-400 hover:text-fls-orange flex items-center gap-1 transition-colors" title="Refresh supervisor list">
-                                <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                                <span id="refreshText">Refresh</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button id="viewDashboardBtn" class="w-full bg-fls-orange hover:bg-fls-orange-dark text-white font-semibold py-3 px-4 rounded-full transition-all shadow-lg shadow-fls-orange/30 hover:shadow-fls-orange/40 mb-3">
-                        View Dashboard
-                    </button>
-
-                    <a href="/logout" class="block text-center text-sm text-slate-500 hover:text-slate-700">
-                        Sign out
-                    </a>
-                </div>
-
                 <!-- Sign In Button -->
                 <a href="/login" id="googleSignInBtn" class="flex items-center justify-center gap-3 w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-full border border-slate-300 transition-all shadow-sm hover:shadow">
                     <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -288,7 +216,7 @@
                         <img src="https://firstlineschools.org/wp-content/uploads/2020/08/FLS-Logo_v2019_Color.png" alt="FirstLine Schools" class="h-10 bg-white rounded px-2 py-1">
                         <div>
                             <h1 class="text-lg font-semibold text-white">Supervisor Dashboard</h1>
-                            <p class="text-xs text-orange-200"><span id="currentSupervisorName"></span></p>
+                            <p class="text-xs text-orange-200" id="headerSubtitle"></p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -316,17 +244,11 @@
                                 <a href="/onboarding-dashboard" id="navOnboarding" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Onboarding</a>
 
                                 <hr class="my-1 border-gray-200">
+                                <a href="https://position-control-form-965913991496.us-central1.run.app" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Position Request Form</a>
                                 <a href="/orgchart" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Org Chart</a>
                                 <a href="https://sites.google.com/firstlineschools.org/data-portal/home" target="_blank" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Data Portal</a>
                             </div>
                         </div>
-                        <!-- Change Supervisor (hidden by default, shown for multi-supervisor users) -->
-                        <button id="changeSupervisorBtn" class="hidden inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                            </svg>
-                            Change
-                        </button>
                         <button id="refreshBtn" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-fls-blue rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -403,20 +325,25 @@
 
             <!-- Search and Filters -->
             <div class="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-                <div class="flex flex-col md:flex-row gap-4 items-center">
+                <div class="flex flex-col md:flex-row gap-3 items-center">
                     <div class="flex-1 relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <input type="text" id="searchInput" placeholder="Search staff..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
+                        <input type="text" id="searchInput" placeholder="Search by name, email, title, location, supervisor..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent transition-all">
                     </div>
-                    <div class="segmented-control">
-                        <button class="segment-btn active" data-filter="all">All Staff</button>
-                        <button class="segment-btn" data-filter="alerts">With Alerts</button>
-                        <button class="segment-btn" data-filter="action">Action Needed</button>
-                    </div>
+                    <select id="supervisorFilter" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent">
+                        <option value="">All Supervisors</option>
+                    </select>
+                    <select id="jobFunctionFilter" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-fls-orange focus:border-transparent">
+                        <option value="">All Functions</option>
+                    </select>
+                    <button id="clearFiltersBtn" class="px-3 py-2.5 text-sm text-slate-500 hover:text-fls-orange hover:bg-slate-50 rounded-xl transition-colors whitespace-nowrap">
+                        Clear
+                    </button>
+                    <span id="staffCount" class="text-xs text-slate-400 whitespace-nowrap"></span>
                 </div>
             </div>
 
@@ -432,6 +359,7 @@
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Staff Member</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Supervisor</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start / Years</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Birthday</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Time Off (1/31)</th>
@@ -945,11 +873,9 @@
 
     <script>
         // Global state
-        let currentSupervisor = '';
         let currentUser = null;
         let staffData = [];
         let filteredData = [];
-        let currentFilter = 'all';
         let currentDetailEmail = '';
         let certificationStatus = {}; // email -> cert info for teachers/leaders
         let actionStepsData = {}; // email -> most recent action step
@@ -1100,7 +1026,6 @@
             const authLoading = document.getElementById('authLoading');
             const googleSignInBtn = document.getElementById('googleSignInBtn');
             const signInNote = document.getElementById('signInNote');
-            const supervisorSelection = document.getElementById('supervisorSelection');
 
             try {
                 authLoading.classList.remove('hidden');
@@ -1142,7 +1067,6 @@
                     // Check accessible supervisors
                     if (accessibleSupervisors.length === 0) {
                         // User is authenticated but has no supervisor access
-                        // Redirect to their primary dashboard if they have one
                         if (data.hr_dashboard_access) {
                             window.location.href = '/hr-dashboard';
                             return;
@@ -1150,16 +1074,15 @@
                         document.getElementById('notSupervisorWarning').classList.remove('hidden');
                         googleSignInBtn.textContent = 'Sign in with a different account';
                         googleSignInBtn.classList.remove('hidden');
-                    } else if (accessibleSupervisors.length === 1) {
-                        // Single supervisor - auto-load dashboard
-                        currentSupervisor = accessibleSupervisors[0];
-                        document.getElementById('currentSupervisorName').textContent = currentSupervisor;
+                    } else {
+                        // 1+ supervisors — skip picker, go straight to dashboard
+                        document.getElementById('headerSubtitle').textContent =
+                            accessibleSupervisors.length === 1
+                                ? accessibleSupervisors[0]
+                                : `${accessibleSupervisors.length} teams`;
                         document.getElementById('loginScreen').classList.add('hidden');
                         document.getElementById('dashboardScreen').classList.remove('hidden');
-                        loadStaffData(currentSupervisor);
-                    } else {
-                        // Multiple supervisors - show selection dropdown
-                        showSupervisorSelection(data.user, accessibleSupervisors);
+                        loadTeamData();
                     }
                 } else {
                     // Not authenticated - show sign in button
@@ -1174,162 +1097,16 @@
             }
         }
 
-        // Show supervisor selection for users with multiple accessible supervisors
-        function showSupervisorSelection(user, supervisors) {
-            const supervisorSelection = document.getElementById('supervisorSelection');
-            const loginUserPic = document.getElementById('loginUserPic');
-            const loginUserName = document.getElementById('loginUserName');
-            const loginUserEmail = document.getElementById('loginUserEmail');
-            const supervisorSelect = document.getElementById('supervisorSelect');
-            const accessibleCount = document.getElementById('accessibleCount');
-
-            // Set user info
-            if (user.picture) {
-                loginUserPic.src = user.picture;
-            }
-            loginUserName.textContent = user.name || 'User';
-            loginUserEmail.textContent = user.email || '';
-            accessibleCount.textContent = supervisors.length;
-
-            // Populate supervisor dropdown
-            supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
-            supervisors.forEach(supervisor => {
-                const option = document.createElement('option');
-                option.value = supervisor;
-                option.textContent = supervisor;
-                // Pre-select user's own supervisor if they have one
-                if (supervisor === user.supervisor_name) {
-                    option.selected = true;
-                }
-                supervisorSelect.appendChild(option);
-            });
-
-            // Show the selection UI
-            supervisorSelection.classList.remove('hidden');
-        }
-
-        // Refresh supervisor list by recalculating from current data
-        async function refreshSupervisorList() {
-            const refreshBtn = document.getElementById('refreshSupervisorsBtn');
-            const refreshIcon = document.getElementById('refreshIcon');
-            const refreshText = document.getElementById('refreshText');
-
-            // Show loading state
-            refreshBtn.disabled = true;
-            refreshIcon.classList.add('animate-spin');
-            refreshText.textContent = 'Refreshing...';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/refresh-session`, {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to refresh session');
-                }
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Update the supervisor dropdown
-                    const supervisorSelect = document.getElementById('supervisorSelect');
-                    const accessibleCount = document.getElementById('accessibleCount');
-                    const supervisors = data.accessible_supervisors || [];
-
-                    accessibleCount.textContent = supervisors.length;
-
-                    // Preserve current selection if still valid
-                    const currentSelection = supervisorSelect.value;
-
-                    supervisorSelect.innerHTML = '<option value="">Select a supervisor...</option>';
-                    supervisors.forEach(supervisor => {
-                        const option = document.createElement('option');
-                        option.value = supervisor;
-                        option.textContent = supervisor;
-                        if (supervisor === currentSelection || supervisor === data.supervisor_name) {
-                            option.selected = true;
-                        }
-                        supervisorSelect.appendChild(option);
-                    });
-
-                    // Show success feedback
-                    refreshText.textContent = 'Updated!';
-                    setTimeout(() => {
-                        refreshText.textContent = 'Refresh';
-                    }, 2000);
-                }
-            } catch (error) {
-                console.error('Error refreshing supervisor list:', error);
-                refreshText.textContent = 'Error';
-                setTimeout(() => {
-                    refreshText.textContent = 'Refresh';
-                }, 2000);
-            } finally {
-                refreshBtn.disabled = false;
-                refreshIcon.classList.remove('animate-spin');
-            }
-        }
-
-        // Handle view dashboard button click
-        function handleViewDashboard() {
-            const supervisorSelect = document.getElementById('supervisorSelect');
-            const selectedSupervisor = supervisorSelect.value;
-
-            if (!selectedSupervisor) {
-                alert('Please select a supervisor to view');
-                return;
-            }
-
-            currentSupervisor = selectedSupervisor;
-            document.getElementById('currentSupervisorName').textContent = currentSupervisor;
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('dashboardScreen').classList.remove('hidden');
-
-            // Show "Change" button if user has multiple supervisors
-            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
-            if (accessibleSupervisors.length > 1) {
-                document.getElementById('changeSupervisorBtn').classList.remove('hidden');
-            }
-
-            loadStaffData(currentSupervisor);
-        }
-
-        // Handle change supervisor button click (go back to selection)
-        function handleChangeSupervisor() {
-            document.getElementById('dashboardScreen').classList.add('hidden');
-            document.getElementById('loginScreen').classList.remove('hidden');
-
-            // Reset state
-            currentSupervisor = '';
-            staffData = [];
-            filteredData = [];
-
-            // Show supervisor selection again
-            const accessibleSupervisors = currentUser?.accessible_supervisors || [];
-            if (accessibleSupervisors.length > 1) {
-                showSupervisorSelection(currentUser, accessibleSupervisors);
-            }
-        }
-
         // Setup event listeners
         function setupEventListeners() {
             document.getElementById('refreshBtn').addEventListener('click', refreshData);
             document.getElementById('searchInput').addEventListener('input', filterData);
+            document.getElementById('supervisorFilter').addEventListener('change', filterData);
+            document.getElementById('jobFunctionFilter').addEventListener('change', filterData);
+            document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
             document.getElementById('closeModalBtnFooter').addEventListener('click', closeModal);
             document.getElementById('modalBackdrop').addEventListener('click', closeModal);
-            document.getElementById('viewDashboardBtn').addEventListener('click', handleViewDashboard);
-            document.getElementById('changeSupervisorBtn').addEventListener('click', handleChangeSupervisor);
-
-            // Filter buttons (segmented control)
-            document.querySelectorAll('.segment-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    currentFilter = e.target.dataset.filter;
-                    updateFilterButtons();
-                    filterData();
-                });
-            });
 
             // Close modal on escape key
             document.addEventListener('keydown', (e) => {
@@ -1351,8 +1128,16 @@
             document.getElementById('certModalBackdrop').addEventListener('click', closeCertModal);
         }
 
-        // Load staff data from API
-        async function loadStaffData(supervisor) {
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('supervisorFilter').value = '';
+            document.getElementById('jobFunctionFilter').value = '';
+            filterData();
+        }
+
+        // Load ALL team data from API (all supervisors at once)
+        async function loadTeamData() {
             try {
                 document.getElementById('loadingIndicator').classList.remove('hidden');
                 document.getElementById('staffTableContainer').classList.add('hidden');
@@ -1360,28 +1145,20 @@
 
                 // Load staff data, certification status, and action steps in parallel
                 const [staffResponse, certResponse, actionStepsResponse] = await Promise.all([
-                    fetch(`${API_BASE}/api/staff/${encodeURIComponent(supervisor)}`, {
+                    fetch(`${API_BASE}/api/team/staff`, {
                         credentials: 'include'
                     }),
                     fetch(`${API_BASE}/api/cert-status`, {
                         credentials: 'include'
                     }),
-                    fetch(`${API_BASE}/api/action-steps/${encodeURIComponent(supervisor)}`, {
+                    fetch(`${API_BASE}/api/team/action-steps`, {
                         credentials: 'include'
                     })
                 ]);
 
                 // Handle authentication errors
                 if (staffResponse.status === 401) {
-                    // Session expired - redirect to login
                     window.location.href = '/?error=session_expired';
-                    return;
-                }
-
-                if (staffResponse.status === 403) {
-                    // Access denied
-                    alert('Access denied. You can only view your own team data.');
-                    window.location.href = '/';
                     return;
                 }
 
@@ -1409,15 +1186,39 @@
                 if (staffData.length === 0) {
                     document.getElementById('noDataMessage').classList.remove('hidden');
                 } else {
+                    populateFilterDropdowns();
                     document.getElementById('staffTableContainer').classList.remove('hidden');
-                    updateSummaryStats(staffData);
-                    renderListView(filteredData);
+                    filterData();
                 }
             } catch (error) {
                 console.error('Error loading staff data:', error);
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Failed to load staff data. Please try again.');
             }
+        }
+
+        // Populate Supervisor and Job Function filter dropdowns from loaded data
+        function populateFilterDropdowns() {
+            const supervisors = [...new Set(staffData.map(s => s.Supervisor_Name__Unsecured_).filter(Boolean))].sort();
+            const jobFunctions = [...new Set(staffData.map(s => s.Job_Function).filter(Boolean))].sort();
+
+            const supSelect = document.getElementById('supervisorFilter');
+            supSelect.innerHTML = '<option value="">All Supervisors</option>';
+            supervisors.forEach(sup => {
+                const opt = document.createElement('option');
+                opt.value = sup;
+                opt.textContent = sup;
+                supSelect.appendChild(opt);
+            });
+
+            const jfSelect = document.getElementById('jobFunctionFilter');
+            jfSelect.innerHTML = '<option value="">All Functions</option>';
+            jobFunctions.forEach(jf => {
+                const opt = document.createElement('option');
+                opt.value = jf;
+                opt.textContent = jf;
+                jfSelect.appendChild(opt);
+            });
         }
 
         // Calculate and update summary stats
@@ -1441,45 +1242,36 @@
 
         // Refresh data
         function refreshData() {
-            if (currentSupervisor) {
-                loadStaffData(currentSupervisor);
-            }
+            loadTeamData();
         }
 
-        // Filter data based on search and filter type
+        // Filter data based on search, supervisor dropdown, and job function dropdown
         function filterData() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const supervisorVal = document.getElementById('supervisorFilter').value;
+            const jobFunctionVal = document.getElementById('jobFunctionFilter').value;
 
             filteredData = staffData.filter(staff => {
-                // Search filter
+                // Search filter — matches across name, email, title, location, supervisor
                 const matchesSearch = !searchTerm ||
-                    (staff.Staff_Name || '').toLowerCase().includes(searchTerm);
+                    (staff.Staff_Name || '').toLowerCase().includes(searchTerm) ||
+                    (staff.Email_Address || '').toLowerCase().includes(searchTerm) ||
+                    (staff.job_title || '').toLowerCase().includes(searchTerm) ||
+                    (staff.Location_Name || '').toLowerCase().includes(searchTerm) ||
+                    (staff.Supervisor_Name__Unsecured_ || '').toLowerCase().includes(searchTerm);
 
-                // Alert filter
-                const alerts = calculateAlerts(staff);
-                let matchesFilter = true;
+                // Supervisor dropdown filter
+                const matchesSupervisor = !supervisorVal || staff.Supervisor_Name__Unsecured_ === supervisorVal;
 
-                if (currentFilter === 'alerts') {
-                    matchesFilter = alerts.level === 'red' || alerts.level === 'yellow';
-                } else if (currentFilter === 'action') {
-                    matchesFilter = alerts.level === 'red';
-                }
+                // Job function dropdown filter
+                const matchesJobFunction = !jobFunctionVal || staff.Job_Function === jobFunctionVal;
 
-                return matchesSearch && matchesFilter;
+                return matchesSearch && matchesSupervisor && matchesJobFunction;
             });
 
+            updateSummaryStats(filteredData);
+            document.getElementById('staffCount').textContent = `${filteredData.length} of ${staffData.length} staff`;
             renderListView(filteredData);
-        }
-
-        // Update filter button styles (segmented control)
-        function updateFilterButtons() {
-            document.querySelectorAll('.segment-btn').forEach(btn => {
-                if (btn.dataset.filter === currentFilter) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
         }
 
         // Get avatar initials
@@ -1591,6 +1383,9 @@
                                 <div class="mt-1">${getEmployeeStatusBadgeSmall(staff.Employment_Status)}</div>
                             </div>
                         </div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <span class="text-sm text-slate-600">${staff.Supervisor_Name__Unsecured_ || '—'}</span>
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div class="text-sm text-slate-600">${formatDate(staff.Last_Hire_Date)}</div>
