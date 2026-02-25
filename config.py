@@ -124,7 +124,7 @@ STAFFING_BOARD_EXTRA_TITLES = [
     'Manager, HR',
     'Manager Payroll',
     'Manager Finance',
-    'Talent Ops Manager',
+    'Talent Operations Manager',
     'Recruitment Manager',
 ]
 
