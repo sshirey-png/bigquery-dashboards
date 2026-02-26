@@ -34,6 +34,8 @@ HR_TEAM_TITLES = [
     'Manager, HR',
     'Manager Payroll',
     'Manager - Benefits',
+    'Talent Operations Manager',
+    'Recruitment Manager',
 ]
 
 # Schools Team — Schools, Kickboard, Suspensions admin access
