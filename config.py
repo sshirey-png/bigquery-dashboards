@@ -138,6 +138,9 @@ POSITION_CONTROL_TITLE_ROLES = {
     'Chief HR Officer': {'role': 'hr', 'can_approve': ['hr_approval', 'talent_approval'], 'can_edit_final': True, 'can_create_position': True},
     'Manager, HR': {'role': 'hr', 'can_approve': ['hr_approval'], 'can_edit_final': False, 'can_create_position': False},
     'School Director': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+    'Talent Operations Manager': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+    'Recruitment Manager': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
+    'Manager - Benefits': {'role': 'viewer', 'can_approve': [], 'can_edit_final': False, 'can_create_position': False},
 }
 
 PCF_DATASET_ID = 'position_control_form'
