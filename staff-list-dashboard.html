@@ -524,7 +524,13 @@ async function checkAuth() {
     const loading = document.getElementById('authLoading');
     loading.classList.remove('hidden');
     try {
-        const resp = await fetch('/api/auth/status');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const resp = await fetch('/api/auth/status', {
+            credentials: 'include',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
         const auth = await resp.json();
         loading.classList.add('hidden');
         if (auth.authenticated) {
@@ -554,7 +560,12 @@ async function checkAuth() {
 
             loadData();
         }
-    } catch(e) {
+    } catch(error) {
+        console.error('Error checking auth status:', error);
+        if (error.name === 'AbortError') {
+            window.location.href = '/login';
+            return;
+        }
         loading.classList.add('hidden');
         showAuthError('Connection Error', 'Unable to reach the server.');
     }

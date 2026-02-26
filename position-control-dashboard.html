@@ -511,7 +511,13 @@
         // Auth check — redirect if not authenticated or no access
         async function checkAuth() {
             try {
-                const response = await fetch('/api/auth/status');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const response = await fetch('/api/auth/status', {
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 const data = await response.json();
                 if (!data.authenticated) {
                     window.location.href = '/login?next=/position-control-dashboard';
@@ -535,7 +541,11 @@
                 if (data.onboarding_dashboard_access) document.getElementById('navOnboarding')?.classList.remove('hidden');
                 loadAdminData();
             } catch (error) {
-                console.error('Auth check failed:', error);
+                console.error('Error checking auth status:', error);
+                if (error.name === 'AbortError') {
+                    window.location.href = '/login';
+                    return;
+                }
             }
         }
 

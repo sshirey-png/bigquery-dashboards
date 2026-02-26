@@ -698,7 +698,13 @@
                 }
             });
             try {
-                const authRes = await fetch('/api/auth/status');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const authRes = await fetch('/api/auth/status', {
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 const authData = await authRes.json();
                 if (authData.authenticated) {
                     // Check salary access (C-Team only)
@@ -735,8 +741,12 @@
                         `;
                     }
                 }
-            } catch (e) {
-                console.error('Auth check failed:', e);
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                if (error.name === 'AbortError') {
+                    window.location.href = '/login';
+                    return;
+                }
             }
         });
 

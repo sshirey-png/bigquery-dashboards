@@ -26,6 +26,8 @@ def login():
     """Initiate Google OAuth flow"""
     next_url = request.args.get('next', '/')
     session['login_next'] = next_url
+    if request.args.get('retry'):
+        session['_oauth_retry'] = True
 
     if DEV_MODE:
         logger.info(f"DEV MODE: Auto-authenticating as {DEV_USER_EMAIL}")
@@ -102,6 +104,12 @@ def auth_callback():
 
     except Exception as e:
         logger.error(f"OAuth callback error: {e}")
+        retry = session.get('_oauth_retry', False)
+        session.clear()
+        # CSRF/state mismatch (stale session) — auto-retry once transparently
+        if 'mismatching_state' in str(e) and not retry:
+            logger.info("Auto-retrying OAuth after CSRF mismatch (stale session)")
+            return redirect('/login?retry=1')
         return redirect('/?error=auth_failed')
 
 

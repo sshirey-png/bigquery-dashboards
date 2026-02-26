@@ -647,7 +647,13 @@
             signInNote.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/auth/status');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const response = await fetch('/api/auth/status', {
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
                 const data = await response.json();
 
                 authLoading.classList.add('hidden');
@@ -710,7 +716,11 @@
                     signInNote.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Error checking auth:', error);
+                console.error('Error checking auth status:', error);
+                if (error.name === 'AbortError') {
+                    window.location.href = '/login';
+                    return;
+                }
                 authLoading.classList.add('hidden');
                 googleSignInBtn.classList.remove('hidden');
                 signInNote.classList.remove('hidden');
