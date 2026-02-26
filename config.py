@@ -115,12 +115,11 @@ STUDENT_ROSTER = 'fls-data-warehouse.student_rosters.student_roster'
 CLASS_SCHEDULES = 'fls-data-warehouse.class_schedules.class_schedules'
 
 # ── Staffing Board — read access by job title ──
-# C-Team titles use a contains-match ("Chief" or "Ex. Dir"), same as salary dashboard
-STAFFING_BOARD_C_TEAM_KEYWORDS = ['Chief', 'Ex. Dir']
+# C-Team titles use a contains-match ("Chief" or "ExDir"), same as salary dashboard
+STAFFING_BOARD_C_TEAM_KEYWORDS = ['Chief', 'ExDir']
 # Additional titles that get Staffing Board read access beyond C-Team
 STAFFING_BOARD_EXTRA_TITLES = [
     'School Director',
-    'ExDir of Teach and Learn',
     'Manager, HR',
     'Manager Payroll',
     'Manager Finance',

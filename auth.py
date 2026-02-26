@@ -518,7 +518,7 @@ def get_suspensions_access(email):
 def get_salary_access(email):
     """
     Salary Projection Dashboard access - C-Team only.
-    Checks if user has 'Chief' or 'Ex. Dir' in their job title.
+    Checks if user has 'Chief' or 'ExDir' in their job title.
     No admin bypass - strictly job title based.
     Reads job title from session (cached at login).
 
@@ -534,7 +534,7 @@ def get_salary_access(email):
     job_title_lower = job_title.lower()
 
     # Check for C-Team titles
-    if 'chief' in job_title_lower or 'ex. dir' in job_title_lower or 'ex dir' in job_title_lower:
+    if 'chief' in job_title_lower or 'exdir' in job_title_lower:
         logger.info(f"Salary access granted to {email} with title: {job_title}")
         return {
             'has_access': True,
