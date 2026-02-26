@@ -882,6 +882,25 @@
         // API base URL
         const API_BASE = window.location.origin;
 
+        // Wrapper for API calls — auto-redirects on 401, auto-reloads on new deploy
+        let _buildVersion = null;
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, { credentials: 'include', ...options });
+            if (response.status === 401) {
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                throw new Error('Session expired');
+            }
+            const serverBuild = response.headers.get('X-Build');
+            if (serverBuild) {
+                if (_buildVersion && _buildVersion !== serverBuild) {
+                    window.location.reload();
+                    throw new Error('Page reloading for update');
+                }
+                _buildVersion = serverBuild;
+            }
+            return response;
+        }
+
         // Deadline configuration by Job_Function
         // Values: Teacher, Leadership, Network, Support, Operations
         // Note: Using Date(year, month-1, day) to avoid timezone issues
@@ -1785,9 +1804,7 @@
             modal.classList.remove('hidden');
 
             try {
-                const response = await fetch(`${API_BASE}/api/observations/${encodeURIComponent(email)}`, {
-                    credentials: 'include'
-                });
+                const response = await apiFetch(`${API_BASE}/api/observations/${encodeURIComponent(email)}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch observations');
@@ -1846,9 +1863,11 @@
 
             } catch (error) {
                 console.error('Error loading observations:', error);
+                if (error.message === 'Session expired') return;
                 listContainer.innerHTML = `
                     <div class="text-center py-8 text-red-500">
                         <p>Failed to load observations</p>
+                        <button onclick="showObservationsModal('${email}')" class="mt-2 text-sm text-blue-600 hover:underline">Retry</button>
                     </div>
                 `;
             }

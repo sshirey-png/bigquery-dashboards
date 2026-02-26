@@ -520,6 +520,27 @@
     </div>
 
     <script>
+        const API_BASE = window.location.origin;
+
+        // Wrapper for API calls — auto-redirects on 401, auto-reloads on new deploy
+        let _buildVersion = null;
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, { credentials: 'include', ...options });
+            if (response.status === 401) {
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                throw new Error('Session expired');
+            }
+            const serverBuild = response.headers.get('X-Build');
+            if (serverBuild) {
+                if (_buildVersion && _buildVersion !== serverBuild) {
+                    window.location.reload();
+                    throw new Error('Page reloading for update');
+                }
+                _buildVersion = serverBuild;
+            }
+            return response;
+        }
+
         // ============================================
         // State
         // ============================================

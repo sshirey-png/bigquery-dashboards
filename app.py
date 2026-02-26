@@ -9,8 +9,13 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 import os
 
+import time
+
 from config import SECRET_KEY, ALLOWED_ORIGINS, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from extensions import oauth, bq_client
+
+# Build version — set once at startup, changes with each deployment
+BUILD_VERSION = str(int(time.time()))
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -93,10 +98,9 @@ def create_app():
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
-        # One-time cache clear: old cached pages still call APIs, so this header
-        # tells the browser to clear its cache. Safe to remove after March 2026.
+        # Include build version on API responses so stale pages can auto-reload
         if response.content_type and 'application/json' in response.content_type:
-            response.headers['Clear-Site-Data'] = '"cache"'
+            response.headers['X-Build'] = BUILD_VERSION
         return response
 
     return app
