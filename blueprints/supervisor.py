@@ -29,7 +29,7 @@ def _check_employee_access(email):
 
     # Check if the employee's supervisor is in the user's accessible list
     query = f"""
-        SELECT Supervisor_Name
+        SELECT Supervisor_Name__Unsecured_
         FROM `{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}`
         WHERE LOWER(Email_Address) = LOWER(@email)
         LIMIT 1
@@ -43,7 +43,7 @@ def _check_employee_access(email):
     if not results:
         return False
 
-    return results[0].Supervisor_Name in accessible_supervisors
+    return results[0].Supervisor_Name__Unsecured_ in accessible_supervisors
 
 HTML_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
