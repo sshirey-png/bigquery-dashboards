@@ -729,7 +729,7 @@
                 const authData = await authRes.json();
                 if (authData.authenticated) {
                     // Check salary access (C-Team only)
-                    const accessRes = await fetch('/api/salary/access');
+                    const accessRes = await apiFetch('/api/salary/access');
                     const accessData = await accessRes.json();
 
                     if (accessData.has_access) {
@@ -773,7 +773,7 @@
 
         async function loadSchools() {
             try {
-                const res = await fetch('/api/salary/schools');
+                const res = await apiFetch('/api/salary/schools');
                 const data = await res.json();
                 const select = document.getElementById('schoolFilter');
                 data.schools.forEach(s => {
@@ -832,7 +832,7 @@
             }
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 summaryData = await res.json();
                 updateStats();
                 loadDistribution();
@@ -954,7 +954,7 @@
             const url = `/api/salary/distribution?school=${encodeURIComponent(school)}`;
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 const data = await res.json();
 
                 if (charts.distribution) charts.distribution.destroy();
@@ -1127,7 +1127,7 @@
             }
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 const data = await res.json();
                 employeesData = data.employees;
 
@@ -1373,7 +1373,7 @@
             if (school) url += `&school=${encodeURIComponent(school)}`;
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 if (!res.ok) {
                     const errText = await res.text();
                     alert(`Custom scenario failed (${res.status}): ${errText}`);
@@ -1626,7 +1626,7 @@
             if (maxYoe) url += `&max_yoe=${maxYoe}`;
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 const data = await res.json();
                 employeesData = data.employees;
 
@@ -1772,7 +1772,7 @@
             const url = `/api/salary/compare-caps?caps=15,20,25,30&school=${encodeURIComponent(school)}`;
 
             try {
-                const res = await fetch(url);
+                const res = await apiFetch(url);
                 const data = await res.json();
 
                 const baseline = data.comparisons.find(c => c.step_cap === 30);
