@@ -432,7 +432,7 @@
                     <h4 class="text-sm font-semibold text-fls-navy mb-3">Custom Scenario Results</h4>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                         <div class="bg-slate-50 rounded-lg p-3">
-                            <p class="text-xs text-slate-500">Current (Schedule)</p>
+                            <p class="text-xs text-slate-500">Current (Schedule + YOS)</p>
                             <p id="customCurrentSchedule" class="text-lg font-bold text-slate-800">--</p>
                         </div>
                         <div class="bg-slate-50 rounded-lg p-3">
@@ -1388,7 +1388,8 @@
                 document.getElementById('clearCustomBtn').classList.remove('hidden');
 
                 const t = data.totals;
-                document.getElementById('customCurrentSchedule').textContent = fmtK(t.current_schedule_total);
+                const currentYos = t.current_yos_bonus_total || 0;
+                document.getElementById('customCurrentSchedule').textContent = fmtK(t.current_schedule_total + currentYos);
                 document.getElementById('customNextSchedule').textContent = fmtK(t.next_schedule_total);
                 document.getElementById('customNextCustom').textContent = fmtK(t.next_custom_total);
 
@@ -1413,7 +1414,7 @@
                         <tr class="border-b border-slate-100">
                             <td class="py-2 px-3 font-medium">${c.category.replace('_', ' ')}</td>
                             <td class="py-2 px-3 text-right">${c.employee_count}</td>
-                            <td class="py-2 px-3 text-right">${fmt.format(c.current_schedule_total)}</td>
+                            <td class="py-2 px-3 text-right">${fmt.format(c.current_schedule_total + (c.current_yos_bonus_total || 0))}</td>
                             <td class="py-2 px-3 text-right">${fmt.format(c.next_schedule_total)}</td>
                             <td class="py-2 px-3 text-right text-fls-orange font-medium">${fmt.format(c.next_custom_total)}</td>
                             <td class="py-2 px-3 text-right ${diff >= 0 ? 'text-red-600' : 'text-green-600'}">${(diff >= 0 ? '+' : '') + fmt.format(diff)}</td>
@@ -1426,7 +1427,7 @@
                     <tr class="bg-slate-100 font-semibold">
                         <td class="py-2 px-3">TOTAL</td>
                         <td class="py-2 px-3 text-right">${t.employee_count}</td>
-                        <td class="py-2 px-3 text-right">${fmt.format(t.current_schedule_total)}</td>
+                        <td class="py-2 px-3 text-right">${fmt.format(t.current_schedule_total + (t.current_yos_bonus_total || 0))}</td>
                         <td class="py-2 px-3 text-right">${fmt.format(t.next_schedule_total)}</td>
                         <td class="py-2 px-3 text-right text-fls-orange">${fmt.format(t.next_custom_total)}</td>
                         <td class="py-2 px-3 text-right ${totalDiff >= 0 ? 'text-red-600' : 'text-green-600'}">${(totalDiff >= 0 ? '+' : '') + fmt.format(totalDiff)}</td>
@@ -1507,7 +1508,7 @@
                     datasets: [{
                         label: 'Total Salary Cost',
                         data: [
-                            summaryData.totals.current_total,
+                            summaryData.totals.current_total + (summaryData.totals.current_yos_bonus_total || 0),
                             summaryData.totals.next_base_total,
                             t.next_custom_total
                         ],
@@ -1572,7 +1573,7 @@
                     <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
                     <td class="py-3 px-4 text-right">${c.employee_count}</td>
                     <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
-                    <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(c.current_total + (c.current_yos_bonus_total || 0))}</td>
                     <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
                     <td class="py-3 px-4 text-right text-green-600 font-semibold">+${fmt.format(avgRaiseCustom)}</td>
                 </tr>
@@ -1587,7 +1588,7 @@
                     <td class="py-3 px-4">TOTAL</td>
                     <td class="py-3 px-4 text-right">${t.employee_count}</td>
                     <td class="py-3 px-4 text-right">-</td>
-                    <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                    <td class="py-3 px-4 text-right">${fmt.format(t.current_total + (t.current_yos_bonus_total || 0))}</td>
                     <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
                     <td class="py-3 px-4 text-right text-green-600 font-semibold">+${fmt.format(avgRaiseCustomTotal)}</td>
                 </tr>
