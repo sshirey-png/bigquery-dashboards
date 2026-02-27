@@ -1,6 +1,6 @@
 # Next Steps — Supervisor Dashboard & Dashboards Project
 
-**Last Updated:** February 19, 2026
+**Last Updated:** February 27, 2026
 
 ---
 
@@ -13,13 +13,16 @@ Position Control is currently a separate Cloud Run service (`position-control-da
 - Add `position_control_access` flag to auth status endpoint
 - Add to dropdown nav on all dashboards
 
-### 3. Deploy script hardening
-- Investigate `\r` carriage return characters in env vars from Windows deploys
-- Add explicit `\r` stripping to `deploy.sh` to prevent OAuth breakage
-
 ---
 
 ## Completed Recently
+
+### February 26, 2026
+- **Deploy script hardening**: `~/deploy.sh` now parses env vars via JSON/Python with `.strip()` and pipes through `tr -d '\r'` — prevents `\r` carriage returns from corrupting OAuth credentials on Windows deploys
+- Added Talent Operations Manager and Recruitment Manager to HR team titles
+- Fixed column name bug in `_check_employee_access`
+- Auto-retry OAuth on CSRF error + auth check timeout
+- Build version auto-reload and `apiFetch` wrapper across all dashboards
 
 ### February 19, 2026
 - **Assessment Fidelity on Schools Dashboard**: Added Completion % and Mastery % columns to the staff table, sourced from actual class rosters (`class_schedules` + `results_raw`) for per-teacher accuracy

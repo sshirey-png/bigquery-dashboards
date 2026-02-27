@@ -523,9 +523,9 @@
                     <p id="statAbove202" class="text-xs text-slate-500 mt-1">-- above 20 years</p>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 p-4">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Current Total</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Current + YOS</p>
                     <p id="statCurrent2" class="text-2xl font-bold text-slate-700 mt-1">--</p>
-                    <p class="text-xs text-slate-500 mt-1">This year (schedule)</p>
+                    <p class="text-xs text-slate-500 mt-1">This year (schedule + YOS)</p>
                 </div>
                 <div class="bg-white rounded-xl border-l-4 border-l-fls-blue border border-slate-200 p-4">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Base Scenario</p>
@@ -860,7 +860,8 @@
 
                 document.getElementById('statEmployees2').textContent = t.employee_count.toLocaleString();
                 document.getElementById('statAbove202').textContent = `${t.above_20_years} above 20 years`;
-                document.getElementById('statCurrent2').textContent = fmtK(t.current_total);
+                const currentWithYos = t.current_total + t.current_yos_bonus_total;
+                document.getElementById('statCurrent2').textContent = fmtK(currentWithYos);
                 document.getElementById('statBase2').textContent = fmtK(t.next_base_total);
 
                 const baseIncrease = t.next_base_total - t.current_total;
@@ -896,10 +897,10 @@
             let labels, data, colors, borderColors;
 
             if (baseYosBonusEnabled && summaryData.yos_bonus_enabled) {
-                // Show YOS bonus breakdown
-                labels = ['Current', 'Base (+1 yr)', 'Base + YOS'];
+                // Show YOS bonus breakdown — include current YOS bonus for apples-to-apples
+                labels = ['Current + YOS', 'Base (+1 yr)', 'Base + YOS'];
                 data = [
-                    t.current_total,
+                    t.current_total + t.current_yos_bonus_total,
                     t.next_base_total,
                     t.next_base_total + t.next_yos_bonus_total
                 ];
@@ -1018,44 +1019,48 @@
             const headerRow = document.querySelector('#summaryTableBody').closest('table').querySelector('thead tr');
 
             if (baseYosBonusEnabled && summaryData.yos_bonus_enabled) {
-                // Update header to show YOS bonus column
+                // Update header to show YOS bonus columns for both current and next year
                 headerRow.innerHTML = `
                     <th class="text-left py-3 px-4 font-semibold text-slate-600 bg-slate-50">Category</th>
                     <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Employees</th>
                     <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Avg YOE</th>
-                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current</th>
+                    <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Current + YOS</th>
                     <th class="text-right py-3 px-4 font-semibold text-slate-600 bg-slate-50">Base (+1 yr)</th>
                     <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">YOS Bonus</th>
                     <th class="text-right py-3 px-4 font-semibold text-green-600 bg-green-50">Total w/ YOS</th>
                 `;
 
                 tbody.innerHTML = summaryData.categories.map(c => {
-                    const yosBonus = c.next_yos_bonus_total || 0;
-                    const totalWithYos = c.next_base_total + yosBonus;
+                    const currentYosBonus = c.current_yos_bonus_total || 0;
+                    const nextYosBonus = c.next_yos_bonus_total || 0;
+                    const currentWithYos = c.current_total + currentYosBonus;
+                    const totalWithYos = c.next_base_total + nextYosBonus;
                     return `
                     <tr class="table-row border-b border-slate-100" onclick="filterByCategory('${c.category}')">
                         <td class="py-3 px-4 font-medium text-fls-navy">${c.category.replace('_', ' ')}</td>
                         <td class="py-3 px-4 text-right">${c.employee_count}</td>
                         <td class="py-3 px-4 text-right">${c.avg_yoe}</td>
-                        <td class="py-3 px-4 text-right">${fmt.format(c.current_total)}</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(currentWithYos)}</td>
                         <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(c.next_base_total)}</td>
-                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(yosBonus)}</td>
+                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(nextYosBonus)}</td>
                         <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(totalWithYos)}</td>
                     </tr>
                 `}).join('');
 
                 const t = summaryData.totals;
-                const yosBonusTotal = t.next_yos_bonus_total || 0;
-                const totalWithYos = t.next_base_total + yosBonusTotal;
+                const currentYosBonusTotal = t.current_yos_bonus_total || 0;
+                const nextYosBonusTotal = t.next_yos_bonus_total || 0;
+                const currentWithYosTotal = t.current_total + currentYosBonusTotal;
+                const totalWithYos = t.next_base_total + nextYosBonusTotal;
 
                 tfoot.innerHTML = `
                     <tr>
                         <td class="py-3 px-4">TOTAL</td>
                         <td class="py-3 px-4 text-right">${t.employee_count}</td>
                         <td class="py-3 px-4 text-right">-</td>
-                        <td class="py-3 px-4 text-right">${fmt.format(t.current_total)}</td>
+                        <td class="py-3 px-4 text-right">${fmt.format(currentWithYosTotal)}</td>
                         <td class="py-3 px-4 text-right text-fls-blue">${fmt.format(t.next_base_total)}</td>
-                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(yosBonusTotal)}</td>
+                        <td class="py-3 px-4 text-right text-green-600">+${fmt.format(nextYosBonusTotal)}</td>
                         <td class="py-3 px-4 text-right text-green-600 font-semibold">${fmt.format(totalWithYos)}</td>
                     </tr>
                 `;
