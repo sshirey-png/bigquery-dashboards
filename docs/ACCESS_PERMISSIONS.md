@@ -1,6 +1,6 @@
 # Access Permissions & Authorization Guide — All Projects
 
-**Last Updated:** 2026-02-24
+**Last Updated:** 2026-03-01
 **GCP Project:** talent-demo-482004
 
 ---
@@ -136,6 +136,9 @@ These grant admin-level access to specific dashboards. Membership is controlled 
 | Chief HR Officer |
 | Manager, HR |
 | Manager Payroll |
+| Manager - Benefits |
+| Talent Operations Manager |
+| Recruitment Manager |
 
 #### Schools Team — Schools, Kickboard, Suspensions (admin-level)
 | Job Title |
@@ -617,6 +620,7 @@ These access grants are determined by job title. When someone changes roles, acc
 | Chief HR Officer | HR Team (Tier 1b) | Read + Write | hr | hr | Admin | Network Admin |
 | Manager, HR | HR Team (Tier 1b) | Read | hr | hr | — | — |
 | Manager Payroll | HR Team (Tier 1b) | Read | viewer | viewer | Admin | — |
+| Manager - Benefits | HR Team (Tier 1b) | — | — | — | — | — |
 | Chief Operating Officer | — | Read | finance | — | — | Network Admin |
 | Manager Finance | — | Read | finance | — | — | — |
 | Chief Experience Officer | Schools Team | Read | — | — | — | Network Admin |

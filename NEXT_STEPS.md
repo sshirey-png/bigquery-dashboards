@@ -1,21 +1,13 @@
 # Next Steps — Supervisor Dashboard & Dashboards Project
 
-**Last Updated:** February 27, 2026
-
----
-
-## Immediate — Pick Up Here
-
-### 1. Integrate Position Control as a blueprint
-Position Control is currently a separate Cloud Run service (`position-control-daem7b6ydq-uc.a.run.app`). Plan is to bring it into this app so it shares auth, nav, and deployment.
-- Pull code into `blueprints/position_control.py`
-- Add `get_position_control_access` to `auth.py` — access: C-Team + HR + School Leaders (by job title)
-- Add `position_control_access` flag to auth status endpoint
-- Add to dropdown nav on all dashboards
+**Last Updated:** March 1, 2026
 
 ---
 
 ## Completed Recently
+
+### February 27, 2026
+- **Salary double login fix**: Replaced all 8 plain `fetch()` calls in `salary-dashboard.html` with `apiFetch()` wrapper — missing `credentials: 'include'` caused session cookies to not be sent, forcing a second login
 
 ### February 26, 2026
 - **Deploy script hardening**: `~/deploy.sh` now parses env vars via JSON/Python with `.strip()` and pipes through `tr -d '\r'` — prevents `\r` carriage returns from corrupting OAuth credentials on Windows deploys
@@ -67,6 +59,7 @@ Position Control is currently a separate Cloud Run service (`position-control-da
 
 ## Backlog
 
+- **Integrate Staffing Board** — bring the separate `position-control` Cloud Run service into this app (shared auth, nav, deployment)
 - **Custom Domain** — supervisordashboard.firstlineschools.org (waiting on IT for DNS)
 - **Export to CSV/Excel** — download team data
 - **Email Notifications** — alert supervisors when staff need action

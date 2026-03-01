@@ -3,6 +3,20 @@ ldg_config.py
 *.json
 !package.json
 
+# Claude Code (hooks, session state, settings)
+.claude/
+
+# Environment files
+.env
+.env.*
+.env-backup/
+
+# Credential patterns
+*credentials*
+*secret*
+*.key
+*.pem
+
 # Python
 __pycache__/
 *.py[cod]
@@ -18,6 +32,11 @@ logs/
 .vscode/
 .idea/
 
+# One-time import files
+*.csv
+*.pdf
+
 # OS
 .DS_Store
 Thumbs.db
+nul

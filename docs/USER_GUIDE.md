@@ -260,6 +260,9 @@ Some dashboards grant admin access based on job title. Access transfers automati
 | Chief HR Officer |
 | Manager, HR |
 | Manager Payroll |
+| Manager - Benefits |
+| Talent Operations Manager |
+| Recruitment Manager |
 
 #### Schools Team — Schools, Kickboard, Suspensions (admin-level)
 | Job Title |

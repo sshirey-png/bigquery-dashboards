@@ -55,52 +55,45 @@ Due to Windows timestamp issues, deploy using temp directory:
 # Copy files to temp dir with fresh timestamps, then deploy from there
 ```
 
-## Last Session: February 13, 2026 — Nav Dropdowns, Cert CSV, OAuth Fix
+## Last Session: February 27, 2026 — Salary Double Login Fix
 
 ### What was done
-- **Dropdown nav (Phase 1 complete)**: Both Supervisor and HR dashboards now have role-aware "Dashboards" dropdown
-  - HR dropdown: Supervisor, Staff List, Schools (if access), Salary (if access), Org Chart
-  - Supervisor dropdown: HR View (if access), Staff List, Schools/Kickboard/Suspensions/Salary (if access), Org Chart
-  - Data Portal moved from big orange button into dropdown on both dashboards
-  - Search bar widened (`flex-1`) with filter buttons on the right
-- **Non-supervisor redirect**: Users with no supervisor access but HR access auto-redirect from `/` to `/hr-dashboard`
-- **Certification CSV**: Replaced Google Sheets-backed `state_certification_list` with CSV upload to `state_certification_list_native`. Old external table deleted. Scheduled query should be disabled.
-- **OAuth fix**: `invalid_client` error caused by hidden `\r` characters in Cloud Run env vars. Fixed by re-setting env vars cleanly on both services with `gcloud run services update --update-env-vars`.
-- Fixed Staff List route: `/staff-list-dashboard` (not `/staff-list`)
-
-### Known issue
-- Deploy script (`~/deploy.sh`) may introduce `\r` carriage returns into env vars on Windows, corrupting OAuth credentials. Needs hardening.
+- **Salary double login fix**: Replaced all 8 plain `fetch()` calls in `salary-dashboard.html` with `apiFetch()` wrapper — session cookies were missing (`credentials: 'include'`), forcing users to log in twice
 
 ### Next steps
-1. Roll out dropdown nav to remaining 6 dashboards (Schools, Kickboard, Suspensions, Salary, Staff List, Org Chart)
-2. Integrate Position Control into this app as a blueprint (currently separate Cloud Run service)
-   - Access: C-Team + HR + School Leaders (by job title)
-   - Add `get_position_control_access` to `auth.py`
-3. Harden deploy script to strip `\r` from env vars
-   - Add `position_control_access` flag to auth status endpoint
-   - Add to dropdown nav on all dashboards
+- See NEXT_STEPS.md for current backlog
 
-## Previous Session: January 19, 2026 (Evening)
-- Added certification badges for teachers and leaders (not network staff)
-- Orange "C" badge appears next to certified staff names
-- Click badge to see popup with all certifications (active and expired)
-- New BigQuery dataset: `talent_certification` with native tables:
-  - `staff_list_LASID_native` - Staff with LASID identifiers
-  - `state_certification_list_native` - State certification records
-- New views: `certification_summary_native`, `staff_with_certifications_native`, `staff_certifications_detail_native`
-- New API endpoints: `/api/cert-status` (all certified teachers/leaders), `/api/cert-detail/<email>` (individual details)
-- Certification data refreshed monthly (manual upload)
+## Previous Sessions
 
-## Previous Session: January 19, 2026 (Morning)
-- Removed NPS column from main staff table
-- Added clickable Intent to Return popup with detailed survey responses
-- New API endpoint: `/api/itr-detail/<email>` queries `intent_to_return_native` table
-- ITR popup shows: intent status, NPS score, decision factors, culture feedback, retention suggestions
-- Important: Use native tables (not views) to avoid Google Sheets permission issues
+### February 26, 2026
+- **Deploy script hardening**: `~/deploy.sh` now parses env vars via JSON/Python with `.strip()` and pipes through `tr -d '\r'` — prevents `\r` from corrupting OAuth credentials on Windows
+- Added Talent Operations Manager and Recruitment Manager to HR team titles
+- Fixed column name bug in `_check_employee_access`
+- Auto-retry OAuth on CSRF error + auth check timeout
+- Build version auto-reload and `apiFetch` wrapper across all dashboards
 
-## Previous Session: January 17, 2026
-- Converted 5 external tables to native BigQuery tables
-- Set up hourly scheduled refreshes in BigQuery
-- Fixed Employment Status to include "Leave of Absence" employees
-- Redesigned UI to match FirstLine Schools branding (logo, colors, fonts)
-- Added Google OAuth authentication with domain restriction
+### February 19, 2026
+- **Assessment Fidelity on Schools Dashboard**: Completion % and Mastery % columns sourced from actual class rosters
+- School-level summary table with color-coded metrics, teacher detail modal, student drill-down
+- Bottom 25th percentile highlighting (amber "B25" badge)
+- SPED co-teacher virtual roster support (inclusion sections)
+- New API endpoints: `/api/schools/assessment-fidelity`, `/api/schools/assessment-students`
+
+### February 14, 2026
+- Dropdown nav rolled out to all remaining dashboards (Schools, Kickboard, Suspensions, Salary, Staff List)
+- Salary dashboard: added Standard column, fixed custom scenario bugs
+
+### February 13, 2026
+- Dropdown nav Phase 1: Supervisor and HR dashboards got role-aware "Dashboards" dropdown
+- Non-supervisor HR users auto-redirect from `/` to `/hr-dashboard`
+- Certification CSV upload replaced Google Sheets-backed table
+- OAuth `invalid_client` fix (hidden `\r` in Cloud Run env vars)
+
+### January 19, 2026
+- Certification badges for teachers/leaders (orange "C" badge with popup)
+- Intent to Return popup with survey details, removed NPS column from main table
+
+### January 17, 2026
+- Native BigQuery tables with hourly refresh
+- FirstLine Schools branding (logo, colors, fonts)
+- Google OAuth authentication with domain restriction
