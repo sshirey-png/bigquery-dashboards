@@ -20,6 +20,7 @@ The FirstLine Schools Dashboard System is a web-based platform that provides sta
 | Org Chart | `/orgchart` | Visual organization hierarchy |
 | Staff List | `/staff-list-dashboard` | Customizable, filterable staff directory |
 | Salary Projection | `/salary-dashboard` | Salary modeling and scenario planning |
+| Staffing Board | [Separate app](https://position-control-965913991496.us-central1.run.app) | View and manage all staffing positions |
 | Position Control | `/position-control-dashboard` | Manage position control form requests and approvals |
 | Onboarding | `/onboarding-dashboard` | Track and manage new hire onboarding submissions |
 
@@ -282,6 +283,7 @@ Some dashboards grant admin access based on job title. Access transfers automati
 | **Kickboard** | Named list + Job title + Org hierarchy + ACL | CPO + Schools Team + School Leaders (by title) + Supervisors (by org chart) + ACL grants |
 | **Suspensions** | Named list + Job title | CPO + Schools Team + School Leaders (by title) |
 | **Salary** | Job title only | C-Team (title contains "Chief" or "Ex. Dir") |
+| **Staffing Board** | Job title | C-Team + School Directors + HR/Finance/Talent titles (read); Talent team (write) |
 | **Position Control** | Named list | PCF role holders (see Position Control section) |
 | **Onboarding** | Named list | Onboarding role holders (see Onboarding section) |
 | **Staff List** | Open | All @firstlineschools.org users |
@@ -293,10 +295,11 @@ Every dashboard has a "Dashboards" dropdown that shows only the dashboards you c
 
 | Role | Dashboards Visible |
 |------|--------------------|
-| CPO | All 10: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Position Control, Onboarding, Org Chart |
-| HR Team | Supervisor, HR, Staff List, Position Control, Onboarding, Org Chart |
-| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary if their title qualifies as C-Team) |
-| C-Team (by title) | +Salary (in addition to whatever other access they have) |
+| CPO | All 11: Supervisor, HR, Staff List, Schools, Kickboard, Suspensions, Salary, Staffing Board, Position Control, Onboarding, Org Chart |
+| HR Team | Supervisor, HR, Staff List, Staffing Board, Position Control, Onboarding, Org Chart |
+| Schools Team | Supervisor, Staff List, Schools, Kickboard, Suspensions, Org Chart (+Salary, +Staffing Board if their title qualifies as C-Team) |
+| C-Team (by title) | +Salary, +Staffing Board (in addition to whatever other access they have) |
+| School Directors (by title) | Supervisor, Staff List, Staffing Board, Org Chart |
 | School Leaders (by title) | Supervisor, Staff List, Kickboard, Suspensions, Org Chart (+Schools if their title qualifies) |
 | Supervisors (by org chart) | Supervisor, Staff List, Org Chart (+Kickboard if they have downline staff) |
 | All Staff | Supervisor, Staff List, Org Chart |
@@ -389,7 +392,34 @@ You need one of:
 
 ---
 
-## 7. Position Control Dashboard
+## 7. Staffing Board
+
+**Note:** The Staffing Board is a separate app from the main dashboard system. It is linked from the "Dashboards" dropdown in the nav bar for users who have access.
+
+**URL:** https://position-control-965913991496.us-central1.run.app
+
+### Who Can Access
+
+Access is determined by job title — no hardcoded email lists.
+
+**Read access** (view all positions, filter, search):
+- C-Team — job title contains "Chief" or "Ex. Dir" (case-insensitive)
+- School Director, Manager HR, Manager Payroll, Manager Finance, Talent Operations Manager, Recruitment Manager
+
+**Write access** (add, edit, delete positions):
+- Chief People Officer, Chief HR Officer, Talent Operations Manager, Recruitment Manager
+
+### What You See
+- All staffing positions across the network
+- Filter and search by school, position type, status
+- Position details including title, school, status, and funding
+
+### How It Relates to Position Control
+School leaders submit position requests via the **Position Control Form** (standalone app). Those requests are reviewed and approved on the **Position Control Dashboard** (Section 8). Once fully approved, the Talent team creates the position on the **Staffing Board**, where it appears as an open position for the current or next school year.
+
+---
+
+## 8. Position Control Dashboard (PCF Approvals)
 
 ### Who Can Access
 Position Control has its own role system (separate from the main admin list):
@@ -426,7 +456,7 @@ Position Control has its own role system (separate from the main admin list):
 
 ---
 
-## 8. Onboarding Dashboard
+## 9. Onboarding Dashboard
 
 ### Who Can Access
 Onboarding has its own role system:
@@ -458,7 +488,7 @@ Onboarding has its own role system:
 
 ---
 
-## 9. Suspensions Dashboard
+## 10. Suspensions Dashboard
 
 ### Who Can Access
 

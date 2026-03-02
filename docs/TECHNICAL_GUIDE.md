@@ -216,20 +216,44 @@ The application runs on **Google Cloud Run** in the `talent-demo-482004` project
 
 ### Deployment Command
 
-From the project directory:
+Always use the deploy script — it preserves env vars (OAuth secrets, SMTP credentials) that would otherwise be lost:
+
 ```bash
-gcloud run deploy supervisor-dashboard \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated
+~/deploy.sh supervisor    # Deploy supervisor-dashboard
+~/deploy.sh dashboards    # Deploy bigquery-dashboards
 ```
 
+**Never use raw `gcloud run deploy`** — it doesn't carry over env vars from the live service, which can wipe OAuth credentials and break the app.
+
+The deploy script:
+1. Reads env vars from the live Cloud Run service
+2. Backs them up to `~/.env-backup/<service>.env`
+3. Builds and deploys with env vars baked into the new revision
+4. Verifies env var count matches after deploy
+5. Auto-restores from backup if something goes wrong
+
+All services and their shortcuts:
+
+| Shortcut | Cloud Run Service | Source Directory |
+|----------|-------------------|-----------------|
+| `dashboards` | bigquery-dashboards | ~/bigquery-dashboards |
+| `supervisor` | supervisor-dashboard | ~/bigquery-dashboards |
+| `itr` | itr-dashboard | ~/itr-dashboard-repo |
+| `referral` | staff-referral-program | ~/referral-program |
+| `impact-bonus` | impact-bonus | ~/impact-bonus |
+| `sabbatical` | sabbatical-program | ~/sabbatical-program |
+| `salary` | salary-calculator | ~/salary-scale |
+| `position-control` | position-control | ~/position-control-repo |
+| `pcf` | position-control-form | ~/position-control-form |
+| `onboarding` | onboarding-form | ~/onboarding-form |
+
 ### What Happens During Deployment
-1. Google Cloud builds a Docker container from your code
-2. The container is pushed to Google Container Registry
-3. Cloud Run creates a new revision
-4. Traffic is routed to the new revision
-5. Old revisions are kept (can rollback if needed)
+1. Deploy script reads and backs up env vars from the live service
+2. Google Cloud builds a Docker container from your code
+3. The container is pushed to Google Container Registry
+4. Cloud Run creates a new revision with env vars baked in
+5. Traffic is routed to the new revision
+6. Deploy script verifies env vars survived
 
 ### Deployment Takes ~3-5 Minutes
 You'll see progress output. When done:
@@ -778,8 +802,16 @@ This application is designed to be easily migrated to a different GCP project. A
 ### Common Commands
 
 ```bash
-# Deploy
-gcloud run deploy supervisor-dashboard --source . --region us-central1 --allow-unauthenticated
+# Deploy (always use deploy.sh — never raw gcloud run deploy)
+~/deploy.sh supervisor       # Deploy supervisor-dashboard
+~/deploy.sh dashboards       # Deploy bigquery-dashboards
+~/deploy.sh all              # Deploy all 10 services
+
+# Other deploy.sh commands
+~/deploy.sh list             # Show all services and directories
+~/deploy.sh env supervisor   # Show env vars for a service
+~/deploy.sh backup           # Backup all env vars locally
+~/deploy.sh restore itr      # Restore env vars from backup
 
 # View logs
 gcloud run logs read supervisor-dashboard --region us-central1
