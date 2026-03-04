@@ -196,6 +196,32 @@ def get_team_staff():
                     AND observed_at >= '{CURRENT_SY_START}'
                 )
                 GROUP BY teacher_internal_id
+            ),
+            last_published_obs AS (
+                SELECT
+                    teacher_internal_id,
+                    observation_type as last_published_type,
+                    observed_at as last_published_date
+                FROM (
+                    SELECT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        ROW_NUMBER() OVER (PARTITION BY teacher_internal_id ORDER BY observed_at DESC) as rn
+                    FROM (
+                        SELECT DISTINCT
+                            teacher_internal_id,
+                            observation_type,
+                            observed_at,
+                            observer_name,
+                            rubric_form
+                        FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                        WHERE teacher_internal_id IS NOT NULL
+                        AND is_published = 1
+                        AND observed_at >= '{CURRENT_SY_START}'
+                    )
+                )
+                WHERE rn = 1
             )
             SELECT
                 s.Employee_Number,
@@ -217,14 +243,14 @@ def get_team_staff():
                 s.sick_hours_left,
                 s.total_goals,
                 COALESCE(poc.total_published, 0) as total_observations,
-                s.last_observation_date,
+                COALESCE(lpo.last_published_date, s.last_observation_date) as last_observation_date,
                 COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
                 COALESCE(poc.sr2_finalized, 0) as self_reflection_2_count,
                 COALESCE(poc.pmap1_finalized, 0) as pmap_1_count,
                 COALESCE(poc.pmap2_finalized, 0) as pmap_2_count,
                 s.iap_count,
                 s.writeup_count,
-                s.last_observation_type,
+                COALESCE(lpo.last_published_type, s.last_observation_type) as last_observation_type,
                 s.intent_to_return,
                 s.intent_response_status,
                 s.nps_score,
@@ -248,6 +274,8 @@ def get_team_staff():
                 ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
             LEFT JOIN published_obs_counts poc
                 ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            LEFT JOIN last_published_obs lpo
+                ON s.Employee_Number = CAST(lpo.teacher_internal_id AS INT64)
             LEFT JOIN sabbatical_apps sab
                 ON LOWER(s.Email_Address) = sab.employee_email
             WHERE s.Supervisor_Name__Unsecured_ IN UNNEST(@supervisors)
@@ -438,6 +466,32 @@ def get_staff(supervisor_name):
                     AND observed_at >= '{CURRENT_SY_START}'
                 )
                 GROUP BY teacher_internal_id
+            ),
+            last_published_obs AS (
+                SELECT
+                    teacher_internal_id,
+                    observation_type as last_published_type,
+                    observed_at as last_published_date
+                FROM (
+                    SELECT
+                        teacher_internal_id,
+                        observation_type,
+                        observed_at,
+                        ROW_NUMBER() OVER (PARTITION BY teacher_internal_id ORDER BY observed_at DESC) as rn
+                    FROM (
+                        SELECT DISTINCT
+                            teacher_internal_id,
+                            observation_type,
+                            observed_at,
+                            observer_name,
+                            rubric_form
+                        FROM `{PROJECT_ID}.{DATASET_ID}.observations_raw_native`
+                        WHERE teacher_internal_id IS NOT NULL
+                        AND is_published = 1
+                        AND observed_at >= '{CURRENT_SY_START}'
+                    )
+                )
+                WHERE rn = 1
             )
             SELECT
                 s.Employee_Number,
@@ -459,14 +513,14 @@ def get_staff(supervisor_name):
                 s.sick_hours_left,
                 s.total_goals,
                 COALESCE(poc.total_published, 0) as total_observations,
-                s.last_observation_date,
+                COALESCE(lpo.last_published_date, s.last_observation_date) as last_observation_date,
                 COALESCE(poc.sr1_finalized, 0) as self_reflection_1_count,
                 COALESCE(poc.sr2_finalized, 0) as self_reflection_2_count,
                 COALESCE(poc.pmap1_finalized, 0) as pmap_1_count,
                 COALESCE(poc.pmap2_finalized, 0) as pmap_2_count,
                 s.iap_count,
                 s.writeup_count,
-                s.last_observation_type,
+                COALESCE(lpo.last_published_type, s.last_observation_type) as last_observation_type,
                 s.intent_to_return,
                 s.intent_response_status,
                 s.nps_score,
@@ -490,6 +544,8 @@ def get_staff(supervisor_name):
                 ON LOWER(s.Email_Address) = LOWER(sml.Email_Address)
             LEFT JOIN published_obs_counts poc
                 ON s.Employee_Number = CAST(poc.teacher_internal_id AS INT64)
+            LEFT JOIN last_published_obs lpo
+                ON s.Employee_Number = CAST(lpo.teacher_internal_id AS INT64)
             LEFT JOIN sabbatical_apps sab
                 ON LOWER(s.Email_Address) = sab.employee_email
             WHERE s.Supervisor_Name__Unsecured_ = @supervisor
@@ -661,6 +717,7 @@ def get_cert_status():
                 OR Title LIKE '%Dean%'
                 OR Title LIKE '%Director%'
                 OR Title LIKE '%Content Lead%'
+                OR Title LIKE '%Coordinator%'
             )
         """
 

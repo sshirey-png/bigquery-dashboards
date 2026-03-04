@@ -152,6 +152,8 @@ Job title **contains** "Chief" or "Ex. Dir" (case-insensitive). Checked in `auth
 - Never use `gcloud run deploy` directly — the deploy script handles env vars and Windows `\r` stripping
 
 ## Rules
+- **NEVER recommend deleting tables, scheduled queries, or infrastructure without first verifying nothing depends on them** — trace the full data flow (what feeds it, what reads from it) before suggesting any deletion
+- Never guess or assume — if unsure, ask Scott first
 - Never hardcode email addresses for access control — use job titles and roles
 - Never commit credentials (`.gitignore` blocks `.env`, `*credentials*`, `*.json`)
 - All API endpoints return JSON; HTML pages are served as static files with JS fetching data
