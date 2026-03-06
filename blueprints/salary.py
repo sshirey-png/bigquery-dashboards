@@ -410,7 +410,8 @@ def get_employees():
         yos_bonus_formula_next = "0"
 
     # Build custom salary formulas if in custom mode
-    if custom_mode and (annual_increase > 0 or teacher_hybrid or teacher_50k or yos_bonus):
+    has_custom_base = (base_para and base_para != '28850') or (base_asst and base_asst != '31900') or (base_teacher and base_teacher != '48000')
+    if custom_mode and (annual_increase > 0 or teacher_hybrid or teacher_50k or yos_bonus or has_custom_base):
         base_para = float(base_para) if base_para else 28850
         base_asst = float(base_asst) if base_asst else 31900
         base_teacher = float(base_teacher) if base_teacher else 48000
@@ -420,19 +421,19 @@ def get_employees():
 
         # Para formula
         if para_schedule:
-            para_next_formula = "next.paraprofessional"
+            para_next_formula = "next_capped.paraprofessional"
         else:
             para_next_formula = f"{base_para} * POWER({rate}, s.next_year_step)"
 
         # Asst formula
         if asst_schedule:
-            asst_next_formula = "next.asst_teacher"
+            asst_next_formula = "next_capped.asst_teacher"
         else:
             asst_next_formula = f"{base_asst} * POWER({rate}, s.next_year_step)"
 
         # Teacher formula
         if teacher_schedule:
-            teacher_next_formula = "next.teacher"
+            teacher_next_formula = "next_capped.teacher"
         elif teacher_50k:
             # Use the $50K schedule lookup table
             schedule_cases = " ".join([f"WHEN s.next_year_step = {i} THEN {v}" for i, v in enumerate(TEACHER_50K_SCHEDULE)])
@@ -785,7 +786,8 @@ def custom_scenario():
         yos_bonus_formula = "0"
 
     # Check if any category needs custom calculation
-    any_custom = (not para_schedule or not asst_schedule or not teacher_schedule) and annual_increase > 0
+    has_custom_base = (base_para and base_para != '28850') or (base_asst and base_asst != '31900') or (base_teacher and base_teacher != '48000')
+    any_custom = (not para_schedule or not asst_schedule or not teacher_schedule) and (annual_increase > 0 or has_custom_base)
 
     # If custom bases provided, calculate dynamically
     if any_custom or teacher_hybrid or teacher_50k or yos_bonus:
